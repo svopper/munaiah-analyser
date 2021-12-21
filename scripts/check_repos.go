@@ -57,7 +57,7 @@ func flattenArrary(arr [][]string) []string {
 }
 
 func getVisited() []string {
-	file, err := os.Open("./visited.txt")
+	file, err := os.Open("../visited.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +71,7 @@ func getVisited() []string {
 }
 
 func writeVisited(record string) {
-	file, err := os.OpenFile("./visited.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+	file, err := os.OpenFile("../visited.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 	defer file.Close()
 	if err != nil {
 		panic(err)
@@ -102,7 +102,7 @@ func exists(strings []string, e string) bool {
 
 // readGithubTokens reads the github tokens from a file.
 func readGithubTokens() []string {
-	f, err := os.Open("./tokens.secret")
+	f, err := os.Open("../tokens.secret")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func decodeBase64(data string) string {
 
 // writeToFile writes the content to the file.
 func writeToFile(record string, file fileInfo) {
-	f, err := os.OpenFile(fmt.Sprintf("./out/%s/%s", record, transformFileName(file.Path)),
+	f, err := os.OpenFile(fmt.Sprintf("../out/%s/%s", record, transformFileName(file.Path)),
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 	if err != nil {
 		panic(err)
@@ -222,7 +222,7 @@ func writeToFile(record string, file fileInfo) {
 
 // createdDirectory creates the directory from a given path - absolute or relateive - if it doesn't exist.
 func createDirectory(dir string) {
-	path := filepath.Join("./out", dir)
+	path := filepath.Join("../out", dir)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.MkdirAll(path, 0777)
 	}
@@ -276,7 +276,7 @@ func crawl(records []string, token string) {
 // program starts here.
 func main() {
 	tokens := readGithubTokens()
-	records := parseCsv("repos.csv")
+	records := parseCsv("../repos.csv")
 	visitedRepos := getVisited()
 	recordsFlat := flattenArrary(records)
 	recordsToVisit := filterRecords(recordsFlat, visitedRepos)

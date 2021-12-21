@@ -14,7 +14,7 @@ func main() {
 
 	count := 0
 	for _, f := range folders {
-		subfolders, _ := os.ReadDir("./out/" + f.Name())
+		subfolders, _ := os.ReadDir("../out/" + f.Name())
 		count += len(subfolders)
 	}
 	fmt.Println(count)
