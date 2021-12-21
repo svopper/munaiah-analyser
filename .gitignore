@@ -1,3 +1,4 @@
 dataset.csv
-.ipynp_checkpoints/
+.ipynb_checkpoints/
 *.secret
+__pycache__/
