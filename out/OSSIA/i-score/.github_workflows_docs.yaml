@@ -1,0 +1,60 @@
+name: Documentation build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  docs:
+    name: Generate doxygen documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install git
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq --force-yes git doxygen binutils gcc-10 g++-10 clang-10 clang++-10 \
+            libasound-dev \
+            libfftw3-dev \
+            libsuil-dev liblilv-dev lv2-dev \
+            qtbase5-dev qtdeclarative5-dev libqt5serialport5-dev libqt5websockets5-dev libqt5opengl5-dev \
+            qtbase5-private-dev qtdeclarative5-private-dev \
+            libbluetooth-dev libsdl2-dev libsdl2-2.0-0 \
+            libglu1-mesa-dev libglu1-mesa libgles2-mesa-dev \
+            libavahi-compat-libdnssd-dev libsamplerate0-dev \
+            portaudio19-dev \
+            libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libavformat-dev libswresample-dev \
+            libclang-10-dev libboost-dev cmake
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Configure
+        run: |
+          mkdir configure
+          mkdir docs/Doxygen/headers
+          cd configure
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_C_COMPILER=/usr/bin/clang-10 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-10
+          find . -name '*.h' -exec mv {} ../docs/Doxygen/headers/ \;
+          find . -name '*.hpp' -exec mv {} ../docs/Doxygen/headers/ \;
+
+      - name: Build docs
+        run: |
+          (cd docs/Doxygen ; doxygen > doxygen.log)
+          pwd
+          ls
+          mkdir build
+          ls docs/Doxygen
+          mv docs/Doxygen/output/html/* build/
+          touch build/.nojekyll
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@4.1.1
+        with:
+          repository-name: ossia/score-api-docs
+          token: ${{ secrets.API_TOKEN_GITHUB }}
+          branch: gh-pages
+          folder: build

@@ -1,0 +1,34 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7.4
+    - name: Install SQLite
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsqlite3-dev
+    - name: Cache gems
+      uses: actions/cache@v1
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gem1-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gem1-
+    - name: Build
+      run: |
+        gem install bundler
+        bundle config path vendor/bundle
+        bundle install --without production --jobs 4 --retry 3
+    - name: Test
+      run: bundle exec rake test
+      env:
+        PARALLEL_WORKERS: 1

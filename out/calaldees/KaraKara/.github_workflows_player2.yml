@@ -1,0 +1,20 @@
+name: Player2
+
+on:
+  push:
+    paths:
+    - 'player2/**'
+
+jobs:
+  publish:
+    name: Docker Push
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: karakara/player2
+        workdir: player2
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}

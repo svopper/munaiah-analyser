@@ -1,0 +1,23 @@
+name: build test
+
+on: [ pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+
+      - name: Run npm install
+        run: npm install
+
+      - name: Run npm test
+        run: npm test
+
+      - name: Run dev build
+        run: npm run build

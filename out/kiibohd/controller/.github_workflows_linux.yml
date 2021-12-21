@@ -1,0 +1,113 @@
+name: Linux Build Environment
+
+on: [push, pull_request]
+
+env:
+  PIPENV_ACTIVE: 1
+  deb_packages: >-
+    binutils-arm-none-eabi
+    dfu-util
+    exuberant-ctags
+    gcc-arm-none-eabi
+    ninja-build
+    python3-setuptools
+    tree
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ env.deb_packages }}
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards
+      run: ./ic_keyboards.bash
+    - uses: actions/upload-artifact@v1
+      if: always()
+      with:
+        name: Firmware
+        path: Keyboards
+
+  firmware-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ env.deb_packages }} libubsan0
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Test
+      working-directory: Keyboards
+      run: DisableSanitizer=true EnableHostOnlyBuild=true HostTest=kll.py ./ic_keyboards.bash
+
+  other-firmware:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ env.deb_packages }}
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards/Others
+      run: ./others.bash
+
+  test-builds:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ env.deb_packages }} libubsan0
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards/Testing
+      run: DisableSanitizer=true ./all_tests.bash
+
+  bootloaders:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ env.deb_packages }}
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Bootloader/Builds
+      run: ./all.bash
+    - uses: actions/upload-artifact@v1
+      if: always()
+      with:
+        name: Bootloaders
+        path: Bootloader/Builds
+
+# dockerfiles:
+#   runs-on: ubuntu-latest
+#   steps:
+#   - uses: actions/checkout@v2
+#   - name: Build
+#     working-directory: Dockerfiles
+#     run: ./all.bash

@@ -1,0 +1,33 @@
+name: pre-commit
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          # Using 3.8 for now because core dependencies (e.g. numpy) are missing wheel builds for
+          # 3.9, and we get errors while building the wheels from a source install.
+          python-version: 3.8
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Install dependencies in a venv
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
+          pip install --progress-bar=off .[all,reports,testing]
+
+      - name: Lint
+        run: |
+          . venv/bin/activate
+          make lint

@@ -1,0 +1,22 @@
+name: CI
+on: [pull_request,push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        puppet: ['5.5.22', '6.22.1', '7.7.0']
+    env:
+      PUPPET_VERSION: ${{ matrix.puppet }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+      - name: Run tests
+        run: bundle exec rake test
+      - name: Acceptance test
+        run: BEAKER_setfile=spec/acceptance/nodesets/ubuntu-1804-x64.yml BEAKER_PUPPET_COLLECTION=puppet6 bundle exec rake acceptance
+        if: ${{ matrix.puppet == '6.22.1' }}

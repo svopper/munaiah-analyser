@@ -1,0 +1,17 @@
+name: Pull requests
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+      - 'main'
+
+concurrency:
+  group: pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    uses: s4u/.github/.github/workflows/maven-pr.yml@master
+

@@ -1,0 +1,190 @@
+name: ci-checks
+
+on: [pull_request]
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-20.04
+
+    services:
+      postgres:
+        image: postgres:12-alpine
+        env:
+          POSTGRES_USER: hawc
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: hawc
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+        - 5432/tcp
+      redis:
+        image: redis:6-alpine
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+          - 6379/tcp
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        architecture: 'x64'
+    - name: try to restore pip cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: loc
+      run: |
+        sudo apt-get install -y cloc
+        make loc
+    - name: install
+      run: |
+        mv tests/data/ci-webpack-stats.json hawc/webpack-stats.json
+        pip install -U pip wheel
+        pip install -r requirements/dev.txt
+    - name: lint
+      run: |
+        make lint-py
+    - name: test
+      env:
+        # use localhost for the host here because we are running the job on the VM.
+        # If we were running the job on in a container this would be postgres
+        DJANGO_DB_NAME: hawc
+        DJANGO_DB_USER: hawc
+        DJANGO_DB_PW: password
+        DJANGO_DB_HOST: localhost
+        DJANGO_CACHE_LOCATION: redis://localhost:${{job.services.redis.ports[6379]}}/0
+        DJANGO_DB_PORT: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
+        PUBMED_API_KEY: ${{ secrets.PUBMED_API_KEY }}
+      run: |
+        py.test --vcr-record=none
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '16.x'
+    - name: set yarn cache directory
+      id: yarn-cache-dir-path
+      run: |
+        echo "::set-output name=dir::$(yarn cache dir)"
+    - name: try to restore yarn cache
+      uses: actions/cache@v2
+      id: yarn-cache
+      with:
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+    - name: install
+      run: |
+        yarn --cwd ./frontend install
+    - name: lint
+      run: |
+        make lint-js
+    - name: test
+      run: |
+        npm --prefix ./frontend run test
+    - name: build for integration tests
+      run: |
+        npm --prefix ./frontend run build
+    - name: Upload webpack build
+      uses: actions/upload-artifact@v2
+      with:
+        name: webpack-build
+        path: |
+          hawc/webpack-stats.json
+          hawc/static/bundles/
+
+  integration:
+    name: integration
+    needs: [backend, frontend]
+    runs-on: ubuntu-20.04
+
+    container:
+      image: python:3.9-slim
+      options: --network-alias container
+
+    services:
+      postgres:
+        image: postgres:12-alpine
+        env:
+          POSTGRES_USER: hawc
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: hawc
+        ports:
+        - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+      selenium-server:
+        # ERR_INSUFFICIENT_RESOURCES is raised if Chrome is used,
+        # so we use Firefox instead. Chrome can only handle so many
+        # async requests, and since the developmental webpack does not
+        # take into consideration these restrictions and  it isn't being
+        # served locally, there are errors.
+        # Similar issue with relevant answer:
+        # https://community.atlassian.com/t5/Jira-questions/Im-getting-Failed-to-load-resource-net-ERR-INSUFFICIENT/qaq-p/1153027
+        # Developmental webpack:
+        # https://webpack.js.org/configuration/mode/#mode-development
+        image: selenium/standalone-firefox:latest
+        ports:
+        - 4444:4444
+
+    env:
+      DJANGO_DB_HOST: postgres
+      DJANGO_DB_NAME: hawc
+      DJANGO_DB_PORT: 5432
+      DJANGO_DB_PW: password
+      DJANGO_DB_USER: hawc
+      HAWC_INTEGRATION_TESTS: 1
+      BROWSER: firefox
+      LIVESERVER_HOST: container
+      LIVESERVER_PORT: 8000
+      PUBMED_API_KEY: ${{ secrets.PUBMED_API_KEY }}
+      SELENIUM_HOST: selenium-server
+      SELENIUM_PORT: 4444
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: try to restore pip cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Download webpack build
+      uses: actions/download-artifact@v2
+      with:
+        name: webpack-build
+        path: hawc
+    - name: install hawc
+      run: |
+        pip install -U pip
+        pip install -r requirements/dev.txt
+    # https://github.community/t/how-to-retry-a-failed-step-in-github-actions-workflow/125880
+    - name: run selenium tests
+      id: test
+      continue-on-error: true
+      run: |
+        py.test -sv tests/frontend/integration/
+    - name: run selenium tests (retry)
+      if: steps.test.outcome=='failure'
+      id: retry
+      continue-on-error: true
+      run: |
+        py.test -sv tests/frontend/integration/
+    - name: set status
+      if: always()
+      run: |
+        if ${{ steps.test.outcome=='success' || steps.retry.outcome=='success' }}; then
+          echo success!
+        else
+          exit 1
+        fi

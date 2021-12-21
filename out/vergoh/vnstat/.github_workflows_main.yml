@@ -1,0 +1,141 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # one scheduled build on the first day of every month at 3:05
+    - cron: '5 3 1 * *'
+
+jobs:
+  ubuntu:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
+        compiler: [gcc, clang]
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: ${{ matrix.compiler }}
+      CFLAGS: "${{ matrix.compiler == 'gcc' && '-Wall -Wextra -O2' || '-Weverything -Wno-padded' }}"
+      CPARAMS: "${{ matrix.compiler == 'gcc' && '--enable-werror' || ' ' }}"
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: dependencies
+        run: sudo make -f .github/Makefile.CI dependencies_ubuntu
+
+      - name: configure
+        run: |
+          $CC --version
+          ./configure $CPARAMS
+
+      - name: make check
+        run: make check || ( cat test.log test-suite.log ; exit 1 )
+
+      - name: version
+        run: |
+          ./vnstat --version
+          ./vnstatd --version
+          ./vnstati --version
+
+  ubuntu_clang_sanitizers:
+    runs-on: ubuntu-20.04
+    env:
+      CC: clang
+      CFLAGS: '-Wall -Wextra -O1 -g -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=undefined -fsanitize=nullability -fsanitize=implicit-conversion -fsanitize=integer -fsanitize=float-divide-by-zero -fsanitize=local-bounds'
+      ASAN_OPTIONS: strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1
+      UBSAN_OPTIONS: print_stacktrace=1:print_summary=1:halt_on_error=1
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: dependencies
+        run: sudo make -f .github/Makefile.CI dependencies_ubuntu
+
+      - name: configure
+        run: |
+          $CC --version
+          ./configure --enable-werror
+
+      - name: make check
+        run: make check || ( cat test.log test-suite.log ; exit 1 )
+
+      - name: version
+        run: |
+          ./vnstat --version
+          ./vnstatd --version
+          ./vnstati --version
+
+      - name: verify log
+        run: grep -iP 'sanitizer|runtime error' check_vnstat.log && exit 1 || true
+
+  ubuntu_clang_analyzer:
+    runs-on: ubuntu-20.04
+    env:
+      CC: clang
+      CFLAGS: '-Wall -Wextra'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: dependencies
+        run: sudo make -f .github/Makefile.CI dependencies_ubuntu_analyzer
+
+      - name: configure
+        run: |
+          $CC --version
+          scan-build -analyze-headers --status-bugs ./configure --enable-werror
+
+      - name: make
+        run: scan-build -analyze-headers --status-bugs make
+
+  macos_clang:
+    runs-on: macos-10.15
+    env:
+      CC: clang
+      CFLAGS: '-Weverything -Wno-padded -Wno-poison-system-directories'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: dependencies
+        run: make -f .github/Makefile.CI dependencies_macos
+
+      - name: configure
+        run: |
+          $CC --version
+          ./configure
+
+      - name: make check
+        run: make check || ( cat test.log test-suite.log ; exit 1 )
+
+      - name: version
+        run: |
+          ./vnstat --version
+          ./vnstatd --version
+          ./vnstati --version
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check spelling
+        uses: crate-ci/typos@master
+        with:
+          files: ./man ./examples ./cfg ./CHANGES ./INSTALL* ./README* ./U*
+          isolated: true
+
+      - name: Run Perl::Critic
+        uses: natanlao/perl-critic-action@v1.1
+
+  dev_docker_trigger:
+    needs: [lint, ubuntu, ubuntu_clang_sanitizers, ubuntu_clang_analyzer]
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger dev container build
+        if: ${{ github.ref == 'refs/heads/master' && contains('push workflow_dispatch schedule', github.event_name) && success() }}
+        run: |
+          curl \
+            -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.DEV_DOCKER_TRIGGER }}" \
+            -d '{"ref":"refs/heads/master"}' \
+            $GITHUB_API_URL/repos/vergoh/vnstat-docker/actions/workflows/dev.yml/dispatches

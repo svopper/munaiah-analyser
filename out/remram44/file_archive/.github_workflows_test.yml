@@ -1,0 +1,68 @@
+name: Test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        mode: [tests]
+        python:
+        - "2.7"
+        - "3.5"
+        - "3.8"
+        include:
+        - os: macos-latest
+          mode: tests
+          python: "3.8"
+        - os: ubuntu-latest
+          mode: coverage
+          python: "2.7"
+        - os: ubuntu-latest
+          mode: flake8
+          python: "3.8"
+    runs-on: ${{ matrix.os }}
+    env:
+      TEST_MODE: ${{ matrix.mode }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        pip install tdparser
+        [ coverage != $TEST_MODE ] || pip install codecov
+        [ flake8 != $TEST_MODE ] || pip install flake8
+    - name: Test
+      run: |
+        if [ coverage = $TEST_MODE ]; then
+          coverage run --source=file_archive --branch tests/__main__.py
+          codecov
+        elif [ flake8 = $TEST_MODE ]; then
+          flake8 file_archive tests
+        else
+          python tests
+        fi
+
+  test-windows:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python:
+        - "2.7"
+        - "3.5"
+        - "3.8"
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: python setup.py install
+    - name: Test
+      run: python tests

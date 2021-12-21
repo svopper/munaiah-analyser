@@ -1,0 +1,68 @@
+name: Test
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    name: ${{ matrix.ruby-version }} x ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        ruby-version:
+          - "2.6"
+          - "2.7"
+          - "3.0"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Groonga APT repository
+        if: |
+          matrix.runs-on == 'ubuntu-latest'
+        run: |
+          sudo -H add-apt-repository -y ppa:groonga/ppa
+          sudo -H apt update
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - name: Install dependencies to build gems
+        run: |
+          gem install packnga yard
+      - name: Build gem
+        run: |
+          rake build
+      - name: Update MSYS2 package database
+        if: |
+          matrix.runs-on == 'windows-latest'
+        run: |
+          ridk exec pacman `
+            --noconfirm `
+            --refresh `
+            --sync
+      - name: Update Homebrew
+        if: |
+          matrix.runs-on == 'macos-latest'
+        run: |
+          brew update
+      - name: Install gem
+        run: |
+          gem install --verbose pkg/*.gem
+      - name: Install additional Groonga pakcages to run tests
+        if: |
+          matrix.runs-on == 'ubuntu-latest'
+        run: |
+          sudo -H apt install -y \
+            groonga \
+            groonga-tokenizer-mecab
+      - name: Test
+        run: |
+          ruby -run -e mkdir -- tmp
+          ruby -run -e cp -- -p -r test tmp
+          cd tmp
+          ruby test/run-test.rb
+        env:
+          NO_MAKE: "yes"

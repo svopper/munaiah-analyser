@@ -1,0 +1,19 @@
+name: C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    strategy:    
+      matrix:
+        cxx: [g++, clang++]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and Run test
+      run: ${CXX} --version && make test
+      env:
+        CXX: ${{ matrix.cxx }}

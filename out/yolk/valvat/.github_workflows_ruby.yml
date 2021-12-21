@@ -1,0 +1,35 @@
+name: Specs
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGES.md'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    env: # $BUNDLE_GEMFILE must be set at the job level, so it is set for all steps
+      BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}
+    strategy:
+      matrix:
+        ruby-version: ['2.5', '2.6', '2.7', '3.0', 'jruby-head', 'truffleruby-head']
+        gemfile: [ 'standalone', 'activemodel-5', 'activemodel-6' ]
+        exclude:
+          - ruby-version: '3.0'
+            gemfile: 'activemodel-5'
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Run specs
+      run: |
+        bundle exec rspec

@@ -1,0 +1,67 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ develop, master ]
+  pull_request:
+    branches: [ develop, master ]
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.100
+      - name: Restore
+        run: dotnet restore src/DustedCodes/DustedCodes.fsproj
+      - name: Build
+        run: dotnet build --configuration Release --no-restore src/DustedCodes/DustedCodes.fsproj
+
+  deploy:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    env:
+      GKE_PROJECT: ${{ secrets.GKE_PROJECT }}
+      GKE_EMAIL: ${{ secrets.GKE_EMAIL }}
+      IMAGE: dustedcodes
+      REGISTRY_HOSTNAME: eu.gcr.io
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Setup gcloud CLI
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GKE_PROJECT }}
+          service_account_email: ${{ secrets.GKE_EMAIL }}
+          service_account_key: ${{ secrets.GKE_KEY }}
+          export_default_credentials: true
+
+      # Set up docker to authenticate via gcloud command-line tool.
+      - name: Authenticate Docker with GCP
+        run: gcloud auth configure-docker
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          PATTERN="refs/tags/v"
+          SUB=""
+          TAG="${GITHUB_REF/$PATTERN/$SUB}"
+          docker build --build-arg version=$TAG -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE":"$TAG" -f src/DustedCodes/Dockerfile .
+
+      # Push the Docker image to Google Container Registry
+      - name: Publish Docker image
+        run: |
+          PATTERN="refs/tags/v"
+          SUB=""
+          TAG="${GITHUB_REF/$PATTERN/$SUB}"
+          docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE:$TAG

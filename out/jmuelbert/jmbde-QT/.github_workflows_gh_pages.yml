@@ -1,0 +1,128 @@
+name: github pages
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  #push:
+  #  branches-ignore:
+  #    - '**'
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest]
+        build_type: [Release]
+        qt_version: [6.1.0]
+        qt_arch: [clang_64]
+        arch: [clang_64]
+        generator: ["-G 'Ninja'"]
+
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Get the version
+        id: get_version
+        shell: bash
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
+      - name: Checkout Source code
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          #          ref: master
+
+      - name: Checkout Source code
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set env & Print jmbde-QT version
+        shell: bash
+        run: |
+          last_committed_tag=$(git tag -l --sort=-v:refname | head -1)
+          git_revno=$(git rev-list $(git describe --tags --abbrev=0)..HEAD --count)
+          git_hash=$(git rev-parse --short HEAD)
+          echo "=======jmbde-QT VERSION========"
+          echo ${last_committed_tag:1}
+          echo "Details: ${last_committed_tag}+git${git_revno}.${git_hash}"
+          echo "================================"
+          # This will allow to build pre-preleases without git tag
+          # echo "VERSION=${last_committed_tag:1}" >> $GITHUB_ENV
+          echo "VERSION=$(cat CMakeLists.txt |grep 'set.*(.*JMBDE_QT_VERSION' | sed 's/[^0-9.]*//' |sed 's/)//g')" >> $GITHUB_ENV
+
+      - name: Requirements
+        run:
+          brew install doxygen && brew install sphinx-doc ninja pkg-config &&
+          pip3 install sphinx-rtd-theme && pip3 install breathe && pip3 install
+          sphinx-sitemap
+          #   && pip3 install conan
+          #   && conan user
+
+      # - name: Cache Qt
+      #   id: cache-qt
+      #   uses: actions/cache@v2.1.4
+      #   with:
+      #       path: ../Qt/${{matrix.qt_version}}/${{matrix.qt_arch}}
+      #       key: ${{ runner.os }}-Qt/${{matrix.qt_version}}/${{matrix.qt_arch}}
+
+      # - name: Installing Q${{ matrix.qt_version }} -  ${{ matrix.arch }}
+      #   uses: jurplel/install-qt-action@v2
+      #   with:
+      #       version: ${{ matrix.qt_version }}
+      #       arch: ${{ matrix.arch }}
+      #       mirror: "http://mirrors.ocf.berkeley.edu/qt/"
+      #       cached: ${{ steps.cache-qt.outputs.cache-hit }}
+      #       setup-python: "false"
+
+      # - name: Create Build Environment
+      #   # Some projects don't allow in-source building, so create a separate build directory
+      #   # We'll use this as our working directory for all subsequent commands
+      #   run: cmake -E make_directory ${{runner.workspace}}/build
+
+      # - name: Configure CMake for macOS or Windows
+      #   # Use a bash shell so we can use the same syntax for environment variable
+      #   # access regardless of the host operating system
+      #   shell: bash
+      #   working-directory: ${{runner.workspace}}/build
+      #   # Note the current convention is to use the -S and -B options here to specify source
+      #   # and build directories, but this is only available with CMake 3.13 and higher.
+      #   # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      #   env:
+      #       Qt6_DIR: ../Qt/${{ matrix.qt_version }}/${{matrix.qt_arch}}
+      #   run: |
+      #       cmake $GITHUB_WORKSPACE \
+      #         ${{matrix.generator}} \
+      #         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+      #         -DBUILD_MANUAL="ON" \
+      #         -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+      #         -DCMAKE_INSTALL_PREFIX:PATH=./app
+      # - name: Build
+      #   working-directory: ${{runner.workspace}}/build
+      #   shell: bash
+      #   # Execute the build.  You can specify a specific target with "--target <NAME>"
+      #   run: cmake --build . --config ${{ matrix.build_type }} -j2
+
+      - name: Build manual
+        run: |
+          ls $GITHUB_WORKSPACE/docs/manual
+          cd $GITHUB_WORKSPACE/docs/manual
+          make html
+          cd $GITHUB_WORKSPACE/docs/manual/build/html
+          touch .nojekyll
+
+      - name: Deploy manual
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: docs/manual/build/html # The folder the action should deploy.

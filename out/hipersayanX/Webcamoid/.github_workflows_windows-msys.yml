@@ -1,0 +1,118 @@
+name: Windows MSYS
+
+on: [push, pull_request]
+
+env:
+  NJOBS: 4
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+       include:
+         - target_arch: x86_64
+           compiler: gcc
+           upload: 1
+         - target_arch: x86_64
+           compiler: clang
+           upload: 0
+         - target_arch: i686
+           compiler: gcc
+           upload: 1
+         - target_arch: i686
+           compiler: clang
+           upload: 0
+    env:
+      TARGET_ARCH: ${{ matrix.target_arch }}
+      COMPILER: ${{ matrix.compiler }}
+      UPLOAD: ${{ matrix.upload }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: msys2/setup-msys2@v2
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      with:
+        update: true
+        install: >-
+          ccache
+          clang
+          cmake
+          git
+          make
+          pkgconf
+          python3
+          mingw-w64-${{ matrix.target_arch }}-binutils
+          mingw-w64-${{ matrix.target_arch }}-ccache
+          mingw-w64-${{ matrix.target_arch }}-clang
+          mingw-w64-${{ matrix.target_arch }}-cmake
+          mingw-w64-${{ matrix.target_arch }}-ffmpeg
+          mingw-w64-${{ matrix.target_arch }}-pkgconf
+          mingw-w64-${{ matrix.target_arch }}-qt5
+          mingw-w64-${{ matrix.target_arch }}-vlc
+    - uses: msys2/setup-msys2@v2
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      with:
+        update: true
+        install: >-
+          ccache
+          clang
+          cmake
+          git
+          make
+          pkgconf
+          python3
+          mingw-w64-${{ matrix.target_arch }}-binutils
+          mingw-w64-${{ matrix.target_arch }}-ccache
+          mingw-w64-${{ matrix.target_arch }}-clang
+          mingw-w64-${{ matrix.target_arch }}-cmake
+          mingw-w64-${{ matrix.target_arch }}-ffmpeg
+          mingw-w64-${{ matrix.target_arch }}-gst-plugins-base
+          mingw-w64-${{ matrix.target_arch }}-gst-plugins-good
+          mingw-w64-${{ matrix.target_arch }}-gst-plugins-bad
+          mingw-w64-${{ matrix.target_arch }}-gst-plugins-ugly
+          mingw-w64-${{ matrix.target_arch }}-pkgconf
+          mingw-w64-${{ matrix.target_arch }}-qt5
+          mingw-w64-${{ matrix.target_arch }}-vlc
+    - name: Release Build
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      run: ./ports/ci/windows-msys/build.sh
+    - name: Release Deploy
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      run: ./ports/ci/windows-msys/deploy.sh
+    - name: Daily Build
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      env:
+        DAILY_BUILD: 1
+      run: ./ports/ci/windows-msys/build.sh
+    - name: Daily Deploy
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      env:
+        DAILY_BUILD: 1
+      run: ./ports/ci/windows-msys/deploy.sh
+    - name: Release Upload
+      uses: softprops/action-gh-release@v1
+      if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.upload }}
+      with:
+        files: |
+          webcamoid-packages/windows-gcc-x86_64/*
+          webcamoid-packages/windows-gcc-i686/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Daily Build Upload
+      uses: softprops/action-gh-release@v1
+      if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.upload }}
+      with:
+        body: "${{ github.event.head_commit.message }} (commit: ${{ github.sha }})"
+        prerelease: true
+        files: |
+          webcamoid-packages/windows-gcc-x86_64/*
+          webcamoid-packages/windows-gcc-i686/*
+        name: Daily Build
+        tag_name: daily-build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

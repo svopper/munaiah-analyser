@@ -1,0 +1,56 @@
+name: "Test"
+
+on:
+    push:
+    pull_request:
+    schedule:
+        - cron: '0 04 * * 1' # At 04:00 on Monday.
+
+jobs:
+    tests:
+        name: "Tests"
+
+        runs-on: ${{ matrix.operating-system }}
+
+        strategy:
+            matrix:
+                dependencies: ["lowest", "highest"]
+                php-version:
+                    - "7.4"
+                    - "8.0"
+                    - "8.1"
+                operating-system: ["ubuntu-latest"]
+
+        steps:
+            - name: "Checkout"
+              uses: "actions/checkout@v2"
+
+            - name: "Install PHP"
+              uses: "shivammathur/setup-php@v2"
+              with:
+                  coverage: "none"
+                  php-version: "${{ matrix.php-version }}"
+
+            - name: "Cache dependencies"
+              uses: "actions/cache@v2"
+              with:
+                  path: "~/.composer/cache"
+                  key: "php-${{ matrix.php-version }}-composer-${{ hashFiles('**/composer.json') }}"
+                  restore-keys: "php-${{ matrix.php-version }}-composer-"
+
+            - name: "Install lowest dependencies"
+              if: ${{ matrix.dependencies == 'lowest' }}
+              run: "composer update --prefer-lowest --prefer-dist --no-interaction --no-progress --no-suggest"
+
+            - name: "Install highest dependencies"
+              if: ${{ matrix.dependencies == 'highest' }}
+              run: "composer update --prefer-dist --no-interaction --no-progress --no-suggest"
+
+            - name: "Unit tests"
+              run: "vendor/bin/phpunit --colors"
+
+            - name: "Coding style"
+              run: "vendor/bin/phpcs --report=summary"
+
+            - name: "Static analysis"
+              run: "vendor/bin/phpstan  --configuration=phpstan.neon --no-progress"

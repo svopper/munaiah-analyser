@@ -1,0 +1,46 @@
+name: Ruby
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby:
+          - 2.3.x
+          - 2.4.x
+          - 2.5.x
+          - 2.6.x
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Build and test with Rake
+      run: |
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+        bundle exec rake
+      env:
+        CI: true
+
+  notify:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Slack Notification
+      uses: homoluctus/slatify@master
+      if: always()
+      with:
+        type: ${{ job.status }}
+        job_name: '*build*'
+        mention: 'here'
+        mention_if: 'failure'
+        icon_emoji: ":octocat:"
+        url: ${{ secrets.SLACK_WEBHOOK }}

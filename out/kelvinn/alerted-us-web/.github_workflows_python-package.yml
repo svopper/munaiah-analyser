@@ -1,0 +1,52 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+  STAGING_APP_NAME: ${{ secrets.STAGING_APP_NAME }}
+  PRODUCTION_APP_NAME: ${{ secrets.PRODUCTION_APP_NAME }}
+  STAGING_SMOKE_URL: ${{ secrets.STAGING_SMOKE_URL }}
+  PRODUCTION_SMOKE_URL: ${{ secrets.PRODUCTION_SMOKE_URL }}
+
+jobs:
+  build_and_test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Tests
+        run: ./scripts/ci_tests.sh
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_test
+
+    if: github.event_name == 'push' # Skip on pull requests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Deploy Staging
+        run: |
+          sudo apt update && sudo apt install heroku # Let's upgrade heroku cli
+          ./scripts/deploy.sh $STAGING_APP_NAME $STAGING_SMOKE_URL
+      - name: Deploy Production
+        run: ./scripts/deploy.sh $PRODUCTION_APP_NAME $PRODUCTION_SMOKE_URL

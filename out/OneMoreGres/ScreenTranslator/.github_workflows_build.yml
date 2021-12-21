@@ -1,0 +1,155 @@
+name: App build
+
+on: [push]
+
+jobs:
+  release:
+    name: Create release
+    if: contains(github.ref, '/tags/')
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Store release url
+        run: echo "${{ steps.create_release.outputs.upload_url }}" > ./release_upload_url
+
+      - name: Upload release url
+        uses: actions/upload-artifact@v1
+        with:
+          path: ./release_upload_url
+          name: release_upload_url
+
+  build:
+    name: Build ${{ matrix.config.name }}${{ matrix.config.tag }}
+    runs-on: ${{ matrix.config.os }}
+    env:
+      OS: ${{ matrix.config.name }}
+      MSVC_VERSION: 2019/Enterprise
+    strategy:
+      matrix:
+        config:
+          - { name: "win64", os: windows-latest }
+          - { name: "win32", os: windows-latest }
+          - { name: "linux", os: ubuntu-16.04 }
+          # - { name: "macos", os: macos-latest }
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 10
+
+      - name: Setup python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.x"
+
+      - name: Install system libs
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install libgl1-mesa-dev libxkbcommon-x11-0 libxcb-*
+          echo "QMAKE_FLAGS=QMAKE_CXX=g++-9 QMAKE_CC=gcc-9" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: deps
+          key: ${{ env.OS }}-deps
+
+      - name: Get Qt
+        run: python ./share/ci/get_qt.py
+
+      - name: Get ssl
+        run: python ./share/ci/get_qt_ssl.py
+
+      - name: Get leptonica
+        run: python ./share/ci/get_leptonica.py
+
+      - name: Get tesseract optimized
+        env:
+          MARCH: sandy-bridge
+          TAG: optimized
+        run: python ./share/ci/get_tesseract.py
+
+      - name: Get tesseract compatible
+        env:
+          MARCH: nehalem
+          TAG: compatible
+        run: python ./share/ci/get_tesseract.py
+
+      - name: Get hunspell
+        run: python ./share/ci/get_hunspell.py
+
+      - name: Test
+        run: python ./share/ci/test.py
+
+      - name: Build
+        run: python ./share/ci/build.py
+
+      - name: Create AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python ./share/ci/appimage.py
+          echo "artifact=`python ./share/ci/appimage.py artifact_name`" >> $GITHUB_ENV
+
+      - name: Create win deploy
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          python ./share/ci/windeploy.py
+          echo "artifact=`python ./share/ci/windeploy.py artifact_name`" >> $GITHUB_ENV
+
+      - name: Create mac deploy
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python ./share/ci/macdeploy.py
+          echo "artifact=`python ./share/ci/macdeploy.py artifact_name`" >> $GITHUB_ENV
+
+      - name: Upload build artifact
+        if: env.artifact != ''
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ env.artifact }}
+          path: ./${{ env.artifact }}
+
+      - name: Download release url
+        if: contains(github.ref, '/tags/')
+        uses: actions/download-artifact@v1
+        with:
+          name: release_upload_url
+          path: ./
+
+      - name: Set release env
+        if: contains(github.ref, '/tags/')
+        shell: bash
+        run: echo "upload_url=`cat ./release_upload_url`" >> $GITHUB_ENV
+
+      - name: Upload release artifacts
+        if: contains(github.ref, '/tags/')
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.upload_url }}
+          asset_path: ./${{ env.artifact }}
+          asset_name: ${{ env.artifact }}
+          asset_content_type: application/zip
+
+      - name: Upload sourceforge
+        if: contains(github.ref, '/tags/')
+        env:
+          SF_PKEY: ${{ secrets.SF_PKEY }}
+          SF_API: ${{ secrets.SF_API }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install paramiko
+          python ./share/ci/sourceforge.py ./${{ env.artifact }}

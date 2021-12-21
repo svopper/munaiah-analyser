@@ -1,0 +1,53 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+    mac:
+        runs-on: macos-latest
+        steps:
+        - uses: actions/checkout@v1
+
+        - name: Setup
+          run: brew install lua box2d sdl2 sdl2_image sdl2_mixer sdl2_net sqlite zlib yajl upx
+
+        - name: Build
+          run: |
+            mkdir build
+            cd build
+            cmake .. -GXcode -DTOOLS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(pwd) -DCAVEPACKER=OFF -DUNITTESTS=OFF
+            xcodebuild build -target install -project caveproductions.xcodeproj CODE_SIGNING_REQUIRED=NO -configuration Release
+            ../contrib/scripts/create_dmg.sh caveexpress dev $(pwd)/.. $(pwd)
+
+        - name: Upload the caveexpress artifacts
+          uses: actions/upload-artifact@v2
+          with:
+            name: caveexpress
+            path: "build/caveexpress dev.dmg"
+
+    linux:
+        runs-on: ubuntu-20.04
+        container: debian:experimental
+
+        steps:
+        - uses: actions/checkout@v1
+
+        - name: Setup
+          run: |
+            apt-get update
+            apt-get install -y cmake build-essential libsdl2-dev libsdl2-mixer-dev libsdl2-net-dev \
+                 libyajl-dev libglm-dev libsdl2-image-dev libsqlite3-dev liblua5.4-dev zlib1g-dev \
+                 pkg-config ninja-build libbox2d-dev=2.4*
+
+        - name: Linux
+          run: |
+            cmake -GNinja -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+            cmake --build build
+            cmake --install build --component caveexpress --prefix install-caveexpress
+            cmake --install build --component cavepacker --prefix install-cavepacker
+
+        - name: Test
+          run: |
+            cd build
+            ctest
+          continue-on-error: true

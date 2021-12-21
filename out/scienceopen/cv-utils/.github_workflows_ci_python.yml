@@ -1,0 +1,26 @@
+name: ci_python
+
+on:
+  push:
+    paths:
+      - "**.py"
+      - ".github/workflows/ci_python.yml"
+  pull_request:
+    paths:
+      - "**.py"
+      - ".github/workflows/ci_python.yml"
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+    - run: pip install .[tests,lint,opencv]
+    - run: flake8
+    - run: mypy .
+    - run: pytest
+      working-directory: tests

@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - src/**
+    - include/**
+    - .github/workflows/build.yml
+    - CMakeLists.txt
+    - Makefile
+  pull_request:
+    branches: [ master ]
+    paths:
+    - src/**
+    - include/**
+    - .github/workflows/build.yml
+    - CMakeLists.txt
+    - Makefile
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xorg-dev libglu1-mesa-dev
+    - name: make
+      run: make

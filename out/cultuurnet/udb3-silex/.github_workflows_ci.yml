@@ -1,0 +1,104 @@
+name: CI
+
+on: push
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                php-versions: ['7.4']
+        name: PHP ${{ matrix.php-versions }}
+        steps:
+            - name: 📤 Checkout project
+              uses: actions/checkout@v2
+
+            - name: 🐘 Install PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-versions }}
+                  ini-values: xdebug.mode=coverage
+                  extensions: bcmath, tidy
+                  tools: composer
+
+            - name: ✌️ Check PHP Version
+              run: php -v
+
+            - name: 🛂 Validate composer.json and composer.lock
+              run: composer validate
+
+            - name: 📩 Cache Composer packages
+              id: composer-cache
+              uses: actions/cache@v2
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-
+
+            - name: 📦 Install dependencies
+              if: steps.composer-cache.outputs.cache-hit != 'true'
+              run: composer install --no-progress --no-suggest
+
+            - name: ✅ Run tests
+              run: composer test
+
+    cs:
+        runs-on: ubuntu-latest
+        name: Code style
+        steps:
+            - name: 📤 Checkout project
+              uses: actions/checkout@v2
+
+            - name: 🐘 Install PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 7.4
+                  extensions: tidy, zip
+                  tools: composer
+
+            - name: 📩 Cache Composer packages
+              id: composer-cache
+              uses: actions/cache@v2
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-
+
+            - name: 📦 Install dependencies
+              if: steps.composer-cache.outputs.cache-hit != 'true'
+              run: composer install --no-progress --no-suggest
+
+            - name: ✨ Run code style check
+              run: composer cs
+
+    phpstan:
+        runs-on: ubuntu-latest
+        name: Static analysis
+        steps:
+            - name: 📤 Checkout project
+              uses: actions/checkout@v2
+
+            - name: 🐘 Install PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: 7.4
+                  extensions: tidy, zip
+                  tools: composer
+
+            - name: 📩 Cache Composer packages
+              id: composer-cache
+              uses: actions/cache@v2
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-
+
+            - name: 📦 Install dependencies
+              if: steps.composer-cache.outputs.cache-hit != 'true'
+              run: composer install --no-progress --no-suggest
+
+            - name: 🔍 Run static analysis
+              run: composer phpstan

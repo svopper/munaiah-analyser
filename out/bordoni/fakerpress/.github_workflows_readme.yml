@@ -1,0 +1,38 @@
+name: 'Readme Auto Generator'
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'readme.txt'
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    name: Generate Readme
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Install composer
+      uses: php-actions/composer@v5
+      with:
+        php_version: 7.3
+        version: 1
+
+    - name: Execute the markdown Readme generation script
+      run: dev/generate-markdown-readme
+
+    - name: Commit readme file
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Apply readme.md Changes
+        branch: main
+        file_pattern: readme.md
+
+    - name: Commit readme.php file
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Apply data/readme.php Changes
+        branch: main
+        file_pattern: src/data/readme.php

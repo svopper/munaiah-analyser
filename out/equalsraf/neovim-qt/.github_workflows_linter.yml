@@ -1,0 +1,64 @@
+name: Linter
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  Clazy:
+    name: Clazy
+    strategy:
+      fail-fast: false
+    env:
+      CLAZY_VER: 1.8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository -y ppa:neovim-ppa/unstable
+          sudo apt-get install -y libqt5svg5-dev neovim ninja-build qt5-default
+          sudo apt-get update -y
+          mkdir build
+          cd build
+          CLAZY_VER=${{ env.CLAZY_VER }}
+          CLAZY_BIN=Clazy-x86_64-${{ env.CLAZY_VER }}.AppImage
+          CLAZY_URL=https://downloads.kdab.com/clazy/${CLAZY_VER}/${CLAZY_BIN}
+          wget ${CLAZY_URL}
+          chmod +x ${CLAZY_BIN}
+          echo "CLAZY_BIN=${CLAZY_BIN}" >> $GITHUB_ENV
+          echo "CLAZY_URL=${CLAZY_URL}" >> $GITHUB_ENV
+
+      - name: Configure
+        run: >
+          cmake -B ${{ github.workspace }}/build -GNinja -DCMAKE_BUILD_TYPE=Debug -DENABLE_CLAZY=1
+          -DCMAKE_CXX_COMPILER=${{ github.workspace }}/build/${{ env.CLAZY_BIN }}
+
+      - name: Build
+        run: cmake --build ${{ github.workspace }}/build
+
+  ClangTidy:
+    name: ClangTidy
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository -y ppa:neovim-ppa/unstable
+          sudo apt-get install -y clang-tidy-11 libqt5svg5-dev neovim ninja-build qt5-default
+          sudo apt-get update -y
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/lib/llvm-11/bin/clang-tidy 100
+          mkdir build
+
+      - name: Configure
+        run: |
+          cmake -B ${{ github.workspace }}/build -GNinja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TIDY=1
+
+      - name: Build
+        run: cmake --build ${{ github.workspace }}/build

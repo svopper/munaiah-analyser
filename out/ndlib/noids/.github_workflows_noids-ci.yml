@@ -1,0 +1,17 @@
+name: noids-ci
+on: [push]
+jobs:
+  go-tests:
+    runs-on: ubuntu-18.04
+    steps:
+
+    - name: Set up go 1.15
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Run Go Tests
+      run: go test -v . ./noid 

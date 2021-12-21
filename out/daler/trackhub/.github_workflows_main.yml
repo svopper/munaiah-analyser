@@ -1,0 +1,218 @@
+name: main
+on: [push]
+
+jobs:
+  conda-env:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+
+    - name: git setup
+      # Set up git and export env vars to be used in later steps.
+      #   Note the unconventional mechanism for exporting envs by appending to
+      #   $GITHUB_ENV.
+      id: git-setup
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+        echo "WORKDIR=$(pwd)" >> $GITHUB_ENV
+
+
+    - name: load cached conda env
+      # Load cached env.
+      #   This looks for a cache based on the hash of requirements.txt and
+      #   test-requirements.txt; if it's found the cached directory is
+      #   restored. There's an extra "v1" on the end so it can be forced to be
+      #   regenerated when needed.
+      id: cache-env
+      uses: actions/cache@v2
+      with:
+        path: /tmp/test-env
+        key: ${{ hashFiles('requirements.txt') }}-${{ hashFiles('test-requirements.txt') }}-v1
+
+
+    - name: build new conda env
+      # Build cache if needed.
+      #   Only runs if there was a cache miss. If this is created. there's
+      #   a "Post load cached env" job (which is automatically created, it's
+      #   not defined here) that  will load this into the cache for use next
+      #   time.
+      if: steps.cache-env.outputs.cache-hit != 'true'
+      run: |
+        eval "$(conda shell.bash hook)"
+        conda create -p /tmp/test-env -y --file requirements.txt --file test-requirements.txt --channel conda-forge --channel bioconda
+
+
+    - name: run pytests and build docs
+      # pytests and doctests happen here
+      run: |
+        eval "$(conda shell.bash hook)"
+        source activate /tmp/test-env
+        python setup.py install
+        pytest -vv --doctest-modules trackhub
+
+        # To make sure that the links in the built docs refer to the correct
+        # branch on the trackhub-demo repo, we replace the branch names in the
+        # .rst files. Note if we're on master branch then this is a no-op.
+        cd doc
+        find . -name "*.rst" | xargs sed -i "s|trackhub-demo/master|trackhub-demo/$BRANCH|g"
+        make doctest html
+        conda deactivate
+
+    - name: upload the just-built docs as an artifact
+      # The built docs will be uploaded as a zip file (called docs.zip).
+      #   This file will be available on the Actions page and can be used to
+      #   inspect the final rendered docs. This is useful when building on
+      #   a branch and for contributors to make corrections to the docs without
+      #   needing to set everything up locally.
+      uses: actions/upload-artifact@v2
+      with:
+        name: docs
+        path: doc/build/html
+
+
+    - name: commit built docs to gh-pages branch
+      # Commit to the gh-pages branch.
+      #   Note that this step is not restricted to the master branch, which
+      #   lets us better test the process. The changes aren't actually pushed
+      #   though unless we're on the master branch (see next step).
+      #
+      #   Note that cloning just the gh-pages branch to a new directory ended
+      #   up being easier than staying in this directory and copying stuff
+      #   around within it.
+      run: |
+        git clone \
+          --single-branch \
+          --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY" \
+          /tmp/docs
+
+        # recall that this does leave hidden files
+        rm -rf /tmp/docs/*
+        cp -r doc/build/html/* /tmp/docs
+        touch /tmp/docs/.nojekyll
+        cd /tmp/docs
+        git add .
+
+        if git diff --cached --quiet; then
+          echo "no changes; nothing to commit"
+        else
+          git commit -m 'update docs'
+        fi
+
+        cd $WORKDIR
+
+
+    - name: push docs to gh-pages branch
+      # Push to gh-pages.
+      #   (but only if we're on the master branch)
+      #   This is how the docs get hosted on https://github.io/daler/trackhub.
+      if: ${{ github.ref == 'refs/heads/master' }}
+      run: |
+        cd /tmp/docs
+        git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/daler/trackhub" gh-pages
+        cd $WORKDIR
+
+
+    - name: build example hubs
+      # Build example hubs into the "example_hubs" directory.
+      #   See the ci/build_examples.py script for details. Also note that since
+      #   we were last on the gh-pages branch from the last step, we need to
+      #   explicitly check out the branch that this PR is for.
+      run: |
+        git branch
+        git checkout $BRANCH
+        eval "$(conda shell.bash hook)"
+        source activate /tmp/test-env
+        ci/build_examples.py
+
+
+    - name: start ssh agent
+      # Start the SSH agent so that subsequent steps don't need additional SSH
+      # setup.
+      #   The private key has been added as a secret to the trackhub repo (the
+      #   one running these tests), and the public key has been added as an
+      #   allowed deploy key for the trackhub-demo repo (the one accepting
+      #   pushes from this test). Note that this method ensures that the key is
+      #   never saved to disk, and GitHub Actions automatically protects the
+      #   secrets from being echoed.
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+        ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+
+
+    - name: push built hubs to trackhub-demo repo
+      # Push to the trackhub-demo repo
+      #   This creates a matching branch on the trackhub-demo repo, cleans out
+      #   everything, and copies over the contents of the just-built
+      #   "example_hubs" directory to that matching branch. This lets us
+      #   inspect the hubs and correct them if needed on a branch before
+      #   merging to master.
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        here=$(pwd)
+        git clone git@github.com:daler/trackhub-demo.git /tmp/trackhub-demo
+        cd /tmp/trackhub-demo
+        git checkout -B $BRANCH
+        git rm -rf ./*
+
+        # Note -L to follow links
+        cp -rL $here/example_hubs/* /tmp/trackhub-demo
+        git add -f .
+
+        # It's possible that the $BRANCH here in the trackhub repo does not yet
+        # exist over in the trackhub-demo repo. In that case, we should be good
+        # to push.
+        if [[ -z $(git ls-remote --heads origin $BRANCH) ]]; then
+          echo "remote branch $BRANCH does not exist -- pushing"
+          git commit -m 'update hub'
+          git push origin $BRANCH --force
+          exit 0
+        fi
+
+        # Otherwise, only push if there are changes.
+        if git diff origin/$BRANCH --quiet; then
+            echo "no changes to push to branch $BRANCH!";
+        else
+          echo "Diffs will be pushed to remote branch $BRANCH"
+          git commit -m 'update hub'
+          git push origin $BRANCH --force
+        fi
+
+    - name: hubChecks
+      # Check hubs
+      #   Once hubs are uploaded to trackhub-demo repo, we need to check them
+      #   to make sure they're accessible and have no glaring errors.
+      #
+      #   See ci/check_hubs.py for details.
+      run: |
+        git checkout $BRANCH
+        eval "$(conda shell.bash hook)"
+        source activate /tmp/test-env
+        ci/check_hubs.py
+
+
+    - name: cleanup
+      # Remove all the ssh stuff we set up.
+      if: always()
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        ssh-add -D
+        rm -Rf  *
+
+
+  pip-install:
+    # Separate, parallel job for testing pip installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: python setup.py sdist
+      - run: pip install dist/*.tar.gz
+      - run: python -c 'import trackhub'

@@ -1,0 +1,55 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu]
+        ruby: [2.4, 2.5, 2.6, 2.7, '3.0', head, jruby, jruby-head, truffleruby, truffleruby-head]
+        include:
+          - os: macos
+            ruby: 2.4
+          - os: windows
+            ruby: 2.4
+    runs-on: ${{ matrix.os }}-latest
+    continue-on-error: ${{ endsWith(matrix.ruby, 'head') || matrix.os == 'windows' }}
+    steps:
+    - name: Checkout rubyzip code
+      uses: actions/checkout@v2
+
+    - name: Install and set up ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+
+    - name: Install other dependencies
+      if: matrix.os == 'windows'
+      run: choco install zip
+
+    - name: Run the tests
+      env:
+        JRUBY_OPTS: --debug
+        FULL_ZIP64_TEST: 1
+      run: bundle exec rake
+
+    - name: Coveralls
+      if: matrix.os == 'ubuntu' && !endsWith(matrix.ruby, 'head')
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        flag-name: ${{ matrix.ruby }}
+        parallel: true
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        parallel-finished: true

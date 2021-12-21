@@ -1,0 +1,16 @@
+name: Build
+on: [ pull_request, push ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+      - name: Build the app
+        run: |
+          wget https://downloads.gradle-dn.com/distributions/gradle-7.0.3-bin.zip
+          unzip gradle-7.0.3-bin.zip
+          export GRADLE_HOME=$PWD/gradle-7.0.3
+          export PATH=$GRADLE_HOME/bin:$PATH
+          gradle -v
+          gradle build

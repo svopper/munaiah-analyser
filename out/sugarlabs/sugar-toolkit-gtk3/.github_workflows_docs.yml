@@ -1,0 +1,41 @@
+
+name: Documentation
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container:
+      image: 'archlinux:latest'
+
+    steps:
+      - name: Install dependencies
+        run: |
+          # assume yes and do not ask for confirmation when installing deps using pacman
+          yes | pacman -Syu base-devel sudo git wget curl python-sphinx rsync --noconfirm
+
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Create builduser
+        run: |
+          # A user is required so that the docs are not built as root
+          useradd builduser -m # Create the builduser
+          passwd -d builduser # Delete the buildusers password
+          printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
+
+      - name: Build documentation
+        run: |
+          sudo chown builduser:builduser . -R
+          sudo -u builduser ./ci/docs.sh
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: deploy  # The folder the action should deploy.

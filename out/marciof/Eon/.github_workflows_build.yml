@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+# TODO avoid duplicating source code checkouts
+jobs:
+
+  lint:
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - run: pip3 install -r tools/requirements.lint-commonmark-links.txt -r tools/requirements.lint-sources-python.txt
+      - run: make all
+      - run: make all
+        working-directory: language/
+
+  # TODO use nmake on Windows
+  # TODO compiler matrix
+  core:
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - run: make all
+        working-directory: interpreter/core/

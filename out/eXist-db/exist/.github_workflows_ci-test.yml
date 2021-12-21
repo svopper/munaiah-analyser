@@ -1,0 +1,51 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    name: (JDK ${{ matrix.jdk }} / ${{ matrix.os }}) Test
+    env:
+      MAVEN_OPTS: -XX:+IgnoreUnrecognizedVMOptions --illegal-access=debug -XX:StartFlightRecording=maxsize=5g,disk=true,dumponexit=true,settings=default,filename=./
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        jdk: ['8', '11']
+        include:
+          - os: ubuntu-latest
+            jdk: '16'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jdk }}
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Maven Test
+        timeout-minutes: 60
+        run: mvn -V -B -DtrimStackTrace=false clean verify
+        continue-on-error: ${{ matrix.jdk == '16' }}
+      - name: Maven Code Coverage
+        if: ${{ github.ref == 'refs/heads/develop' && matrix.jdk == '8' && matrix.os == 'ubuntu-latest' }}
+        env:
+          CI_NAME: github
+          BRANCH_NAME_OR_REF: ${{ github.head_ref || github.ref }}
+          CI_BUILD_NUMBER: ${{ github.run_id }}
+          CI_BUILD_URL: https://github.com/${{ github.repository }}/commit/${{ github.event.after }}/checks
+          COVERALLS_SECRET: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn -V -B jacoco:report coveralls:report -DrepoToken=${{ secrets.COVERALLS_TOKEN }}
+      - name: Archive build logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ runner.os }}-jdk${{ matrix.jdk }}-build-logs
+          retention-days: 5
+          path: |
+            **/*.jfr
+            **/hs_err_pid*.log
+            **/target/surefire-reports/*

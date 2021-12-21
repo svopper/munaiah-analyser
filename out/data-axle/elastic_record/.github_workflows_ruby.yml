@@ -1,0 +1,53 @@
+name: Ruby
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    env:
+      DISABLE_SPRING: true
+      RAILS_ENV: test
+    strategy:
+      matrix:
+        ruby: [ '2.7', '3.0' ]
+    services:
+      postgres:
+        image: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_HOST_AUTH_METHOD: trust
+      elasticsearch:
+        image: elasticsearch:7.6.0
+        options: >-
+          --health-cmd "curl http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+    steps:
+    - name: Checkout the repo
+      uses: actions/checkout@v2
+    - name: Install Ruby, bundler and the bundle
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Create database
+      run: bundle exec rake app:db:setup
+    - name: Create Indexes
+      run: bundle exec rake app:index:create
+    - name: Run tests
+      run: bundle exec rake

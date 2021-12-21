@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches-ignore: []
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+      matrix:
+        python: [3.6, 3.7, 3.8, 3.9]
+      fail-fast: false
+
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.X
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    
+    - name: Install the package itself
+      run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install .
+          pip install pytest pytest-cov coveralls pytest-xdist pytest-timeout
+    
+    - name: Test with pytest
+      run: |
+          pytest --cov-report term --cov=colormap
+    
+    - name: coveralls            
+      run: |
+        coveralls --service=github
+      env:
+          GITHUB_TOKEN: ${{ github.token }}
+          

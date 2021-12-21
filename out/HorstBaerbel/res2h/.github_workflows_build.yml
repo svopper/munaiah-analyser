@@ -1,0 +1,21 @@
+# Build project using CMake
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      uses: HorstBaerbel/action-cmake@1.0
+      with:
+        sourcedir: '.'
+        builddir: 'build'
+        cmakeoptions: ''

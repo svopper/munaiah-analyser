@@ -1,0 +1,110 @@
+name: CI
+
+on: [pull_request]
+# on: [push, pull_request]
+# on:
+#   push:
+#     branches: [ master, gh-action ]
+#   pull_request:
+#     branches: [ master ]
+
+jobs:
+  linux:
+    name: ${{ matrix.cxx }}
+    # runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: ['clang-9']
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    # install dependencies
+    - name: Cache apt
+      uses: actions/cache@v2
+      id: cache-apt
+      with:
+        path: ~/dpkg_cache3
+        key: ${{ runner.os }}-apt_deps9
+    - name: Install packages
+      env:
+        CACHE_HIT: ${{steps.cache-apt.outputs.cache-hit}}
+      run: |
+        DPKG_CACHE=~/dpkg_cache3
+        if [[ "$CACHE_HIT" == 'true' ]]; then
+          sudo cp --force --recursive --preserve=all "$DPKG_CACHE"/* /
+        else
+          # libbz2-dev libpng-dev libssl-dev already installed and freeze restoration
+          deps=(
+            libboost-test-dev
+            # libboost-tools-dev
+            libkrb5-dev
+            libsnappy-dev
+            # libavcodec-dev
+            # libavformat-dev
+            # libavutil-dev
+            # libswscale-dev
+            # libx264-dev
+          )
+          sudo apt update
+          sudo apt install -yq ${deps[@]}
+
+          # fix snappy version
+          sudo sed -i \
+            -e 's/^#define SNAPPY_MAJOR.*/#define SNAPPY_MAJOR 1/' \
+            -e 's/^#define SNAPPY_MINOR.*/#define SNAPPY_MINOR 1/' \
+            -e 's/^#define SNAPPY_PATCHLEVEL.*/#define SNAPPY_PATCHLEVEL 8/' \
+            /usr/include/snappy-stubs-public.h
+
+          # fix bjam test
+          sudo sed -i \
+            -e '/ostr << ( t ? t : L"null string" );/d' \
+            /usr/include/boost/test/impl/test_tools.ipp
+
+          mkdir -p "$DPKG_CACHE"
+          {
+            dpkg -L ${deps[@]} | while IFS= read -r f; do
+              if [[ -f $f ]]; then echo "$f"; fi
+            done
+            echo /usr/include/boost/
+            find /usr/lib* -type f -name 'libboost_*'
+            find /usr/include -wholename '*/com_err.h'
+            find /usr/include -wholename '*/mit-krb5/*'
+            find /usr/lib* -wholename '*/mit-krb5/*.so'
+          } | xargs cp --recursive --parents --preserve=all --target-directory "$DPKG_CACHE"
+        fi
+
+
+    # install bjam
+    - name: Cache bjam
+      uses: actions/cache@v2
+      id: cache-bjam
+      with:
+        path: ~/boost-build
+        key: ${{ runner.os }}-bjam
+    - name: Install bjam
+      env:
+        CACHE_HIT: ${{steps.cache-bjam.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          wget https://github.com/boostorg/build/archive/boost-1.67.0.tar.gz
+          tar xzf boost-1.67.0.tar.gz
+          cd build-boost-1.67.0
+          ./bootstrap.sh
+          ./b2 install --prefix=$HOME/boost-build/
+        fi
+
+    - name: set timezone
+      run: |
+        sudo timedatectl set-timezone Europe/Paris
+
+    - name: compile
+      run: |
+        ~/boost-build/bin/bjam -q --toolset=${{ matrix.cxx }} san \
+          -s NO_FFMPEG=1 cxxflags='-DREDEMPTION_DISABLE_NO_BOOST_PREPROCESSOR_WARNING'
+
+# kate: space-indent on; indent-width 2; replace-tabs on;

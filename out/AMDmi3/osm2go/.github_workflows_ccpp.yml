@@ -1,0 +1,108 @@
+name: C/C++ CI
+
+env:
+  VALGRIND_SUPP_DIR: /tmp/valgrind-suppressions
+  OSM2GO_BUILD_DIR: /tmp/osm2go_ci_build
+
+on:
+  push:
+    branches:
+     - '*'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: build-${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.distro }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+         - {
+             name: "GCC 9-default",
+             cc: "gcc-9",
+             cxx: "g++-9",
+             distro: "ubuntu-16.04",
+             qt: false,
+             options: "-DUSE_SVG_ICONS=On"
+           }
+         - {
+             name: "GCC 9-picker",
+             cc: "gcc-9",
+             cxx: "g++-9",
+             distro: "ubuntu-16.04",
+             qt: false,
+             options: "-DSERVER_EDITABLE=Off;-DPICKER_MENU=On;-DUSE_SVG_ICONS=Off"
+           }
+         - {
+             name: "Clang 9-default",
+             cc: "clang-9",
+             cxx: "clang++-9",
+             distro: "ubuntu-16.04",
+             qt: false,
+             options: "-DUSE_SVG_ICONS=On"
+           }
+         - {
+             name: "Clang 9-picker",
+             cc: "clang-9",
+             cxx: "clang++-9",
+             distro: "ubuntu-16.04",
+             qt: false,
+             options: "-DSERVER_EDITABLE=Off;-DPICKER_MENU=On;-DUSE_SVG_ICONS=Off"
+           }
+         - {
+             distro: "ubuntu-20.04",
+             name: "GCC 9 Qt",
+             cc: "gcc-9",
+             cxx: "g++-9",
+             qt: true,
+             options: "-DSERVER_EDITABLE=Off;-DPICKER_MENU=On;-DUSE_SVG_ICONS=On;-DBUILD_WITH_QT=On"
+           }
+         - {
+             distro: "ubuntu-20.04",
+             name: "Clang 11 Qt",
+             cc: "clang-11",
+             cxx: "clang++-11",
+             qt: true,
+             options: "-DSERVER_EDITABLE=Off;-DPICKER_MENU=On;-DUSE_SVG_ICONS=On;-DBUILD_WITH_QT=On"
+           }
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: cache valgrind suppression
+      id: cache-valgrind
+      uses: actions/cache@v2
+      with:
+        path: /tmp/valgrind-suppressions
+        key: ${{ runner.os }}-valgrind
+
+    - name: gtk_deps
+      if: matrix.config.qt != true
+      run: sudo apt-get update && sudo apt-get install libgoocanvas-dev libcurl4-openssl-dev libsoup2.4-dev libgps-dev libgtk2.0-dev libgnomevfs2-dev valgrind
+
+    - name: qt_deps
+      if: matrix.config.qt
+      run: sudo apt-get update && sudo apt-get install libcurl4-openssl-dev qtbase5-dev qtpositioning5-dev libqt5svg5-dev qml-module-qttest qml-module-qtquick-controls2 qml-module-qtlocation qml-module-qtpositioning qml-module-qtquick-layouts qml-module-qtquick-shapes valgrind
+
+    - name: generate valgrind suppression
+      if: steps.cache-valgrind.outputs.cache-hit != 'true'
+      run: mkdir -p ${OSM2GO_BUILD_DIR} ${VALGRIND_SUPP_DIR} && pushd ${OSM2GO_BUILD_DIR} && cmake -D CMAKE_BUILD_TYPE=Debug ${GITHUB_WORKSPACE} $(echo ${CONF_OPTIONS} | tr ';' ' ') && make suppression-dummy && valgrind --leak-check=full --gen-suppressions=all --show-leak-kinds=all ./test/suppression-dummy 2>&1 | grep -v '^=' > ${VALGRIND_SUPP_DIR}/valgrind-auto.supp
+      env:
+        CONF_OPTIONS: ${{ matrix.config.options }}
+
+    - name: configure
+      run: mkdir -p ${OSM2GO_BUILD_DIR}; echo -e "set(OSM2GO_BUILD_DIR \"${OSM2GO_BUILD_DIR}\")\nset(dashboard_model \"Continuous\")\nset(CTEST_SITE github.com)\nset(CTEST_BUILD_NAME \"CI ${CC_NAME}\")\nset(CTEST_MEMORYCHECK_COMMAND_OPTIONS \"--suppressions=${VALGRIND_SUPP_DIR}/valgrind-auto.supp\")\ninclude(${GITHUB_WORKSPACE}/ctest_osm2go.cmake)" > my_osm2go.cmake
+      env:
+        CC_NAME: ${{ matrix.config.name }}
+
+    - name: build
+      run: CFLAGS="-O0 -fprofile-arcs -ftest-coverage" CXXFLAGS="-O0 -fprofile-arcs -ftest-coverage" ctest -j 2 -V -S my_osm2go.cmake -D BUILD_WITH_QT=${BUILD_WITH_QT} -D "CONF_OPTIONS=-DNETWORK_TESTS=On;${CONF_OPTIONS}" || true
+      env:
+        CC: ${{ matrix.config.cc }}
+        CXX: ${{ matrix.config.cxx }}
+        CONF_OPTIONS: ${{ matrix.config.options }}
+        BUILD_WITH_QT: ${{ matrix.config.qt }}
+        QT_QPA_PLATFORM: "minimal"

@@ -1,0 +1,26 @@
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ 'ubuntu-latest' ]
+        ruby: [ "3.0", "2.7", "2.6", "2.5" ]
+        opal: [ "1.0.3", "1.1.0" ]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      OPAL_VERSION: ${{ matrix.opal }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Setup project
+        run: bin/setup
+      - name: Run test
+        run: bin/rake

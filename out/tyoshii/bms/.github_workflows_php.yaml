@@ -1,0 +1,102 @@
+on:
+  schedule:
+    - cron:  '15 0 28 * *'
+  push:
+    branches:
+      - master
+  pull_request:
+
+name: Main
+jobs:
+  php-cs-fixer:
+    name: PHP-CS-Fixer
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    # - name: PHP-CS-Fixer
+    #   uses: docker://oskarstark/php-cs-fixer-ga
+    #   with:
+    #     args: --config=.project.php_cs --diff --allow-risky=yes --dry-run
+
+  tests:
+    name: Unit tests
+    runs-on: ubuntu-16.04
+    strategy:
+      matrix:
+        php-version:
+          - 5.6
+
+    services:
+      mysql:
+        image: mysql:5.6
+        ports:
+          - 3306
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: bms
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      # see: https://github.com/marketplace/actions/setup-php-action#memo-usage
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          coverage: xdebug
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, dom, pdo_mysql, zip, :opcache
+          ini-values: error_reporting=E_ALL|E_STRICT, display_errors=on, date.timezone=Asia/Tokyo, open_basedir=none, expose_php=Off, track_errors=On, display_startup_errors=On, browscap=/home/runner/work/bms/bms/fuel/app/config/lite_php_browscap.ini
+
+      - name: Determine composer cache directory
+        id: determine-composer-cache-directory
+        run: echo "::set-output name=directory::$(composer config cache-dir)"
+
+      - name: Cache dependencies installed with composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.determine-composer-cache-directory.outputs.directory }}
+          key: php-${{ matrix.php-version }}-composer-${{ hashFiles('composer.json') }}
+          restore-keys: php-${{ matrix.php-version }}-composer-
+
+      - name: Install zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -q -y zip unzip
+
+      - name: Install dependencies
+        run: FUEL_ENV=test composer install
+
+      - name: MySQL migration
+        run: |
+          mkdir -p build/logs
+          echo "Copy password.php"
+          bash fuel/app/config/copy.sh
+
+          echo "DEBUG: mysql port is $MYSQL_PORT"
+          sed -i.bak -e "s/3306/$MYSQL_PORT/" fuel/app/config/test/db.php
+          sed -i.bak -e "s/3306/$MYSQL_PORT/" fuel/app/config/db.php
+
+          sed -i.bak -e "s/localhost/mysql_server/" fuel/app/config/test/db.php
+          sed -i.bak -e "s/localhost/mysql_server/" fuel/app/config/db.php
+
+          php -v
+          echo "Start migration"
+          php oil r migrate --all || :
+          php oil r dbinit:insert_data_for_travis || :
+        env:
+          FUEL_ENV: test
+          MYSQL_HOST: mysql_server
+          MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+
+      - name: Run phpunit/phpunit
+        run: |
+          echo $FUEL_ENV
+          ./fuel/vendor/bin/phpunit --coverage-text fuel/app/tests || :
+          php oil t --coverage-clover=./build/logs/clover.xml || :
+        env:
+          FUEL_ENV: test
+          MYSQL_HOST: mysql_server
+          MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}

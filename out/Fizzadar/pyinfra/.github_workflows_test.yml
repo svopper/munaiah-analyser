@@ -1,0 +1,47 @@
+name: "Execute tests"
+
+on:
+  push:
+    branches:
+      - current
+      - next
+  pull_request:
+
+jobs:
+  Test:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        python-version: [2.7, 3.6, 3.7, 3.8, 3.9]
+        include:
+          - os: macos-10.15
+            python-version: 3.8
+          - os: windows-2019
+            python-version: 3.8
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: pip install '.[test]'
+
+      - name: Lint
+        run: flake8
+
+      - name: Unit tests
+        run: pytest --cov --disable-warnings
+
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v1
+
+      - name: Local integration tests
+        run: pytest -m local
+        if: ${{ matrix.os != 'windows-2019' }}

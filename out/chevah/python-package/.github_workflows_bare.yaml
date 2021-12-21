@@ -1,0 +1,240 @@
+#
+# GitHub actions for building and testing python-package on bare GitHub VMs.
+#
+# Don't use `-latest` for targeted VMs, pin specific OS versions instead.
+# https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners
+#
+# When setting up for a tmate debug session, you might need to increase the
+# timeout-minutes for each build. Else you get kicked out after the timeout.
+
+name: Bare
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: bare-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CHEVAH_REPO: 'python-package'
+  TMATE_DEBUG: 'no'
+
+jobs:
+
+  linux:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ARM64 is currently our Pine64 board running Ubuntu 16.04.
+        runs-on: [ ubuntu-20.04, ubuntu-18.04, ARM64 ]
+    timeout-minutes: 90
+    steps:
+    - name: Prepare OS
+      if: startsWith(matrix.runs-on, 'ubuntu')
+      run: sudo apt-get install -y libncurses5-dev
+
+    # Our ARM64's git is too old for actions/checkout, so do the same manually.
+    # This fails when opening a new PR, but works starting with second commit.
+    - name: Clone sources independently
+      run: |
+        git init $CHEVAH_REPO
+        cd $CHEVAH_REPO
+        # Cleanup the repo.
+        git rev-parse --symbolic-full-name --verify --quiet HEAD || true
+        git rev-parse --symbolic-full-name --branches || true
+        git remote remove origin || true
+        # Update repo token.
+        git remote add origin https://github.com/chevah/$CHEVAH_REPO
+        git fetch --no-tags --prune origin
+        # Prepare the code.
+        git clean -f
+        git reset --hard ${{ github.event.after }}
+        git log -1 --format='%H'
+
+    - name: Detect OS and build Python
+      run: |
+        cd $CHEVAH_REPO
+        ./brink.sh detect_os
+        ./chevah_build build
+
+    - name: Own tests
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build test
+
+    - name: Compat tests
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build compat
+
+    # Upload using a (per-OS selected) sftp command, then show final links.
+    - name: Upload testing package
+      run: |
+        mkdir -pv ~/.ssh/
+        cd $CHEVAH_REPO
+        touch priv_key
+        chmod 600 priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_PRIV_KEY }}" > priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_HOST_KEY }}" > ~/.ssh/known_hosts
+        ./publish_dist.sh
+        rm priv_key
+
+    # If one of the above steps fails, fire up tmate for remote debugging.
+    - name: Tmate debug on failure
+      if: failure() && env.TMATE_DEBUG == 'yes'
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+
+
+  macos:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ macos-10.15 ]
+    timeout-minutes: 60
+    steps:
+    # Avoid linking to Homebrew's libintl during build.
+    # Needed tools are to be used from /usr/bin.
+    - name: Hack Homebrew
+      run: |
+        sudo find /usr/local -name 'libffi*' -exec chmod a-r {} +
+        sudo find /usr/local -name 'libintl*' -exec chmod a-r {} +
+        sudo rm -f /usr/local/bin/{wget,curl,git}
+
+    - name: Clone sources independently
+      run: |
+        git init $CHEVAH_REPO
+        cd $CHEVAH_REPO
+        git rev-parse --symbolic-full-name --verify --quiet HEAD || true
+        git rev-parse --symbolic-full-name --branches || true
+        git remote remove origin || true
+        git remote add origin https://github.com/chevah/$CHEVAH_REPO
+        git fetch --no-tags --prune origin
+        git clean -f
+        git reset --hard ${{ github.event.after }}
+
+    - name: Detect OS and build Python
+      run: |
+        cd $CHEVAH_REPO
+        ./brink.sh detect_os
+        ./chevah_build build
+
+    # Fix back Homebrew, to make everything functional.
+    - name: Unhack Homebrew
+      if: failure() && env.TMATE_DEBUG == 'yes'
+      run: |
+        sudo find /usr/local -name 'libintl*' -exec chmod a+r {} +
+        sudo find /usr/local -name 'libffi*' -exec chmod a+r {} +
+
+    - name: Own tests
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build test
+
+    - name: Compat tests
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build compat
+
+    - name: Upload testing package
+      run: |
+        mkdir -pv ~/.ssh/
+        cd $CHEVAH_REPO
+        touch priv_key
+        chmod 600 priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_PRIV_KEY }}" > priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_HOST_KEY }}" > ~/.ssh/known_hosts
+        ./publish_dist.sh
+        rm priv_key
+
+    - name: Tmate debug on failure
+      if: failure() && env.TMATE_DEBUG == 'yes'
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+
+
+  windows:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      # Workflow won't be cancelled at the first failed job.
+      fail-fast: false
+      matrix:
+        runs-on: [ windows-2019, windows-2016 ]
+    timeout-minutes: 60
+    steps:
+    # Add packages needed to build OpenSSL, cryptography, etc.
+    - name: Prepare OS
+      shell: powershell
+      run: |
+        chocolatey install --yes --no-progress make nasm 7zip curl
+        # There's no vcpython27 choco pkg since Microsoft removed the installer.
+        Start-BitsTransfer https://bin.chevah.com:20443/third-party-stuff/VCForPython27.msi
+        msiexec /quiet /i VCForPython27.msi
+
+    - name: Clone sources independently
+      shell: bash
+      run: |
+        git init $CHEVAH_REPO
+        cd $CHEVAH_REPO
+        git rev-parse --symbolic-full-name --verify --quiet HEAD || true
+        git rev-parse --symbolic-full-name --branches || true
+        git remote remove origin || true
+        git remote add origin https://github.com/chevah/$CHEVAH_REPO
+        git fetch --no-tags --prune origin
+        git clean -f
+        git reset --hard ${{ github.event.after }}
+
+    # Explicitly run our scripts with Bash, not PowerShell (GitHub's default).
+    - name: Detect OS and build Python
+      shell: bash
+      run: |
+        cd $CHEVAH_REPO
+        ./brink.sh detect_os
+        ./chevah_build build
+
+    - name: Own tests
+      shell: bash
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build test
+
+    - name: Compat tests
+      shell: bash
+      run: |
+        cd $CHEVAH_REPO
+        ./chevah_build compat
+
+    # To use an RSA key with SFTPPlus, install upstream OpenSSH package,
+    # which is more finicky in regards to file permissions.
+    # Beware the commands in this step run under PowerShell.
+    - name: Prepare SFTP upload
+      run: |
+        mkdir -p ~/.ssh/
+        cd python-package/
+        touch priv_key
+        icacls .\priv_key /inheritance:r
+        icacls .\priv_key /grant:r runneradmin:"(F)"
+        echo "${{ secrets.SFTPPLUS_BIN_PRIV_KEY }}" > priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_HOST_KEY }}" > ~/.ssh/known_hosts
+        choco install --yes --no-progress openssh
+
+    - name: Upload testing package
+      shell: bash
+      run: |
+        cd $CHEVAH_REPO
+        ./publish_dist.sh
+        rm priv_key
+
+    - name: Tmate debug on failure
+      if: failure() && env.TMATE_DEBUG == 'yes'
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true

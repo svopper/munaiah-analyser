@@ -1,0 +1,66 @@
+# Syntax reference:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions
+
+name: Tests
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
+jobs:
+  testing:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        # TODO: add clang. Currently builds but has unsuccessful xfers in simulation.
+        cc: ['gcc']
+        # Latest patch version from last few release branches.
+        # See https://gitweb.torproject.org/tor.git/refs/tags
+        # TODO add more recent versions of Tor
+        # FIXME Tor v0.4.2.6 was previously disabled since it failed the CI
+        # https://github.com/shadow/shadow-plugin-tor/issues/116
+        tor_version: ['0.3.5.7', '0.4.0.5', '0.4.1.8']
+
+    env:
+      CC: ${{ matrix.cc }}
+      TOR_VERSION: ${{ matrix.tor_version }}
+    
+    steps:
+      - name: Update packages
+        run: sudo apt-get update
+
+      - name: Checkout Shadow
+        uses: actions/checkout@v2
+        with:
+          repository: shadow/shadow
+          ref: v1.13.2
+          path: shadow
+
+      - name: Checkout tgen 
+        uses: actions/checkout@v2
+        with:
+          repository: shadow/tgen
+          ref: v1.0.0
+          path: tgen
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: shadow-plugin-tor
+
+      - name: CI script
+        run: shadow-plugin-tor/tools/continuous_integration_test.sh
+
+      - name: Upload simulation logs
+        uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: simulation-output
+          path: simulation
+

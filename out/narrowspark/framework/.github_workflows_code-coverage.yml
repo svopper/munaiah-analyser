@@ -1,0 +1,64 @@
+name: 'PHP Code Coverage'
+
+on:
+  push:
+    paths:
+      - "**.php"
+  pull_request:
+    paths:
+      - "**.php"
+
+jobs:
+  code-coverage:
+    name: "Code Coverage"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: "Setup PHP"
+        uses: shivammathur/setup-php@1.8.2
+        with:
+          php-version: "7.4"
+          extensions: mbstring, xml, ctype, iconv, zip, dom, fileinfo, intl, sodium, curl, pdo, pdo_sqlite, inotify, pcntl, posix, xdebug
+          ini-values: pcov.directory=api, date.timezone=Europe/Berlin, opcache.enable_cli=1, serialize_precision=14
+          coverage: none
+          pecl: true
+          tools: composer, composer-prefetcher
+
+      - name: Install Xdebug
+        run: sudo pecl install -f xdebug-2.9.0
+
+      - name: "Configure Container"
+        run: |
+          echo "::set-env name=PHPUNIT::./vendor/bin/phpunit --verbose"
+          echo "::set-env name=COMPOSER_UP::composer update --no-progress --no-suggest --no-interaction --prefer-source --ansi"
+          echo "::set-env name=PHPUNIT_COVERAGE::true"
+
+      - name: "Check PHP Version"
+        run: php -v
+
+      - name: "Check Composer Version"
+        run: composer -V
+
+      - name: "List all php extensions with versions"
+        run: php -r 'foreach (get_loaded_extensions() as $extension) echo $extension . " " . phpversion($extension) . PHP_EOL;'
+
+      - name: "Install locked dependencies with composer"
+        run: $COMPOSER_UP
+
+      - name: "Dump Xdebug filter with phpunit/phpunit"
+        run: |
+          mkdir ./build/phpunit
+          $PHPUNIT --configuration=./phpunit.xml.dist --dump-xdebug-filter=./build/phpunit/xdebug-filter.php
+
+      - name: "Collect code coverage with Xdebug and phpunit/phpunit"
+        run: $PHPUNIT --configuration=./phpunit.xml.dist --coverage-clover=build/logs/clover.xml --prepend=./build/phpunit/xdebug-filter.php
+
+      - name: "Send code coverage report to Codecov.io"
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: bash <(curl -s https://codecov.io/bash)

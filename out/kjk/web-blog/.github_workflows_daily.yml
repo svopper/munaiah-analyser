@@ -1,0 +1,24 @@
+name: Daily process (update from notion)
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # this is 2 pm utc == 7 am california
+    - cron: "0 14 * * *"
+jobs:
+  build:
+    name: Update from notion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: incrementally update from notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: go run . -ci-update-from-notion

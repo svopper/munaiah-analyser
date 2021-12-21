@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'release/**'
+      - 'develop'
+      - 'hotfix/**'
+      - 'feature/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        git fetch --prune --unshallow
+    - name: Get Git Version
+      #development environment debugging command: docker run -it --rm -v ${PWD}:/code -e GITHUB_ACTIONS=true --workdir /code 'gittools/gitversion:5.1.4-linux' /output buildserver
+      uses: docker://gittools/gitversion:5.1.4-linux
+      with:
+        args: /output buildserver
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@master
+      with:
+        dotnet-version: 3.1.100
+    - name: Build
+      run: dotnet build --configuration Release
+    - name: Test
+      run: dotnet test
+    - name: Pack
+      run: dotnet pack --configuration Release -p:PackageVersion=$pv -p:AssemblyVersion=$av -p:FileVersion=$fv '-p:InformationalVersion=$iv-$sha' -o "./packages"
+      env:
+        pv: ${{ env.GitVersion_NuGetVersionV2 }}
+        av: ${{ env.GitVersion_AssemblySemVer }}
+        fv: ${{ env.GitVersion_AssemblySemFileVer }}
+        iv: ${{ env.GitVersion_FullSemVer }}
+        sha: ${{ env.GitVersion_ShortSha }}
+    - name: Publish to NuGet
+      # Only publish releases or betas to nuget, don't publish from master branch
+      if: (env.GitVersion_PreReleaseTag == '' || env.GitVersion_PreReleaseTag == 'beta') && github.ref != 'refs/heads/master'
+      env:
+        NUGET_AUTH_TOKEN: ${{secrets.NUGET_AUTH_TOKEN}}
+      #run: echo "PUBLISHING TO NUGET - $GitVersion_InformationalVersion"
+      run: dotnet nuget push -s https://www.nuget.org/api/v2/package -k $NUGET_AUTH_TOKEN ./packages/*.nupkg
+    - name: Setup GitHub Packages
+      if: env.GitVersion_PreReleaseTag != '' && env.GitVersion_PreReleaseTag != 'beta'
+      uses: actions/setup-dotnet@master
+      with:
+        dotnet-version: 3.1.100
+        source-url: https://nuget.pkg.github.com/jonstelly/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_AUTH_TOKEN }}
+    - name: Publish to GitHub Packages
+      if: env.GitVersion_PreReleaseTag != '' && env.GitVersion_PreReleaseTag != 'beta'
+      #run: echo "PUBLISHING TO GITHUB - $GitVersion_InformationalVersion"
+      run: dotnet nuget push -s Source ./packages/*.nupkg

@@ -1,0 +1,55 @@
+# 同步数据至Gitee/jsDelivr等加速地址供TeStore调用
+
+name: "更新Action后同步镜像"
+
+on:
+  workflow_run:
+    workflows:
+      - "手动更新单GitHub插件"
+      - "定时更新全GitHub插件"
+      - "推送更新变动插件zip包"
+    branches:
+      - "master"
+    types:
+      - completed
+
+jobs:
+
+  dispatch-mirror:
+    name: "同步API和Gitee目录"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: "获取执行后时间戳"
+        id: "get-update"
+        run: |
+          stamp=`date +%s`
+          echo "::set-output name=upDate::$stamp"
+
+      - uses: actions/checkout@v2
+      - name: "获取ZIP_CDN计数"
+        id: "get-total"
+        working-directory: ZIP_CDN
+        run: |
+          count=`git ls-files | wc -l`
+          echo "::set-output name=toTal::$count"
+
+      - name: "触发API目录更新"
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.API_MIRROR }}
+          repository: jzwalk/API_Mirror
+          event-type: sync
+          # 传递两项数据参数
+          client-payload: '{"total": "${{ steps.get-total.outputs.toTal }}", "update": "${{ steps.get-update.outputs.upDate }}"}'
+
+      - name: "推送Gitee镜像同步"
+        uses: Yikun/hub-mirror-action@master
+        with:
+          src: github/typecho-fans
+          dst: gitee/typecho-fans
+          dst_key: ${{ secrets.SYNC_PV }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          account_type: org
+          static_list: "plugins"
+          force_update: true

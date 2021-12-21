@@ -1,0 +1,130 @@
+name: Check Documentation
+
+# This action runs:
+# - When this file changes
+# - When changes on documentation (doc)
+# - When changes on translation (locale)
+# - When the way the documentation build changes (CMakeLists.txt, doc/CMakeLists.txt, doc/conf.py.in)
+#
+# documentation is tested only on:
+# - ubuntu-latest
+# - default postgres installed on ubuntu-latest
+# - postgis 3
+#
+# Currently more than 50% translated
+# - es
+
+on:
+  push:
+    paths:
+      - '.github/workflows/doc-check.yml'
+      - 'doc/**'
+      - 'locale/**'
+      - 'CMakeLists.txt'
+
+    branches-ignore:
+      - 'gh-pages'
+
+    tags: []
+
+  pull_request:
+    paths:
+      - '.github/workflows/doc-check.yml'
+      - 'doc/**'
+      - 'locale/**'
+      - 'CMakeLists.txt'
+
+    branches-ignore:
+      - 'gh-pages'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    strategy:
+        fail-fast: false
+        matrix:
+          language: [en,es]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: check modified files
+        id: check_files
+        run: |
+          # allways processing english, no matter what the change was
+          if [[ "${{ matrix.language }}" == "en" ]]; then echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+
+          # when this file changes  all languages are tested
+          if git diff --name-only HEAD^ HEAD | grep -q '.github/workflows/doc-check.yml' ; then  echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+
+          # when there is a change on the way the build is done all languages are tested
+          if git diff --name-only HEAD^ HEAD | grep -q '^CMakeLists.txt' ; then  echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+          if git diff --name-only HEAD^ HEAD | grep -q '^doc/CMakeLists.txt' ; then  echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+          if git diff --name-only HEAD^ HEAD | grep -q '^doc/conf.py.in' ; then  echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+
+          # if there is a change on the translation
+          if git diff --name-only HEAD^ HEAD | grep -q "^locale/${{ matrix.language }}" ; then  echo "PROCESS=true" >> $GITHUB_ENV; exit 0; fi
+
+      - name: Get postgres version
+        if: env.PROCESS == 'true'
+        run: |
+          sudo service postgresql start
+          pgver=$(psql --version | grep -Po '(?<=psql \(PostgreSQL\) )[^;]+(?=\.\d \()')
+          echo "PGVER=${pgver}" >> $GITHUB_ENV
+          echo "PGIS=3" >> $GITHUB_ENV
+
+      - name: Add PostgreSQL APT repository
+        if: env.PROCESS == 'true'
+        run: |
+          sudo apt-get install curl ca-certificates gnupg
+          curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ \
+            $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+      - name: Install python
+        if: env.PROCESS == 'true'
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        if: env.PROCESS == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libboost-graph-dev \
+            postgresql-${PGVER} \
+            postgresql-${PGVER}-postgis-${PGIS} \
+            postgresql-${PGVER}-postgis-${PGIS}-scripts \
+            postgresql-server-dev-${PGVER} \
+            graphviz
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip list
+
+
+      - name: Configure
+        if: env.PROCESS == 'true'
+        run: |
+          export PATH=/usr/lib/postgresql/${PGVER}/bin:$PATH
+          mkdir build
+          cd build
+          cmake -DLINKCHECK=ON -DWITH_DOC=ON \
+                -DES=ON  \
+                -DPOSTGRESQL_VERSION=${PGVER} -DCMAKE_BUILD_TYPE=Release ..
+
+      - name: Check Links
+        if: env.PROCESS == 'true'
+        run: |
+          cd build
+          make linkcheck-${{ matrix.language }}
+
+      - name: Check Documentation
+        if: env.PROCESS == 'true'
+        run: |
+          cd build
+          make html-${{ matrix.language }}

@@ -1,0 +1,61 @@
+name: metrics
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  brakeman:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby 2.5
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.5
+      - name: Run brakeman
+        run: |
+          gem install brakeman
+          brakeman -o /tmp/brakeman.html
+      - name: Archive report
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: brakeman
+          path: /tmp/brakeman.html
+  rubycritic:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby 2.5
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.5
+      - name: Run rubycritic
+        run: |
+          gem install rubycritic
+          rubycritic
+      - name: Archive report
+        uses: actions/upload-artifact@v1
+        with:
+          name: rubycritic
+          path: tmp/rubycritic
+  rails_best_practices:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby 2.5
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.5
+      - name: Run rails_best_practices
+        run: |
+          gem install rails_best_practices
+          rails_best_practices -f html --output-file /tmp/rails_best_practices.html
+      - name: Archive report
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: rails_best_practices
+          path: /tmp/rails_best_practices.html

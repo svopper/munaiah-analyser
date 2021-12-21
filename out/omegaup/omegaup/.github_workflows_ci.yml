@@ -1,0 +1,314 @@
+name: CI
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  php:
+    runs-on: ubuntu-20.04
+
+    services:
+      mysql:
+        image: mysql:8.0.23
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_USER: omegaup
+          MYSQL_PASSWORD: omegaup
+          MYSQL_DATABASE: omegaup-test
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Use PHP 7.4
+        run: |
+          sudo update-alternatives --install /usr/bin/php php /usr/bin/php7.4 100
+          # Enable coverage for XDebug so that codecov can do its magic.
+          echo 'xdebug.mode=coverage' | sudo tee --append /etc/php/7.4/cli/conf.d/20-xdebug.ini >/dev/null
+
+      - name: Download gitserver
+        run: |
+          DOWNLOAD_URL='https://github.com/omegaup/gitserver/releases/download/v1.8.2/omegaup-gitserver.tar.xz'
+          curl --location "${DOWNLOAD_URL}" | sudo tar -xJv -C /
+
+          # omegaup-gitserver depends on libinteractive.
+          DOWNLOAD_URL='https://github.com/omegaup/libinteractive/releases/download/v2.0.27/libinteractive.jar'
+          TARGET='/usr/share/java/libinteractive.jar'
+          sudo curl --location "${DOWNLOAD_URL}" -o "${TARGET}"
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --user setuptools
+          python3 -m pip install --user wheel
+          python3 -m pip install --user \
+            mysqlclient==2.0.1
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
+
+      - name: Install composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Create database users
+        run: |
+          mysql \
+            -uroot --skip-password --protocol=TCP \
+            -e 'CREATE USER "omegaup"@"localhost" IDENTIFIED BY "omegaup";'
+
+      - name: Validate database migration scripts
+        run: python3 stuff/db-migrate.py validate
+
+      - name: Create test database
+        run: |
+          python3 stuff/db-migrate.py \
+            --username=root --password= --hostname=localhost \
+            migrate --databases=omegaup-test
+
+      - name: Validate database schema
+        run: |
+          python3 stuff/policy-tool.py \
+            --username=root --password= --hostname=localhost --database=omegaup-test \
+            validate
+          python3 stuff/database_schema.py \
+            --username=root --password= --hostname=localhost --database=omegaup-test \
+            validate --all < /dev/null
+
+      - name: Run tests
+        timeout-minutes: 20
+        run: ./stuff/mysql_types.sh
+
+      - name: Run Psalm
+        run: |
+          # Create optional directories to simplify psalm config.
+          mkdir -p frontend/www/{phpminiadmin,preguntas}
+          touch 'frontend/server/config.php'
+          touch 'frontend/tests/test_config.php'
+          ./vendor/bin/psalm \
+            --output-format=github \
+            --long-progress \
+            --show-info=false
+
+      - name: Upload code coverage
+        run: |
+          curl -Os https://uploader.codecov.io/v0.1.0_5313/linux/codecov
+          echo 'a229148bfbb9b802a95b4c78501b19630a17784696eb0b5182b40f0e1c0a4b6e  codecov' | shasum -a 256 -c
+          chmod +x codecov
+          ./codecov
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-logs
+          path: frontend/tests/runfiles/*/*.log
+
+  javascript:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install yarn dependencies
+        run: yarn install
+
+      - name: Run JavaScript tests
+        run: yarn test:coverage
+
+      - name: Upload code coverage
+        run: |
+          curl -Os https://uploader.codecov.io/v0.1.0_5313/linux/codecov
+          echo 'a229148bfbb9b802a95b4c78501b19630a17784696eb0b5182b40f0e1c0a4b6e  codecov' | shasum -a 256 -c
+          chmod +x codecov
+          ./codecov
+
+  lint:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install yarn dependencies
+        run: yarn install
+
+      - name: Install composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Get docker container
+        run: ./stuff/lint.sh ensure-container
+
+      - name: Run linters
+        run: |
+          # Create optional directories to simplify psalm config.
+          mkdir -p frontend/www/{phpminiadmin,preguntas}
+          touch 'frontend/server/config.php'
+          touch 'frontend/tests/test_config.php'
+
+          ./stuff/lint.sh --diagnostics-output=github validate --all < /dev/null
+
+      - name: Run Psalm
+        run: |
+          ./vendor/bin/psalm \
+            --output-format=github \
+            --long-progress \
+            --show-info=false
+
+      - name: Find unused translation strings
+        run: ./stuff/unused_translation_strings.py
+
+  selenium:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install wait-for-it
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y wait-for-it
+
+      - name: Download the Docker containers
+        run: |
+          docker-compose pull
+
+      - name: Start the Docker containers
+        run: |
+          docker-compose up --no-build --detach
+
+          # Add the container names as aliases to localhost
+          cat << EOF | sudo tee --append /etc/hosts
+          127.0.0.1 mysql grader runner gitserver broadcaster
+          EOF
+
+          # Wait for some of the containers
+          wait-for-it -t 30 mysql:13306
+          wait-for-it -t 30 gitserver:33861
+
+      - name: Create default configuration files
+        run: |
+          cat > frontend/server/config.php <<EOF
+          <?php
+          define('OMEGAUP_ALLOW_PRIVILEGE_SELF_ASSIGNMENT', true);
+          define('OMEGAUP_CSP_LOG_FILE', '/tmp/csp.log');
+          define('OMEGAUP_DB_HOST', 'mysql');
+          define('OMEGAUP_DB_NAME', 'omegaup');
+          define('OMEGAUP_DB_PASS', 'omegaup');
+          define('OMEGAUP_DB_USER', 'omegaup');
+          define('OMEGAUP_ENVIRONMENT', 'development');
+          define('OMEGAUP_LOG_FILE', '/tmp/omegaup.log');
+          define('OMEGAUP_ENABLE_SOCIAL_MEDIA_RESOURCES', false);
+          define('SMARTY_CACHE_DIR', '/tmp');
+          define('OMEGAUP_GITSERVER_URL', 'http://gitserver:33861');
+          define('OMEGAUP_GRADER_URL', 'https://grader:21680');
+          define('OMEGAUP_GITSERVER_SECRET_TOKEN', 'secret');
+          EOF
+
+          cat > ~/.my.cnf << EOF
+          [client]
+          port=13306
+          host=mysql
+          protocol=tcp
+          user=root
+          password=omegaup
+          EOF
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --user setuptools
+          python3 -m pip install --user wheel
+          python3 -m pip install --user --upgrade urllib3
+          python3 -m pip install --user \
+            mysqlclient==2.0.1 \
+            selenium \
+            pytest \
+            pytest-xdist \
+            flaky
+
+      - name: Install composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Initialize database
+        run: |
+          mysql \
+            -e 'CREATE USER "omegaup"@"localhost" IDENTIFIED BY "omegaup";'
+          # Create directory to prevent --purge from failing.
+          sudo mkdir -p /var/lib/omegaup
+          sudo chown "$(id -u)":"$(id -g)" /var/lib/omegaup
+          python3 stuff/bootstrap-environment.py --purge --verbose
+
+      - name: Install yarn dependencies
+        run: yarn install
+
+      - name: Build webpack resources
+        run: yarn build
+
+      - name: Wait for dependencies
+        run: |
+          wait-for-it -t 30 grader:21680
+
+      - name: Run Selenium tests
+        run: |
+          python3 -m pytest ./frontend/tests/ui/ \
+            --verbose --capture=no --log-cli-level=INFO --browser=chrome \
+            --force-flaky --max-runs=2 --min-passes=1 --numprocesses=4
+
+      - name: Collect container logs
+        if: ${{ always() }}
+        run: |
+          mkdir -p frontend/tests/runfiles/containers
+          for name in $(docker ps --format '{{.Names}}'); do
+            docker logs --timestamps --since 1970-01-01T00:00:00 "${name}" > \
+              "frontend/tests/runfiles/containers/${name}.log" 2>&1
+          done
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-logs
+          path: frontend/tests/ui/results/
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-logs
+          path: frontend/tests/runfiles/*/*.log
+
+  python:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --user setuptools
+          python3 -m pip install --user wheel
+          python3 -m pip install --user --upgrade urllib3
+          python3 -m pip install --user \
+            mysqlclient==2.0.1 \
+            pandas \
+            pytest
+
+      - name: Run Python tests
+        run: |
+          python3 -m pytest ./stuff/

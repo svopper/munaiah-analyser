@@ -1,0 +1,121 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+env:
+  RAILS_ENV: test
+  NODE_ENV: test
+
+  DB_PORT: 33306
+  DB_USER: root
+  DB_PASSWORD: root
+
+jobs:
+  rubocop:
+    name: RuboCop
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7.1
+        bundler-cache: true
+
+    - name: Run eslint
+      run: |
+        ./bin/yarn install
+        ./bin/yarn lint
+
+    - name: Run rubocop
+      run: |
+        bundle exec rubocop
+
+  cucumber:
+    name: Cucumber
+    runs-on: ubuntu-18.04
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ env.DB_PASSWORD }}
+        ports:
+          - 33306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7.1
+        bundler-cache: true
+
+    - name: Setup database
+      run: |
+        cp config/database.github-actions.yml config/database.yml
+        cp config/server.yml.example config/server.yml
+
+        sudo /etc/init.d/mysql start
+
+        bundle exec rake db:create
+
+    - name: Run cucumber
+      run: |
+        ./bin/yarn install
+        bundle exec cucumber --order random --tags '@retry_ci' --retry 2
+        bundle exec cucumber --order random --tags 'not @skip and not @skip_ci and not @retry_ci'
+
+  rspec:
+    name: RSpec
+    runs-on: ubuntu-18.04
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ env.DB_PASSWORD }}
+        ports:
+          - 33306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7.1
+        bundler-cache: true
+
+    - name: Setup database
+      run: |
+        cp config/database.github-actions.yml config/database.yml
+        cp config/server.yml.example config/server.yml
+
+        sudo /etc/init.d/mysql start
+
+        bundle exec rake db:create
+
+    - name: Run rspec
+      run: |
+        ./bin/yarn install
+        bundle exec rspec spec --tag ~pending --order rand

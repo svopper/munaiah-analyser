@@ -1,0 +1,253 @@
+name: Build and test GYB
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '37 22 * * *'
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BUILD_PYTHON_VERSION: "3.10.0"
+  MIN_PYTHON_VERSION: "3.10.0"
+  BUILD_OPENSSL_VERSION: "3.0.0"
+  MIN_OPENSSL_VERSION: "1.1.1l"
+  PATCHELF_VERSION: "0.13"
+  PYINSTALLER_VERSION: "d53be0c8c9c961952ea1a08646d29fc920f12537"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            jid: 2
+            goal: "build"
+            gybos: "linux"
+            platform: "x86_64"
+          - os: ubuntu-20.04
+            jid: 3
+            goal: "build"
+            gybos: "linux"
+            platform: "x86_64"
+          - os: macos-11.0
+            jid: 5 
+            goal: "build"
+            gybos: "macos"
+            platform: "universal2"
+          - os: windows-2019
+            jid: 6
+            goal: "build"
+            gybos: "windows"
+            platform: "x86_64"
+          - os: windows-2019
+            jid: 7
+            goal: "build"
+            gybos: "windows"
+            platform: "x86"
+          - os: ubuntu-20.04
+            goal: "test"
+            python: "3.7"
+            jid: 9
+            gybos: "linux"
+            platform: "x86_64"
+          - os: ubuntu-20.04
+            goal: "test"
+            python: "3.8"
+            jid: 10
+            gybos: "linux"
+            platform: "x86_64"
+          - os: ubuntu-20.04
+            goal: "test"
+            python: "3.9"
+            jid: 11
+            gybos: "linux"
+            platform: "x86_64"
+
+    steps:
+
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        if: matrix.goal != 'test'
+        with:
+          path: |
+            /usr/local
+          key: ${{ matrix.os }}-${{ matrix.jid }}-20211020
+
+      - name: Set env variables
+        env:
+          GYBOS: ${{ matrix.gybos }}
+          GOAL: ${{ matrix.goal }}
+          JID: ${{ matrix.jid }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          echo "GYBOS=${GYBOS}" >> $GITHUB_ENV
+          echo "GOAL=${GOAL}" >> $GITHUB_ENV
+          echo "JID=${JID}" >> $GITHUB_ENV
+          echo "PLATFORM=${PLATFORM}" >> $GITHUB_ENV
+          uname -a
+
+      - name: Use pre-compiled Python for testing
+        if: matrix.python != ''
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: ${{ matrix.pyarch }}
+
+      - name: Install Python on Windows
+        if: matrix.os == 'windows-2019'
+        run: |
+          if ( ${Env:PLATFORM} -eq "x86_64" )
+          {
+            Set-Variable -name py_arch -value "-amd64"
+          }
+          else
+          {
+            Set-Variable -name py_arch -value ""
+          }
+          Write-Output "py_arch: $py_arch"
+          Set-Variable -name python_file -value "python-${Env:BUILD_PYTHON_VERSION}${py_arch}.exe"
+          Write-Output "python_file: $python_file"
+          Set-Variable -name python_url -value "https://www.python.org/ftp/python/${Env:BUILD_PYTHON_VERSION}/${python_file}"
+          Write-Output "python_url: $python_url"
+          Invoke-WebRequest -Uri $python_url -OutFile $python_file
+          Start-Process -wait -FilePath $python_file -ArgumentList "/quiet","InstallAllUsers=0","TargetDir=c:\\python","AssociateFiles=1","PrependPath=1"
+        shell: pwsh
+
+      - name: Set env variables for pre-compiled Python
+        if: matrix.goal == 'test'
+        run: |
+             export python=$(which python3)
+             export pip=$(which pip3)
+             export gyb="${python} -m gyb"
+             export gybpath="$(readlink -e .)"
+             echo -e "python: $python\npip: $pip\ngyb: $gyb\ngybpath: $gybpath"
+             echo "python=${python}" >> $GITHUB_ENV
+             echo "pip=${pip}" >> $GITHUB_ENV
+             echo "gyb=${gyb}" >> $GITHUB_ENV
+             echo "gybpath=${gybpath}" >> $GITHUB_ENV
+
+      - name: Build and install Python, OpenSSL and PyInstaller
+        if: matrix.goal != 'test' && steps.cache-primes.outputs.cache-hit != 'true'
+        run: |
+             set +e
+             source .github/actions/${GYBOS}-before-install.sh
+             echo "PATH=$PATH" >> $GITHUB_ENV # keep gnutools for MacOS
+             echo "python=$python" >> $GITHUB_ENV
+             echo "pip=$pip" >> $GITHUB_ENV
+             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+             echo -e "Python: $python\nPip: $pip\nLD_LIB...: $LD_LIBRARY_PATH"
+             $pip install --upgrade pip
+             $pip install wheel
+             export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
+             echo "Downloading ${url}"
+             curl -o pyinstaller.tar.gz --compressed "${url}"
+             tar xf pyinstaller.tar.gz
+             cd "pyinstaller-${PYINSTALLER_VERSION}/"
+             # remove pre-compiled bootloaders so we fail if bootloader compile fails
+             mv PyInstaller/bootloader/images /tmp
+             rm -rf PyInstaller/bootloader/*
+             mv /tmp/images PyInstaller/bootloader/
+             cd bootloader
+             if [ "${PLATFORM}" == "x86" ]; then
+               TARGETARCH="--target-arch=32bit"
+             else
+               TARGETARCH=""
+             fi
+             $python ./waf all $TARGETARCH
+             cd ..
+             $pip install .
+
+      - name: Install pip requirements
+        if: matrix.os != 'self-hosted'
+        run: |
+             set +e
+             $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U --force-reinstall
+             $pip install --upgrade -r requirements.txt
+
+      - name: Build GYB with PyInstaller
+        if: matrix.goal != 'test'
+        run: |
+             set +e
+             source .github/actions/${GYBOS}-install.sh
+             echo "gybpath=$gybpath" >> $GITHUB_ENV
+             echo "gyb=$gyb" >> $GITHUB_ENV
+             echo -e "GYB: ${gyb}\nGYBPATH: ${gybpath}\nGYBVERSION: ${GYBVERSION}"
+
+      - name: Basic Tests all jobs
+        run: |
+             echo -e "python: $python\npip: $pip\ngyb: $gyb\ngybpath: $gybpath\n"
+             touch "${gybpath}/nobrowser.txt"
+             $gyb --version
+             export GYBVERSION=$($gyb --short-version )
+             echo "GYB Version ${GYBVERSION}"
+             echo "GYBVERSION=${GYBVERSION}" >> $GITHUB_ENV
+
+      - name: Basic Tests build jobs only
+        if: matrix.goal != 'test'
+        run: |
+             export vline=$($gyb --version | grep "Python ")
+             export python_line=($vline)
+             export this_python=${python_line[1]}
+             $python tools/a_atleast_b.py "${this_python}" "${MIN_PYTHON_VERSION}"
+             export vline=$($gyb --version | grep "OpenSSL ")
+             export openssl_line=($vline)
+             export this_openssl="${openssl_line[1]}"
+             $python tools/a_atleast_b.py "${this_openssl}" "${MIN_OPENSSL_VERSION}"
+
+
+      - name: Live API tests push only
+        if: (github.event_name == 'push' || github.event_name == 'schedule') && github.repository_owner == 'jay0lee'
+        env:
+          PASSCODE: ${{ secrets.PASSCODE }}
+        run: |
+              export gyb_user="gyb-gha-${JID}@pdl.jaylee.us"
+              export gyb_group="gyb-travis-group-${JID}@pdl.jaylee.us"
+              source .github/actions/decrypt.sh .github/actions/creds.tar.gpg creds.tar
+              $gyb --action check-service-account --email $gyb_user
+              $gyb --action purge --email $gyb_user
+              $gyb --action purge-labels --email $gyb_user
+              $gyb --action restore --local-folder samples/gyb-format --email $gyb_user
+              $gyb --action restore --local-folder samples/gyb-format --email $gyb_user --service-account --noresume
+              $gyb --action restore-group --local-folder samples/gyb-format --email $gyb_group --use-admin $gyb_user
+              $gyb --action restore-group --local-folder samples/gyb-format --email $gyb_group --use-admin $gyb_user --service-account --noresume
+              $gyb --action restore-group --local-folder samples/google-takeout --email $gyb_group --use-admin $gyb_user
+              $gyb --action restore-group --local-folder samples/vault-export-mbox --email $gyb_group --use-admin $gyb_user --service-account
+              $gyb --action restore-mbox --local-folder samples/historic-public-mbox --email $gyb_user
+              $gyb --action restore-mbox --local-folder samples/historic-public-mbox --email $gyb_user --service-account --noresume
+              $gyb --action restore-mbox --local-folder samples/google-takeout --email $gyb_user
+              $gyb --action restore-mbox --local-folder samples/vault-export-mbox --email $gyb_user
+              $gyb --action count --email $gyb_user
+              $gyb --action count --email $gyb_user --service-account
+              $gyb --action quota --email $gyb_user
+              $gyb --action quota --email $gyb_user --service-account
+              $gyb --action estimate --email $gyb_user
+              $gyb --action estimate --email $gyb_user --service-account
+              $gyb --action print-labels --email $gyb_user
+              $gyb --action print-labels --email $gyb_user --service-account
+              $gyb --action backup --email $gyb_user
+              $gyb --action backup --email $gyb_user --service-account --local-folder sa-backup
+
+      - name: Upload to Google Drive, build only.
+        if: github.event_name == 'push' && matrix.goal != 'test' && github.repository_owner == 'jay0lee'
+        env:
+          GHCLIENT: ${{ secrets.GHCLIENT }}
+        run: |
+              # Use GAM to upload archive to Drive
+              bash <(curl -s -S -L https://git.io/install-gam) -l
+              for gybfile in gyb-$GYBVERSION-*; do
+                echo "Uploading file ${gybfile} to Google Drive..."
+                export OAUTHSERVICEFILE="${gybpath}/oauth2service.json"
+                fileid=$(~/bin/gam/gam user gyb-project-cp6-xqa-vk3@gyb-project-cp6-xqa-vk3.iam.gserviceaccount.com add drivefile localfile $gybfile drivefilename $GYBVERSION-${GITHUB_SHA:0:7}-$gybfile parentid 1nM76gFy3aW1orENiyJGW1v4wmtoNAkQO returnidonly)
+                echo "file uploaded as ${fileid}, setting ACL..."
+                ~/bin/gam/gam user gyb-project-cp6-xqa-vk3@gyb-project-cp6-xqa-vk3.iam.gserviceaccount.com add drivefileacl $fileid anyone role reader withlink
+              done

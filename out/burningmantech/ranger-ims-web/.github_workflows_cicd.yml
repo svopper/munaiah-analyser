@@ -1,0 +1,87 @@
+# Docs:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions
+
+
+
+name: CI/CD
+
+on: [push]
+
+
+jobs:
+
+  info:
+
+    name: Workflow information
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+
+    steps:
+
+      - name: Print GitHub Context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "${GITHUB_CONTEXT}";
+
+      - name: Print Job Context
+        env:
+          JOB_CONTEXT: ${{ toJson(job) }}
+        run: echo "${JOB_CONTEXT}";
+
+      - name: Print Steps Context
+        env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "${STEPS_CONTEXT}";
+
+      - name: Print Runner Context
+        env:
+          RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: echo "${RUNNER_CONTEXT}";
+
+      - name: Print Strategy Context
+        env:
+          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+        run: echo "${STRATEGY_CONTEXT}";
+
+      - name: Print Matrix Context
+        env:
+          MATRIX_CONTEXT: ${{ toJson(matrix) }}
+        run: echo "${MATRIX_CONTEXT}";
+
+
+  unit:
+
+    name: Unit Tests
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2.4.1
+        with:
+          node-version: 14.15
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test -- --ci --watchAll=false --coverage
+
+      - name: "Upload coverage to Codecov"
+        uses: "codecov/codecov-action@v2.1.0"
+        with:
+          env_vars: GITHUB_REF,GITHUB_COMMIT,GITHUB_USER,GITHUB_WORKFLOW
+          fail_ci_if_error: true
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_COMMIT: ${{ github.sha }}
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}

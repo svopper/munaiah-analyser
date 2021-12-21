@@ -1,0 +1,64 @@
+---
+name: CI
+on: [ push, pull_request ]
+jobs:
+  omnilint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/omnilint:v0.2
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/ghaction-cmake:0.15
+        with:
+          preset: coverage
+      - uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: lcov.info
+  tests:
+    strategy:
+        matrix:
+          preset:
+            - cppcheck
+            - clang-tidy
+            - install
+            - clang-sanitizer-address
+            - clang-sanitizer-memory
+            - clang-sanitizer-undefined
+            - clang-sanitizer-dataflow
+            - clang-sanitizer-safe-stack
+            - valgrind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/ghaction-cmake:0.15
+        with:
+          preset: ${{ matrix.preset }}
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: DoozyX/clang-format-lint-action@v0.5
+  packagecloud:
+    needs: [ omnilint, clang-format, tests, coverage ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: docker://lpenz/ghaction-cmake:0.15
+        with:
+          preset: cpack
+      - run: |
+          dpkg --info *.deb
+          dpkg --contents *.deb
+      - uses: docker://lpenz/ghaction-packagecloud:v0.3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          repository: debian/debian/bullseye
+        env:
+          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
+

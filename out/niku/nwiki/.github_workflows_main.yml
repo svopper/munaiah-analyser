@@ -1,0 +1,16 @@
+name: Publish Docker
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish Docker
+        uses: elgohr/Publish-Docker-Github-Action@2.11
+        with:
+          name: niku/nwiki
+          username: niku
+          password: ${{ secrets.DOCKER_PASSWORD }}

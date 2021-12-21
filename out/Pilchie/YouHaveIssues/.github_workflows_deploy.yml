@@ -1,0 +1,35 @@
+name: Deploy to App Services
+
+on:
+  push:
+    branches: 
+      - master
+      - release/*
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+    # checkout the repo
+    - uses: actions/checkout@v2
+    
+    - name: Setup dotnet 3.1.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.x'
+    - name: Setup dotnet 5.0.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+    
+    # dotnet build and publish
+    - name: dotnet publish
+      run: |
+        dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp 
+    - name: 'Run Azure webapp deploy action using publish profile credentials'
+      uses: azure/webapps-deploy@v2
+      with: 
+        app-name: YouHaveIssues
+        publish-profile: ${{ secrets.PUBLISHPROFILE }}
+        package: ${{env.DOTNET_ROOT}}/myapp 

@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Windows Dependencies
+      run: pip install meson ninja
+    - name: Building Sdb
+      run: meson build && ninja -C build
+    - name: Pub
+      uses: actions/upload-artifact@v2
+      with:
+        path: build/*.exe
+  build-asan:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install gperf
+      run: sudo apt install gperf
+    - name: Building Sdb
+      run: make asan
+    - name: Running tests
+      run: make asantest
+    - name: Testing gperf
+      run: make -C test/gperf
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Building Sdb
+      run: export CFLAGS="-Werror -Wall" && make -j4
+    - name: Install gperf
+      run: sudo apt install gperf
+    - name: Packaging
+      run: make -C dist/debian
+    - name: Running tests
+      run: make test
+    - name: Testing gperf
+      run: make -C test/gperf
+    - name: Pub
+      uses: actions/upload-artifact@v2
+      with:
+        path: dist/debian/sdb/*.deb
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Building Sdb
+      run: make -j4 && cd ..
+    - name: Packaging
+      run: cd dist/macos && make && cd ../../..
+    - name: Running tests
+      run: make test
+    - name: Pub
+      uses: actions/upload-artifact@v2
+      with:
+        path: dist/macos/*.pkg
+  build-cydia:
+    runs-on: macos-latest
+    steps:
+    - name: Cloning Repo
+      run: git clone --depth=1 https://github.com/radareorg/sdb
+    - name: Building Sdb
+      run: cd sdb && make ios && cd ..
+    - name: Packaging
+      run: cd sdb/dist/cydia && make && cd ../../..
+    - name: Pub
+      uses: actions/upload-artifact@v2
+      with:
+        path: sdb/dist/cydia/*/*.deb

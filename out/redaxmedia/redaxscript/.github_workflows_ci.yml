@@ -1,0 +1,93 @@
+name: ci
+
+on: [ push, pull_request ]
+
+jobs:
+ lint:
+  runs-on: ubuntu-latest
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+  - name: Set up PHP 8.0
+    uses: shivammathur/setup-php@2.9.0
+    with:
+     php-version: 8.0
+  - name: Set up Node 14
+    uses: actions/setup-node@v1
+    with:
+     node-version: 14
+  - run: composer install
+  - run: npm install
+  - run: grunt
+ build:
+  runs-on: ubuntu-latest
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+  - name: Set up PHP 8.0
+    uses: shivammathur/setup-php@2.9.0
+    with:
+     php-version: 8.0
+  - name: Set up Node 14
+    uses: actions/setup-node@v1
+    with:
+     node-version: 14
+  - run: composer install
+  - run: npm install
+  - run: grunt build
+ test-unit:
+  runs-on: ubuntu-latest
+  strategy:
+   matrix:
+    php-version: [ 8.0, 8.1, 8.2 ]
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+  - name: Set up PHP ${{ matrix.php-version }}
+    uses: shivammathur/setup-php@2.9.0
+    with:
+     php-version: ${{ matrix.php-version }}
+  - run: sudo apt-get install sendmail
+  - run: composer install --ignore-platform-reqs
+  - run: vendor/bin/phpunit
+ test-acceptance:
+  runs-on: ubuntu-latest
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+  - name: Set up PHP 8.0
+    uses: shivammathur/setup-php@2.9.0
+    with:
+     php-version: 8.0
+  - name: Set up Node 14
+    uses: actions/setup-node@v1
+    with:
+     node-version: 14
+  - run: sudo apt-get install sendmail
+  - run: composer install
+  - run: npm install
+  - run: grunt serve &
+  - run: grunt test-acceptance
+    env:
+     CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
+     CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+ report:
+  needs: test-unit
+  runs-on: ubuntu-latest
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+  - name: Set up PHP 8.0
+    uses: shivammathur/setup-php@2.9.0
+    with:
+     php-version: 8.0
+  - run: sudo apt-get install sendmail
+  - run: composer require php-coveralls/php-coveralls 2.4.3 --dev --no-update
+  - run: composer install
+  - run: vendor/bin/phpunit --coverage-clover=build/logs/clover.xml
+    env:
+     XDEBUG_MODE: coverage
+  - name: Report to Coveralls
+    run: vendor/bin/php-coveralls --coverage_clover=build/logs/clover.xml
+    env:
+     COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}

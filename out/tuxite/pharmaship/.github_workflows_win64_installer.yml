@@ -1,0 +1,94 @@
+# Create the Windows 64 installer (MSYS2/Mingw64, cxFreeze, NSIS)
+
+name: Build Windows 64 Installer
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    defaults:
+        run:
+          shell: msys2 {0}
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Setup MSYS2/MingW64 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            patch
+            wget
+            unzip
+            tar
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-gnupg
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-gtk3
+            mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-adwaita-icon-theme
+            mingw-w64-x86_64-nsis
+            mingw-w64-x86_64-python-pip
+            mingw-w64-x86_64-python-virtualenv
+            mingw-w64-x86_64-python-pillow
+            mingw-w64-x86_64-python-cairo
+            mingw-w64-x86_64-python-matplotlib
+            mingw-w64-x86_64-python-numpy
+            mingw-w64-x86_64-python-pandas
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Retrieve Pharmaship sources
+        uses: actions/checkout@v2
+      # Install jdupes from original Github repo releases
+      # Use 1.19.1 release
+      - name: Install jdupes
+        run: |
+          wget -c -O "jdupes.zip" "https://github.com/jbruchon/jdupes/releases/download/v1.19.1/jdupes-1.19.1-win64.zip"
+          unzip -j "jdupes.zip" "*/jdupes.exe" -d "./bin"
+          rm jdupes.zip
+      # Prepare virtualenv and install python dependencies
+      - name: Prepare Python environment
+        run: |
+          virtualenv --system-site-packages venv
+          venv/bin/python -m pip install -r requirements.txt
+          venv/bin/python -m pip install winpath
+          venv/bin/python -m pip install cx-Logging
+          venv/bin/python -m pip install cx-Freeze==6.5.3
+          venv/bin/python -m pip install --platform win_amd64 --only-binary=:all: --target venv/lib/python3.8/site-packages --upgrade pywin32
+          rm -rf venv/lib/python3.8/site-packages/setuptools*
+          rm -rf venv/lib/python3.8/site-packages/pip*
+          rm -rf venv/lib/python3.8/site-packages/wheel*
+      # Patch CairoSVG and Weasyprint for freezing
+      - name: Patch CairoSVG and Weasyprint
+        run: |
+          mingw32-make patch_cairosvg
+          mingw32-make patch_weasyprint
+      # Compile translations
+      - name: Create .mo files
+        run: |
+          mingw32-make mo
+      # Generate installer
+      - name: Build installer
+        run: |
+          mingw32-make win64
+      # Upload the produced installer
+      - name: Upload installer
+        uses: actions/upload-artifact@v2
+        with:
+          name: WindowsInstaller
+          path: './bin/pharmaship_setup_x64.exe'

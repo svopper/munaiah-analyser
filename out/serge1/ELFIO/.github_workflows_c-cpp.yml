@@ -1,0 +1,55 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_autoconf:
+    name: autoconf build & test
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: compile and run examples
+      run: |
+        autoreconf -i -f
+        ./configure
+        make
+    - name: compile and run tests
+      run: |
+        sudo apt-get install libboost-test-dev
+        cd tests
+        autoreconf -i -f
+        ./configure
+        make
+        make check
+    - name: make distcheck
+      run: make distcheck
+
+  build_cmake:
+    name: cmake build & test
+
+    env:
+      BUILD_TYPE: Release
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create Build Directory
+      run: cmake -E make_directory ${{ runner.workspace }}/build
+    - name: Configure CMake
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake ${{ github.workspace }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DELFIO_BUILD_EXAMPLES=YES
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --config ${{ matrix.build_type }}

@@ -1,0 +1,89 @@
+name: windows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  # Also trigger on page_build, as well as release created events
+  page_build:
+  release:
+    types: # This configuration does not affect the page_build event above
+      - created
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 0,12 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-libjstack-build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019]
+        build_type: [Debug, Release]
+        include:
+          - triplet: x64-windows
+            generator: Visual Studio 16 2019
+            pg_service_name: postgresql-x64-13
+            deps_version: 0
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Start Pg
+        shell: pwsh
+        run: Set-Service ${{ matrix.pg_service_name }} -StartupType Manual;Start-Service ${{ matrix.pg_service_name }}
+
+      - name: Test Pg
+        shell: pwsh
+        run: $env:PGPASSWORD="root";."$env:PGBIN\psql.exe" -U postgres -d postgres -c "SELECT 1"
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{ github.workspace }}/build
+
+      - name: Cache vcpkg
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-vcpkg
+        with:
+          path: C:\Users\runneradmin\AppData\Local\vcpkg\archives
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.deps_version }}
+
+      - name: Install dependencies
+        shell: pwsh
+        run: vcpkg install boost-filesystem[core]:${{ matrix.triplet }} boost-system[core]:${{ matrix.triplet }} boost-test[core]:${{ matrix.triplet }} curl:${{ matrix.triplet }} libpq:${{ matrix.triplet }}
+
+      - name: Configure CMake
+        shell: pwsh
+        working-directory: ${{ github.workspace }}/build
+        run: cmake -G "${{ matrix.generator }}" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE:FILEPATH="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} ${{ github.workspace }}
+
+      - name: Debug
+        working-directory: ${{ github.workspace }}/build
+        run: cmake --version
+
+      - name: Build
+        working-directory: ${{ github.workspace }}/build
+        shell: pwsh
+        run: cmake --build . --config ${{ matrix.build_type }}
+
+      - name: Add Pg test user
+        shell: pwsh
+        run: $env:PGPASSWORD="root";."$env:PGBIN\psql.exe" -U postgres -d postgres -c "CREATE USER libjstack WITH PASSWORD 'libjstack'" postgres
+
+      - name: Add Pg test database
+        shell: pwsh
+        run: $env:PGPASSWORD="root";."$env:PGBIN\psql.exe" -U postgres -d postgres -c "CREATE DATABASE libjstack_test OWNER libjstack" postgres
+
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
+        shell: pwsh
+        run: ctest -C ${{ matrix.build_type }} -V --extra-verbose --rerun-failed --output-on-failure

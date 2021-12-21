@@ -1,0 +1,59 @@
+name: check
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron: 45 4 * * 0
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DRIVER: ${{ matrix.driver }}
+    strategy:
+      matrix:
+        ruby:
+        - '2.2'
+        - '2.3'
+        - '2.4'
+        - '2.5'
+        - '2.6'
+        - '2.7'
+        - '3.0'
+        - jruby-9.1
+        - jruby-9.2
+        driver:
+        - git
+        - rugged
+        exclude:
+          - ruby: jruby-9.1
+            driver: rugged
+          - ruby: jruby-9.2
+            driver: rugged
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "${{ matrix.ruby }}"
+        bundler-cache: true
+    - run: bundle exec rspec
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'
+        bundler-cache: true
+    - run: DRIVER=rugged bundle install --jobs=3 --retry=3
+    - run: DRIVER=git bundle exec script/benchmark
+    - run: DRIVER=rugged bundle exec script/benchmark
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'
+        bundler-cache: true
+    - run: bundle exec rubocop

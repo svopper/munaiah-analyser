@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Build
+        run: |
+          mkdir -p build
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1 .
+          cmake --build build
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: actions/cache@v2
+        id: vcpkg-cache
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-cache
+
+      - name: Build
+        run: |
+          mkdir build
+          cmake -Bbuild -DCMAKE_TOOLCHAIN_FILE=C:\Vcpkg\scripts\buildsystems\vcpkg.cmake .
+          cmake --build build
+
+  build-emscripten:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Build
+        run: |
+          cd packages/cxx-frontend
+          npm ci
+          npm run build
+          npm pack
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: brew install fmt gflags ninja
+
+      - name: Build
+        run: |
+          mkdir -p build
+          cmake -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release .
+          cmake --build build

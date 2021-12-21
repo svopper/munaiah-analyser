@@ -1,0 +1,187 @@
+#
+# Copyright (C) 2003-2012 David E. Berry
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# A copy of the GNU Lesser General Public License may also be found at
+# http://www.gnu.org/licenses/lgpl.txt
+#
+
+name: mvn-linux-build-publish
+
+on:
+  push:
+    tags: [ 'v*' ]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: ${{ !startsWith(github.ref, 'refs/tags') }}
+    runs-on: ubuntu-latest
+    steps:
+      #
+      # Set up the environment 
+      #
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+      - name: Build with Maven
+        id: build
+        run: mvn test
+#      #
+#      # Version, Restore, Build, Test
+#      #
+#      - name: Determine / Update Version
+#        id: gitversion
+#        uses: gittools/actions/gitversion/execute@v0.9.10
+#        with:
+#          additionalArguments: '/overrideconfig mode=ContinuousDeployment'
+#      #
+#      # Publish the test results
+#      #
+#      - name: Generate and Publish Test Report
+#        uses: dorny/test-reporter@v1
+#        if: always() && steps.build.outcome == 'success'
+#        with:
+#          name: Test Results           # Name of the check run which will be created
+#          path: bin/test-results/test-results.xml    # Path to test results
+#          reporter: dotnet-trx        # Format of test results
+#          fail-on-error: false
+#      #
+#      # Publish the code coverage reports
+#      #
+#      - name: Generate the coverage report
+#        id: reportgenerator
+#        if: always() && steps.test.outcome == 'success'
+#        run: "reportgenerator -reporttypes:MarkdownSummary -reports:${{ env.TEST_PROJECT }}/bin/test-results/coverage.cobertura.xml -targetdir:${{ env.TEST_PROJECT }}/bin/test-reports"
+#      - name: Read the Markdown file
+#        id: markdown
+#        uses: juliangruber/read-file-action@v1
+#        if: always() && steps.reportgenerator.outcome == 'success'
+#        with:
+#          path: ./${{ env.TEST_PROJECT }}/bin/test-reports/Summary.md
+#      - name: fix newlines
+#        id: fixcrlf
+#        uses: frabert/replace-string-action@v2.0
+#        if: always() && steps.reportgenerator.outcome == 'success'
+#        with:
+#          pattern: '\r\n|\r|\n'
+#          string: ${{ steps.markdown.outputs.content }}
+#          replace-with: '\n'
+#          flags: 'g'
+#      - name: Echo code-coverage-results.md
+#        if: always() && steps.reportgenerator.outcome == 'success'
+#        run: echo "${{ steps.fixcrlf.outputs.replaced }}"
+#      - name: Publish Coverage Report
+#        uses: LouisBrunner/checks-action@v1.1.1
+#        if: always() && steps.reportgenerator.outcome == 'success'
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          name: Code Coverage Results
+#          conclusion: ${{ steps.reportgenerator.outcome }}
+#          output: |
+#            {"title": "Code Coverage Results", "summary": "${{ steps.fixcrlf.outputs.replaced }}" }
+#      #
+#      # Run cloc via npx and count the lines of code and report
+#      #
+#      - name: Count Lines of Code (cloc)
+#        id: npxcloc
+#        if: always()
+#        run: npx cloc -v --md --out=cloc.md .
+#      - name: Read the cloc file
+#        id: cloc
+#        uses: juliangruber/read-file-action@v1
+#        if: always() && steps.npxcloc.outcome == 'success'
+#        with:
+#          path: cloc.md
+#      - name: fix cloc newlines
+#        id: fixcloc
+#        uses: frabert/replace-string-action@v2.0
+#        if: always() && steps.npxcloc.outcome == 'success'
+#        with:
+#          pattern: '\r\n|\r|\n'
+#          string: ${{ steps.cloc.outputs.content }}
+#          replace-with: '\n'
+#          flags: 'g'
+#      - name: Publish Lines of Code
+#        uses: LouisBrunner/checks-action@v1.1.1
+#        if: always() && steps.npxcloc.outcome == 'success'
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          name: Lines of Code
+#          conclusion: ${{ steps.npxcloc.outcome }}
+#          output: |
+#            {"title": "Lines of Code", "summary": "${{ steps.fixcloc.outputs.replaced }}" }
+#      - name: update the status of the commit for branch statuses
+#        if: ${{ always() }}
+#        uses: ouzi-dev/commit-status-updater@v1.1.0
+#        with:
+#          status: "${{ job.status }}"
+#  publish:
+#    if: ${{ startsWith(github.ref, 'refs/tags') }}
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Install GitVersion
+#        uses: gittools/actions/gitversion/setup@v0.9.10
+#        with:
+#          versionSpec: '5.x'
+#          includePrerelease: true
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#        with:
+#          fetch-depth: 0
+#      - uses: toko-bifrost/ms-teams-deploy-card@master #  or "./" if in a local set-up
+#        if: always()
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          webhook-uri: ${{ env.TEAMS_WEBHOOK_URL }}
+#          card-layout-start: compact
+#          card-layout-exit: complete
+#          show-on-start: false
+#          show-on-exit: true
+#      - name: Setup .NET
+#        uses: actions/setup-dotnet@v1
+#        with:
+#          dotnet-version: 5.0.x
+#          source-url: ${{ env.NUGET_SOURCE_URL }}
+#        env:
+#          NUGET_AUTH_TOKEN: ${{secrets.GH_ACTIONS_NPM_PACKAGES_READ_ONLY}}
+#      - name: Determine / Update Version
+#        id: gitversion
+#        uses: gittools/actions/gitversion/execute@v0.9.10
+#        with:
+#          additionalArguments: '/overrideconfig mode=ContinuousDeployment'
+#      - name: Restore Release dependencies
+#        run: dotnet restore
+#      - name: Build Release
+#        run: dotnet build -c Release --no-restore -p:Version=${{ steps.gitversion.outputs.fullSemVer }} -p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} -p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }} -p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }}
+#      - name: Test Release
+#        run: dotnet test -c Release --no-build --verbosity normal -r ./bin/test-results --logger:"trx;LogFileName=test-results.xml" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput="./bin/test-results/" /p:Threshold=80 -- RunConfiguration.TargetPlatform=x64 RunConfiguration.TreatNoTestsAsError=true
+#      - name: Publish package to nuget repository
+#        run: dotnet nuget push ${{ env.MAIN_PROJECT }}/bin/Release/*.nupkg -s ${{ env.NUGET_SOURCE_URL }} -k ${{ secrets.GITHUB_TOKEN }}
+#      - uses: "marvinpinto/action-automatic-releases@latest"
+#        with:
+#          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+#          prerelease: false
+#          files: ${{ env.MAIN_PROJECT }}/bin/Release/*.nupkg

@@ -1,0 +1,108 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php-version }}, ${{ matrix.database-type }}
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:${{ matrix.mariadb-version }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      postgresql:
+        image: postgres:${{ matrix.postgresql-version }}-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    strategy:
+      matrix:
+        php-version: ['7.2', '7.3', '7.4', '8.0']
+        database-type: [mariadb, postgresql]
+        mariadb-version: ['10.5']
+        postgresql-version: ['13.1']
+    env:
+      DB: ${{ matrix.database-type }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: sodium, pdo, pdo_mysql
+          tools: composer:v2
+          coverage: pcov
+
+      - name: Setup Composer
+        id: setup-composer
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Setup cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.setup-composer.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer update -n --prefer-dist --no-progress
+
+      - name: Setup database
+        working-directory: .github/workflows/sql
+        run: |
+          if [[ $DB == 'mariadb' ]]
+          then
+            mysql -h 127.0.0.1 -u root < test_table_mysql.sql
+          elif [[ $DB == 'postgresql' ]]
+          then
+            psql -h 127.0.0.1 -U postgres < test_table_postgresql.sql
+          fi
+
+      - name: Run tests
+        run: |
+          if [[ $DB == 'mariadb' ]]
+          then
+            suite="MySQL"
+          elif [[ $DB == 'postgresql' ]]
+          then
+            suite="PostgreSQL"
+          fi
+          vendor/bin/phpunit --testsuite $suite
+
+      - name: Send code coverage
+        if: ${{ !startsWith(matrix.php-version, '7.2') && success() }}
+        continue-on-error: true
+        uses: codacy/codacy-coverage-reporter-action@master
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: build/log/clover.xml

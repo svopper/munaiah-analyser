@@ -1,0 +1,30 @@
+on: [push]
+name: build
+jobs:
+  build:
+    name: Build Last.fm music mapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: '8.10.2'
+          enable-stack: true
+          stack-version: 'latest'
+      - name: Cache Stack
+        id: cache-stack
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: last-fm-music-mapper-${{ hashFiles('stack.yaml') }}-${{ hashFiles('last-fm-music-mapper.cabal') }}
+      - name: Setup
+        run: stack --no-terminal setup
+      - name: Build
+        run: stack --no-terminal install
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: last-fm-music-mapper
+          path: ~/.local/bin/last-fm-music-mapper

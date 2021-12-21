@@ -1,0 +1,103 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+        ruby: [2.7]
+
+    runs-on: ${{ matrix.os }}
+
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install system dependencies
+      run: |
+        set -eux
+
+        wget --quiet --output-document - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+        echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee /etc/apt/sources.list.d/elasticsearch-2.x.list
+
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+
+        sudo apt-get update
+
+        sudo apt-get remove adoptopenjdk-11-hotspot
+
+        sudo apt-get install --quiet --yes \
+        adoptopenjdk-8-hotspot             \
+        elasticsearch                      \
+        imagemagick                        \
+        libffi-dev                         \
+        libidn11-dev                       \
+        libmagickwand-dev                  \
+        libpq-dev                          \
+        libreadline-dev                    \
+        libssl-dev                         \
+        libxml2-dev                        \
+        libxslt1-dev                       \
+        nodejs                             \
+        zlib1g-dev
+
+        sudo systemctl start elasticsearch
+
+        major_version=$(google-chrome --version | awk '{print $NF}' | awk --field-separator "." '{ print $1 }')
+        chromedriver_version=$(curl "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${major_version}")
+        wget --quiet "https://chromedriver.storage.googleapis.com/${chromedriver_version}/chromedriver_linux64.zip" --output-document /tmp/chromedriver.zip
+        unzip /tmp/chromedriver.zip -d /tmp/
+        sudo mv /tmp/chromedriver /usr/local/bin/
+
+        sudo wget --quiet "https://feedbin-ci.s3.amazonaws.com/kindlegen/kindlegen" --output-document /usr/local/bin/kindlegen
+        sudo chmod +x /usr/local/bin/kindlegen
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+
+    - name: Build and test with Rake
+      env:
+        PGHOST: 127.0.0.1
+        PGUSER: postgres
+        POSTGRES_PASSWORD: postgres
+        PGPASSWORD: postgres
+        RAILS_ENV: test
+        KINDLEGEN_PATH: /usr/local/bin/kindlegen
+      run: |
+        psql -c 'create database feedbin_test;' -U postgres
+        bundle exec rake db:setup
+        bundle exec rails test:system test
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: screenshots ${{ matrix.os }}-${{ matrix.ruby }}
+        path: tmp/screenshots
+        if-no-files-found: ignore

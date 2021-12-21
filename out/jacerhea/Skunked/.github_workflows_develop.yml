@@ -1,0 +1,15 @@
+name: build and run tests
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  publish:
+    name: build and run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: dotnet build src/Skunked/Skunked.csproj --configuration Release -p:Version=1.0.$GITHUB_RUN_NUMBER
+      - name: Test
+        run: dotnet test  test/Skunked.UnitTest/Skunked.UnitTest.csproj

@@ -1,0 +1,83 @@
+name: ci-build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  coverage:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt-get update
+#    - name: Install packages
+#      run: sudo apt-get install libncursesw5-dev libpcre++-dev libsqlite3-dev libbz2-dev libcurl4-openssl-dev libreadline-dev zlib1g-dev lcov
+#    - name: install cpp-coveralls
+#      run: pip install --user cpp-coveralls
+    - name: autogen
+      run: ./autogen.sh
+    - name: configure
+      run: ./configure --disable-static --enable-code-coverage --enable-debug CFLAGS=-g3 CXXFLAGS=-g3
+    - name: make
+      run: make -j2
+    - name: make check
+      run: make check
+    - name: upload cover
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        TRAVIS_JOB_ID: ${{ github.run_id }}-${{ github.run_number }}
+      run: >-
+        coveralls
+        --exclude src/doctest.hh
+        --exclude src/fmtlib
+        --exclude src/ghc
+        --exclude src/k_merge_tree.h
+        --exclude src/mapbox
+        --exclude src/pugixml
+        --exclude src/base/result.h
+        --exclude src/safe
+        --exclude src/spookyhash
+        --exclude src/third-party
+        --exclude src/ww898
+        --exclude src/yajl
+        --exclude test
+        --gcov-options '\-lp'
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Update apt
+        run: sudo apt-get update
+      - name: Install packages
+        run: >-
+          sudo apt-get install -y
+          make
+          automake
+          autoconf
+          g++
+          libpcre3-dev
+          libncurses-dev
+          libsqlite3-dev
+          libbz2-dev
+          libcurl4-openssl-dev
+          libreadline-dev
+          zlib1g-dev
+      - name: autogen
+        run: ./autogen.sh
+      - name: configure
+        run: ./configure --disable-static
+      - name: make
+        run: make -j4
+      - name: make distcheck
+        run: make distcheck -j4 || (test -e lnav-*/_build/sub/src/tailer/test-suite.log && cat lnav-*/_build/sub/src/tailer/test-suite.log && false) || (test -e lnav-*/_build/sub/test/test-suite.log && cat lnav-*/_build/sub/test/test-suite.log && false)
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          # Artifact name
+          name: lnav-tot-linux-64bit.zip
+          # A file, directory or wildcard pattern that describes what to upload
+          path: src/lnav

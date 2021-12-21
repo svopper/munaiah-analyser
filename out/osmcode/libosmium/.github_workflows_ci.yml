@@ -1,0 +1,184 @@
+name: CI
+
+on: [ push, pull_request ]
+
+jobs:
+  ubuntu18-clang9-dev:
+    runs-on: ubuntu-18.04
+    env:
+      CC: clang-9
+      CXX: clang++-9
+      BUILD_TYPE: Dev
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-clang10-dev:
+    runs-on: ubuntu-20.04
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      BUILD_TYPE: Dev
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-clang10-debug-san:
+    runs-on: ubuntu-20.04
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      BUILD_TYPE: Debug
+      WITH_PROJ: ON
+      CXXFLAGS: -fsanitize=address,undefined,integer -fno-sanitize-recover=all -fno-omit-frame-pointer
+      LDFLAGS: -fsanitize=address,undefined,integer
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-clang10-release:
+    runs-on: ubuntu-20.04
+    env:
+      CC: clang-10
+      CXX: clang++-10
+      BUILD_TYPE: Release
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu18-gcc7-dev:
+    runs-on: ubuntu-18.04
+    env:
+      CC: gcc-7
+      CXX: g++-7
+      BUILD_TYPE: Dev
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-gcc9-dev:
+    runs-on: ubuntu-20.04
+    env:
+      CC: gcc-9
+      CXX: g++-9
+      BUILD_TYPE: Dev
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-gcc10-dev:
+    runs-on: ubuntu-20.04
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      CXXFLAGS: -Wno-stringop-overflow
+      BUILD_TYPE: Dev
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  ubuntu20-gcc10-release:
+    runs-on: ubuntu-20.04
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      BUILD_TYPE: Release
+      WITH_PROJ: ON
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-ubuntu
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  macos10-dev:
+    runs-on: macos-10.15
+    env:
+      CC: clang
+      CXX: clang++
+      BUILD_TYPE: Dev
+      WITH_PROJ: OFF
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-macos
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  macos11-dev:
+    runs-on: macos-11.0
+    env:
+      CC: clang
+      CXX: clang++
+      BUILD_TYPE: Dev
+      WITH_PROJ: OFF
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-macos
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+
+  macos11-release:
+    runs-on: macos-11.0
+    env:
+      CC: clang
+      CXX: clang++
+      BUILD_TYPE: Release
+      WITH_PROJ: OFF
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: ./.github/actions/install-macos
+      - uses: ./.github/actions/cmake
+      - uses: ./.github/actions/build
+      - uses: ./.github/actions/ctest
+

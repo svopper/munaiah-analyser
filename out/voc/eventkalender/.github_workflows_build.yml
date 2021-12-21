@@ -1,0 +1,48 @@
+# Build docker images on every pull request and build
+# new release image after version tag push.
+
+name: build docker image
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - # https://github.com/actions/checkout
+        name: Checkout
+        uses: actions/checkout@v1
+
+      - name: get release version
+        run: |
+          wget -O /home/runner/work/release https://juhani.gitlab.io/go-semrel-gitlab/download/v0.21.1/release && \
+          chmod +x /home/runner/work/release
+        if: success()
+      
+      - name: run release
+        run: |
+          echo "::set-env name=nextversion::$(/home/runner/work/release next-version --bump-patch)"
+          echo "::set-env name=nextversion_sha::$(/home/runner/work/release next-version --bump-patch)-$(echo ${GITHUB_SHA} | cut -c1-8)"
+        if: success()
+
+      - name: Docker login
+        run: |
+          docker login docker.pkg.github.com -u voc -p ${{ secrets.GITHUB_TOKEN }}
+        if: success()
+
+      - name: Docker Build - non master
+        run: make build build_version="$nextversion_sha"
+        if: success() && github.ref != 'refs/heads/master'
+      
+      - name: Docker Build - master
+        run: make build build_version="$nextversion"
+        if: success() && github.ref == 'refs/heads/master'
+    
+      - name: Push docker image latest
+        run: make latest build_version="$nextversion"
+        if: success() && github.ref == 'refs/heads/master'

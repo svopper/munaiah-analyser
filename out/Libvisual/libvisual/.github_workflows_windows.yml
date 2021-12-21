@@ -1,0 +1,79 @@
+name: Build and test (Windows, mingw-w64)
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 3 * * 5'  # Every Friday at 3am
+
+env:
+  LV_INSTALL_PREFIX: C:/LV_INSTALL
+
+jobs:
+  mingw-w64:
+    name: Build and test (Windows, mingw-w64)
+    runs-on: windows-latest
+    steps:
+
+      - name: Add Msys2 to Path
+        shell: bash
+        run: |
+          echo "C:/msys64/usr/bin" >> "${GITHUB_PATH}"
+          echo "C:/msys64/mingw64/bin" >> "${GITHUB_PATH}"
+
+      - name: Initialize msys2
+        shell: cmd
+        run: bash -lc 'exit'
+
+      - name: Update Pacman
+        run: pacman -Syy
+
+      - name: Cache pacman Packages
+        id: cache-pacman
+        uses: actions/cache@v2
+        with:
+          path: C:/msys64/var/cache/pacman/pkg
+          key: ${{ runner.os }}-pacman
+
+      - name: Update Msys2 Packages
+        run: |
+          # We're deleting these packages because trying to upgrade to the latest bugfix version of gcc without doing a Suu will result in
+          # errors such as unmet dependencies, removing them would be much faster than upgrading them as well.
+          pacman -R --noconfirm mingw-w64-x86_64-gcc-ada mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-gcc-libgfortran
+          pacman -Suu --needed --ask=20 --noconfirm
+
+      - name: Install packages
+        run: |
+          pacman -S --needed --ask=20 --noconfirm `
+            mingw-w64-x86_64-dlfcn `
+            mingw-w64-x86_64-orc `
+            mingw-w64-x86_64-pkgconf `
+            mingw-w64-x86_64-cmake `
+            mingw-w64-x86_64-gcc `
+            mingw-w64-x86_64-ninja `
+            mingw-w64-x86_64-libpng `
+            mingw-w64-x86_64-SDL `
+            mingw-w64-x86_64-gettext
+
+      - name: Checkout Git branch
+        uses: actions/checkout@v2
+
+      - name: "[LV] Run CMake"
+        run: cmake -B build_lv -S libvisual -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DENABLE_DOCS=yes -DENABLE_NLS=OFF -DENABLE_TESTS=yes -DCMAKE_INSTALL_PREFIX="${env:LV_INSTALL_PREFIX}"
+
+      - name: "[LV] Build libvisual"
+        run: cmake --build build_lv -v --parallel 2
+
+      - name: "[LV] Install libvisual"
+        run: |
+          cmake --build build_lv -v --target install
+          find ${env:LV_INSTALL_PREFIX} | sort
+
+      - name: "[LV] Run tests (exit code ignored for now!)"
+        shell: cmd
+        run: |
+          make -C build_lv ^
+            CMAKE_CONFIG_TYPE=Debug ^
+            CTEST_OUTPUT_ON_FAILURE=1 ^
+            VERBOSE=1 ^
+            test || true

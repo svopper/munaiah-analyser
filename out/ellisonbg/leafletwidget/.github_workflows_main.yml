@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        channels: conda-forge
+
+    - name: Mamba install dependencies
+      run: mamba install python=${{ matrix.python-version }} pip nodejs flake8
+
+    - name: Mamba install JupyterLab 3
+      run: mamba install jupyterlab=3 ipywidgets=7.6
+
+    - name: Install ipyleaflet
+      run: pip install .
+
+    - name: Check installation files
+      run: |
+        test -d $CONDA_PREFIX/share/jupyter/nbextensions/jupyter-leaflet
+        test -f $CONDA_PREFIX/share/jupyter/nbextensions/jupyter-leaflet/extension.js
+        test -f $CONDA_PREFIX/share/jupyter/nbextensions/jupyter-leaflet/index.js
+        test -d $CONDA_PREFIX/share/jupyter/labextensions/jupyter-leaflet
+        test -f $CONDA_PREFIX/share/jupyter/labextensions/jupyter-leaflet/package.json
+
+    - name: Flake8 check
+      run: flake8 ipyleaflet --ignore=E501,E731
+
+    - name: Import check
+      run: python -c 'import ipyleaflet'
+
+    - name: Build docs (Only on Linux for saving time)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mamba install sphinx sphinx_rtd_theme
+        pip install -r docs/requirements.txt
+        cd docs
+        make html

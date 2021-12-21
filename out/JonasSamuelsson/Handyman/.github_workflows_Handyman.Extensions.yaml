@@ -1,0 +1,54 @@
+name: Handyman.Extensions
+
+on:
+  push:
+    paths:
+    - '.github/workflows/Handyman.Extensions.yaml'
+    - 'src/Handyman.Extensions/src/**'
+    - 'src/Handyman.Extensions/tests/**'
+  pull_request:
+    paths:
+    - '.github/workflows/Handyman.Extensions.yaml'
+    - 'src/Handyman.Extensions/src/**'
+    - 'src/Handyman.Extensions/tests/**'
+  workflow_dispatch:
+    inputs:
+      publish_package:
+        description: 'Publish to nuget (true/false)'
+        required: false
+        default: 'false'
+
+defaults:
+  run:
+    working-directory: src/Handyman.Extensions
+
+jobs:
+  build-test-publish:
+    runs-on: windows-2019
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup .net core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: build
+      run: dotnet build src/Handyman.Extensions.csproj --configuration release
+    - name: test
+      run: dotnet test tests/Handyman.Extensions.Tests.csproj --configuration release --no-restore --no-build
+    - name: publish to nuget
+      if: ${{ github.event.inputs.publish_package == 'true' }}
+      run: |
+        dotnet pack src/Handyman.Extensions.csproj --configuration release --include-symbols --no-restore --no-build --output .artifacts
+        get-childitem ./.artifacts/*.nupkg | foreach-object { dotnet nuget push $_ --api-key ${{ secrets.NUGET }} --source https://api.nuget.org/v3/index.json }
+        $version = select-string -path src/Handyman.Extensions.csproj -pattern "<version>(?<version>.*)</version" | % { $_.Matches[0].Groups['version'] }
+        if (!$version) {
+          write-error "version not found"
+        }
+        $tag = "Handyman.Extensions_v$version"
+        git config user.email "actions@github.com"
+        git config user.name "GitHub"
+        git tag -a $tag -m $tag
+        git push origin --tags

@@ -1,0 +1,36 @@
+name: Exercise tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby-version }} - ${{ matrix.os }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+          # - windows-latest
+          # - macOS-latest
+        ruby-version: [2.6, 2.7, 3.0]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@b00551441a6fa3d528f3443dbff264a934b6e316
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Lint
+        run: bundle exec rubocop -fs --except Metrics --config .rubocop.yml
+
+      - name: Test exercises
+        run: bundle exec rake test

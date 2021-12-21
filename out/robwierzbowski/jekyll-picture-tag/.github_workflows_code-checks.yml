@@ -1,0 +1,33 @@
+name: 'Tests & Formatting'
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run weekly; github deletes caches that haven't been used in a week.
+    - cron: '0 0 * * 0'
+
+jobs:
+  checks:
+    runs-on: ubuntu-20.04
+
+    steps:
+
+      - name: Install system dependencies
+        run: sudo apt install libjpeg-dev webp libpng-dev libavifile-0.7c2 libopenjpip7 imagemagick libvips-tools
+
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      # Version taken from .ruby-version file.
+      # Also runs bundle install.
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - run: bundle exec rake test
+
+      - run: bundle exec rubocop

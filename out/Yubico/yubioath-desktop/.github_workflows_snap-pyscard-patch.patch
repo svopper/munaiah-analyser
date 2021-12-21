@@ -1,0 +1,19 @@
+From 6dd501199c1323a49f2e64e75c886a1d0b652577 Mon Sep 17 00:00:00 2001
+From: Dag Heyman <dag@yubico.com>
+Date: Thu, 20 Feb 2020 18:05:59 +0100
+Subject: [PATCH] setup.py: add typical snapcraft location of PCSC
+
+---
+ setup.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/setup.py b/setup.py
+index 3795389..27ad71a 100755
+--- a/setup.py
++++ b/setup.py
+@@ -67,7 +67,7 @@
+ else:
+     platform__cc_defines = [('PCSCLITE', '1')]
+     platform_swig_opts = ['-DPCSCLITE']
+-    platform_include_dirs = ['/usr/include/PCSC', '/usr/local/include/PCSC']
++    platform_include_dirs = ['/root/stage/usr/include/PCSC']

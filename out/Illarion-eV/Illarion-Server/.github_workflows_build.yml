@@ -1,0 +1,145 @@
+name: Build Illarion Server Image
+
+on:
+  push:
+    branches:
+    tags:
+  pull_request:
+  schedule:
+    - cron: '00 15 * * 5'
+
+jobs:
+  build:
+    name: Compile and Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        build-type: [Release, RelWithDebInfo]
+
+    container:
+      image: debian:bullseye
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -y -qq install build-essential git wget file
+          apt-get -y -qq install libboost-graph-dev libboost-system-dev libpq-dev lua5.2-dev
+          wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1-linux-x86_64.sh -O cmake.sh -q
+          sh cmake.sh --skip-license --prefix=/usr/local
+      
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Create Build Environment
+        id: cmake-setup
+        shell: bash
+        run: |
+          cmake -E make_directory ../build
+          cd ../build
+          echo ::set-output name=build-directory::$(pwd -P)
+
+      - name: Initialize CodeQL
+        if: ${{ github.event_name == 'schedule' }}
+        uses: github/codeql-action/init@v1
+        with:
+          languages: cpp
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{ steps.cmake-setup.outputs.build-directory }}
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+
+      - name: Build
+        working-directory: ${{ steps.cmake-setup.outputs.build-directory }}
+        shell: bash
+        run: cmake --build . --config ${{ matrix.build-type }} --parallel 2
+
+      - name: Perform CodeQL Analysis
+        if: ${{ github.event_name == 'schedule' }}
+        uses: github/codeql-action/analyze@v1
+
+      - name: Test
+        working-directory: ${{ steps.cmake-setup.outputs.build-directory }}
+        shell: bash
+        run: ctest -C ${{ matrix.build-type }}
+
+      - name: Package
+        working-directory: ${{ steps.cmake-setup.outputs.build-directory }}
+        shell: bash
+        run: cpack . -C ${{ matrix.build-type }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Package-${{ matrix.build-type }}
+          path: ${{runner.workspace}}/build/*.deb
+          if-no-files-found: error
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name != 'schedule' }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Repo metadata
+        id: repo
+        uses: actions/github-script@v3
+        with:
+          script: |
+            const repo = await github.repos.get(context.repo)
+            return repo.data
+
+      - name: Fetch Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: Package-RelWithDebInfo
+          path: ${{runner.workspace}}
+
+      - name: Prepare Docker environment
+        shell: bash
+        run: mv ${{runner.workspace}}/*.deb $GITHUB_WORKSPACE/setup/docker/base/
+
+      - uses: Illarion-eV/Illarion-Docker-Version@v1
+        id: docker-vars
+        with:
+          image-name: ghcr.io/${{ github.repository }}/base
+          registry-secret: ${{ secrets.GHCR_PAT }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to GitHub
+        if: ${{ steps.docker-vars.outputs.has-docker-secret == 'true' }}
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ steps.docker-vars.outputs.docker-secret }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: setup/docker/base
+          file: setup/docker/base/Dockerfile
+          platforms: linux/amd64
+          push: ${{ steps.docker-vars.outputs.has-docker-secret == 'true' }}
+          tags: ${{ steps.docker-vars.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=${{ fromJson(steps.repo.outputs.result).name }}
+            org.opencontainers.image.description=${{ fromJson(steps.repo.outputs.result).description }}
+            org.opencontainers.image.url=${{ fromJson(steps.repo.outputs.result).homepage }}
+            org.opencontainers.image.source=${{ fromJson(steps.repo.outputs.result).html_url }}
+            org.opencontainers.image.version=${{ steps.docker-vars.outputs.version }}
+            org.opencontainers.image.created=${{ steps.docker-vars.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=${{ fromJson(steps.repo.outputs.result).license.spdx_id }}
+
+      - name: Clean Docker environment
+        shell: bash
+        run: |
+          rm $GITHUB_WORKSPACE/setup/docker/base/*.deb

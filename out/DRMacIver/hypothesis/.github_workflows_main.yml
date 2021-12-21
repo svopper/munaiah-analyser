@@ -1,0 +1,184 @@
+name: Hypothesis CI
+
+env:
+  # Tell pytest and other tools to produce coloured terminal output.
+  # Make sure this is also in the "passenv" section of the tox config.
+  PY_COLORS: 1
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task:
+          - check-whole-repo-tests
+          - lint
+          - check-format
+          - check-coverage
+          - check-conjecture-coverage
+          - check-py36
+          - check-pypy36
+          - check-py37
+          - check-pypy37
+          - check-py38
+          - check-pypy38
+          - check-py39
+          - check-py310
+          - check-quality
+          - lint-ruby
+          - check-ruby-tests
+          - check-rust-in-ruby-format
+          - lint-rust-in-ruby
+          - audit-rust-in-ruby
+          - check-conjecture-rust-format
+          - check-rust-tests
+          - audit-conjecture-rust
+          - lint-conjecture-rust
+          - check-nose
+          - check-pytest46
+          - check-django32
+          - check-django31
+          - check-django22
+          - check-pandas111
+          - check-pandas100
+          - check-pandas25
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - name: Restore cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache
+          ~/wheelhouse
+          ~/.local
+          vendor/bundle
+        key: deps-${{ runner.os }}-${{ hashFiles('requirements/tools.txt') }}-${{ matrix.task }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ hashFiles('requirements/tools.txt') }}
+          deps-${{ runner.os }}
+    - name: Run tests
+      run: TASK=${{ matrix.task }} ./build.sh
+    - name: Upload coverage data
+      uses: actions/upload-artifact@v2
+      # Invoke the magic `always` function to run on both success and failure.
+      if: ${{ always() && endsWith(matrix.task, '-coverage') }}
+      with:
+        name: ${{ matrix.task }}-data
+        path: |
+          hypothesis-python/.coverage*
+          !hypothesis-python/.coveragerc
+          hypothesis-python/branch-check
+
+  test-win:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - task: check-py38-x64
+            python.architecture: "x64"
+          - task: check-py38-x86
+            python.architecture: "x86"
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+        architecture: ${{ matrix.python-architecture }}
+    - name: Restore cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~\appdata\local\pip\cache
+          vendor\bundle
+        key: deps-${{ runner.os }}-${{ matrix.python-architecture }}-${{ hashFiles('requirements/tools.txt') }}-${{ matrix.task }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ matrix.python-architecture }}-${{ hashFiles('requirements/tools.txt') }}
+          deps-${{ runner.os }}-${{ matrix.python-architecture }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade setuptools pip wheel
+        pip install -r requirements/test.txt fakeredis typing-extensions
+        pip install hypothesis-python/[all]
+    - name: Run tests
+      run: python -m pytest --numprocesses auto hypothesis-python/tests/ --ignore-glob=hypothesis-python/tests/quality/*.py
+
+  test-osx:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        task:
+          - check-py38
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - name: Restore cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache
+          ~/Library/Caches/pip
+        key: deps-${{ runner.os }}-${{ hashFiles('requirements/tools.txt') }}-${{ matrix.task }}
+    - name: Run tests
+      run: TASK=${{ matrix.task }} ./build.sh
+
+  deploy:
+    if: "github.event_name == 'push' && github.repository == 'HypothesisWorks/hypothesis'"
+    runs-on: ubuntu-latest
+    needs: [test, test-win, test-osx]
+    strategy:
+      matrix:
+        task:
+          - deploy
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GH_TOKEN }}
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - name: Restore cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache
+          ~/wheelhouse
+          ~/.local
+          vendor/bundle
+        key: deps-${{ runner.os }}-${{ hashFiles('requirements/tools.txt') }}-${{ matrix.task }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ hashFiles('requirements/tools.txt') }}
+          deps-${{ runner.os }}
+    - name: Deploy package
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_TOKEN }}
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: TASK=${{ matrix.task }} ./build.sh

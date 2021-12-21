@@ -1,0 +1,14 @@
+name: Waver
+
+on:
+  push:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  waver1:
+    name: Waver
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello
+        run: echo "Hello"

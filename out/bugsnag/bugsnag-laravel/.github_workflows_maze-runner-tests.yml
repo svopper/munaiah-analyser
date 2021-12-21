@@ -1,0 +1,33 @@
+name: Maze Runner tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: [7.4]
+        laravel-fixture: [laravel56, laravel58, laravel66, laravel8, lumen8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install libcurl4-openssl-dev and net-tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install libcurl4-openssl-dev
+        sudo apt-get install net-tools
+
+    - name: install Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7
+        bundler-cache: true
+
+    - run: PHP_VERSION=${{ matrix.php-version }} LARAVEL_FIXTURE=${{ matrix.laravel-fixture }} bundle exec bugsnag-maze-runner

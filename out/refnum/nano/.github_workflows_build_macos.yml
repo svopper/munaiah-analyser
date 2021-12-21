@@ -1,0 +1,31 @@
+name: Build_macOS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  Build_macOS:
+    runs-on: macOS-latest
+
+    strategy:
+      matrix:
+        config: ['Debug', 'Release']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          set -euf -o pipefail
+          xcodebuild build                                       \
+            -project NanoTest/Project/NanoTest.xcodeproj         \
+            -scheme      "NanoTest_macOS - ${{ matrix.config }}" \
+            -destination "generic/platform=macOS"                \
+            -parallelizeTargets                                  \
+            -enableAddressSanitizer           YES                \
+            -enableUndefinedBehaviorSanitizer YES                \
+            Nano="${GITHUB_WORKSPACE}"                           \
+            SYMROOT="${GITHUB_WORKSPACE}/Build" | xcpretty
+

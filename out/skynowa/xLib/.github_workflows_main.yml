@@ -1,0 +1,168 @@
+#--------------------------------------------------------------------------------------------------
+# \file  main.yml
+# \brief
+#
+# https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions
+# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+# https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge
+# https://github.com/sdras/awesome-actions#github-tools-and-management
+# https://github.com/marketplace
+#--------------------------------------------------------------------------------------------------
+
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        # - {
+        #     name: "Ubuntu-20.04 (GCC)",
+        #     os: ubuntu-20.04,
+        #     build_type: "Debug",
+        #     cc: "gcc",
+        #     cxx: "g++",
+        #     build_script: "./eclipse.sh"
+        #   }
+        # - {
+        #     name: "Ubuntu-20.04 (Clang)",
+        #     os: ubuntu-20.04,
+        #     build_type: "Debug",
+        #     cc: "clang",
+        #     cxx: "clang++",
+        #     build_script: "./eclipse.sh"
+        #   }
+        - {
+            name: "Windows-2019 (MSVC)",
+            os: windows-2019,
+            build_type: "Debug",
+            cc: "cl",
+            cxx: "cl",
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            conan_profile_update: 'conan profile update settings.compiler="Visual Studio" default; conan profile update settings.compiler.version=16 default',
+            build_script: "./msvc_2019.sh"
+          }
+        # - {
+        #     name: "Windows-2019 (MinGW)",
+        #     os: windows-2019,
+        #     build_type: "Debug",
+        #     cc: "gcc",
+        #     cxx: "g++",
+        #     build_script: "./eclipse.sh"
+        #   }
+        # - {
+        #     name: "MacOS-10.15 (Clang)",
+        #     os: macos-10.15,
+        #     build_type: "Debug",
+        #     cc: "clang",
+        #     cxx: "clang++",
+        #     build_script: "./eclipse.sh"
+        #   }
+
+    steps:
+      ##############################################################################################
+      # Cancel
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.5.0
+        with:
+          access_token: ${{github.token}}
+
+      # Env
+      - name: Compiler Env
+        run: |
+          echo "CC=${{ matrix.config.cc }}"   >> $GITHUB_ENV
+          echo "CXX=${{ matrix.config.cxx }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Conan install
+        run: |
+          pip install conan
+        shell: bash
+
+      - name: Conan - Setup
+        run: |
+          CC="${{ matrix.config.cc }}"
+          CXX="${{ matrix.config.cxx }}"
+
+          conan profile new default --detect --force
+          ${{ matrix.config.conan_profile_update }}
+        shell: bash
+
+      # - name: Trace-1
+      #   run: cat "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+      #   shell: bash
+
+      ##############################################################################################
+      # xLib-data
+      - name: xLib-data - Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: skynowa/xLib-data
+          path: ${{github.workspace}}/xLib-data
+
+      ##############################################################################################
+      # CMakeLib
+      - name: CMakeLib - Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: skynowa/CMakeLib
+          path: ${{github.workspace}}/CMakeLib
+
+      - name: CMakeLib - Install
+        run: cd "${{github.workspace}}/CMakeLib" && ./install.sh
+        shell: bash
+
+      ##############################################################################################
+      # xLib
+      # Checkout
+      - name: xLib - Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: skynowa/xLib
+          path: ${{github.workspace}}/xLib
+
+      # Libs
+      - name: Libs - Install
+        run: conan install "${{github.workspace}}/xLib" --build=missing -s build_type=Debug
+        shell: bash
+
+      # Libs
+      - name: Libs (libx11-xcb-dev) - Install
+        if: matrix.config.cxx != 'cl'
+        run: sudo apt-get install -y --no-install-recommends libx11-xcb-dev
+        shell: bash
+
+      # Trace
+      - name: Trace - github.workspace
+        run: echo "github.workspace - ${{github.workspace}}" && ls -la
+        shell: bash
+
+      # Trace
+      - name: Trace - conan_paths.cmake
+        run: cat conan_paths.cmake
+        shell: bash
+
+      - name: xLib - Configure
+        run: cd "${{github.workspace}}/xLib/Build" && ${{ matrix.config.build_script }}
+        shell: bash
+
+      - name: xLib - Build
+        run: cd "${{github.workspace}}/xLib/Build" && ./build.sh
+        shell: bash
+
+      # - name: xLib - Unit Tests (optional)
+      #   run: "${{github.workspace}}/xLib_build/Tests/System/Test_ProcessInfo"
+
+      - name: xLib - Tests
+        run: cd "${{github.workspace}}/xLib/Build" && ./tests.sh
+        shell: bash

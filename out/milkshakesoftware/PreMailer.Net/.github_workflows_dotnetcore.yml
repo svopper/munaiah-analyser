@@ -1,0 +1,38 @@
+name: .NET Core build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types: [published]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2.3.5
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 3.1.101
+    - name: Install dependencies
+      working-directory: ./PreMailer.Net
+      run: dotnet restore
+    - name: Build
+      working-directory: ./PreMailer.Net
+      run: dotnet build --configuration Release --no-restore
+    - name: Test
+      working-directory: ./PreMailer.Net
+      run: dotnet test --no-restore --verbosity normal --collect "Code coverage"
+
+    # Publish
+    - name: publish on version change
+      if: ${{ github.event_name == 'release' }}
+      uses: rohith/publish-nuget@v2.5.5
+      with:
+        PROJECT_FILE_PATH: PreMailer.Net/PreMailer.Net/PreMailer.Net.csproj
+        NUGET_KEY: ${{secrets.NUGET_APIKEY}}

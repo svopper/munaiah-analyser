@@ -1,0 +1,30 @@
+name: Maven Build
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: quay.io/mizdebsk/maven:latest
+    steps:
+      - run: id
+      - run: "cat /etc/mtab || :"
+      - run: "mount || :"
+      - run: "find /__w || :"
+      - run: "ls -l /__w || :"
+      - run: "ls -l /__w/xmvn || :"
+      - run: "ls -l /__w/xmvn/xmvn || :"
+      - name: Checkout git repository
+        uses: actions/checkout@v2
+
+#      - name: Cache Maven local repository
+#        id: cache-m2
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/.m2/repository
+#          key: m2-repo
+      - name: Run Maven build
+        run: mvn -B -Dgpg.skip -Plibs -Prun-its verify

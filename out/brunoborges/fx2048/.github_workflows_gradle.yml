@@ -1,0 +1,79 @@
+name: Java Build
+
+on: [push]
+
+env:
+  windows_jdk: https://download.java.net/java/early_access/jdk17/31/GPL/openjdk-17-ea+31_windows-x64_bin.zip
+  macos_jdk: https://download.java.net/java/early_access/jdk17/31/GPL/openjdk-17-ea+31_macos-x64_bin.tar.gz
+  linux_jdk: https://download.java.net/java/early_access/jdk17/31/GPL/openjdk-17-ea+31_linux-x64_bin.tar.gz
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v1
+    - name: Download the JDK
+      run: |
+        wget -O $RUNNER_TEMP/jdk.tar.gz $macos_jdk
+    - name: Set up OpenJDK 17-EA
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'jdkfile'
+        jdkFile: ${{ runner.temp }}/jdk.tar.gz
+        java-version: '17'
+        architecture: x64
+    - name: Build with Gradle
+      run: ./gradlew dist --info
+    - name: Upload Installer
+      uses: actions/upload-artifact@v1
+      with:
+        name: fx2048-1.0.pkg
+        path: build/jpackage/fx2048-1.0.pkg
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v1
+    - name: Download the JDK
+      shell: powershell
+      run: |
+        Invoke-WebRequest -Uri ${{ env.windows_jdk }} -OutFile ${{ runner.temp }}/jdk.zip
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'jdkfile'
+        jdkFile: ${{ runner.temp }}/jdk.zip
+        java-version: '17'
+        architecture: x64
+    - name: Build with Gradle
+      run: ./gradlew dist --info
+    - name: Upload Installer
+      uses: actions/upload-artifact@v1
+      with:
+        name: fx2048-1.0.msi
+        path: build/jpackage/fx2048-1.0.msi
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the source code
+      uses: actions/checkout@v1
+    - name: Download the JDK
+      run: |
+        wget -O $RUNNER_TEMP/jdk.tar.gz $linux_jdk
+    - name: Set up OpenJDK 17-EA
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'jdkfile'
+        jdkFile: ${{ runner.temp }}/jdk.tar.gz
+        java-version: '17'
+        architecture: x64
+    - name: Build with Gradle
+      run: ./gradlew dist --info
+    - name: List installers
+      run: ls -l build/jpackage/
+    - name: Upload Installer
+      uses: actions/upload-artifact@v1
+      with:
+        name: fx2048-1.0.deb
+        path: build/jpackage/fx2048_1.0-1_amd64.deb

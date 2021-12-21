@@ -1,0 +1,33 @@
+# 用來檢查專案中的潛在問題的 GitHub Actions 工作流程(workflow)定義檔
+#
+# 編輯參考：
+#
+# * Workflow syntax for GitHub Actions - GitHub Docs
+#   https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+#
+# Copyright 2021 林博仁(Buo-ren, Lin) <Buo.Ren.Lin@gmail.com>
+# SPDX-License-Identifier: CC-BY-SA-4.0
+name: 檢查專案中的潛在問題
+on:
+  - push
+jobs:
+  check-using-precommit:
+    name: 使用 pre-commit 檢查專案中的潛在問題
+    runs-on: ubuntu-20.04
+    steps:
+      - name: 自版控庫取出內容
+        uses: actions/checkout@v2
+
+      - name: 安裝 pre-commit
+        run: pip3 install pre-commit
+
+      - name: 使用 pre-commit 檢查專案中的所有檔案
+        run: pre-commit run --all-files --color always
+
+      - name: 傳送持續整合結果告警到 Telegram 頻道
+        uses: yanzay/notify-telegram@v0.1.0
+        if: always()
+        with:
+          chat: '@the_common_ci_results'
+          token: ${{ secrets.telegram_bot_api_token_ci }}
+          status: ${{ job.status }}

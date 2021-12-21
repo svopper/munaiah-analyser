@@ -1,0 +1,54 @@
+name: ukmlib-ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: UKM
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 7.2
+        extensions: mbstring
+        ini-values: post_max_size=256M, log_errors=1, include_path=${{ github.workspace }}
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+      working-directory: UKM
+    
+    - name: Install dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: composer install --prefer-dist --no-progress --no-suggest
+      working-directory: UKM
+
+    - name: Add dummy UKMconfig.inc.php-file
+      run: echo "<?php" > ${{ github.workspace }}/UKMconfig.inc.php
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v2
+      with:
+        path: UKM/vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    
+    - name: Run test suite
+      run: composer run-script test
+      working-directory: UKM
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3
+
+    - name: Publish Unit Test Results
+      #uses: EnricoMi/publish-unit-test-result-action@v1.6
+      uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1.6
+      if: always()
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        files: UKM/tests/phpunit-results.xml

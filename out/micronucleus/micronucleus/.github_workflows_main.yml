@@ -1,0 +1,113 @@
+name: Build CLI tools
+
+on:
+  push:
+    branches:
+        - '*'
+    tags:
+        - '*'
+        - '!*-LATEST'
+
+jobs:
+  delete-previous-branch-release:
+      runs-on: ubuntu-latest
+      steps:
+          - name: compute branch name
+            id: compute-branch
+            run: echo "${{ github.ref }}" | sed "s,^refs/heads/,::set-output name=RELEASE_BRANCH::,"
+          - uses: dev-drprasad/delete-tag-and-release@v0.1.2
+            if: startswith(github.ref, 'refs/heads/')
+            with:
+                delete_release: true # default: false
+                tag_name: "${{ steps.compute-branch.outputs.RELEASE_BRANCH }}-LATEST"
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-all:
+    needs: delete-previous-branch-release
+    strategy:
+      matrix:
+         include:
+         # Native
+         - os: ubuntu-latest
+           shell: bash
+         - os: macos-latest
+           shell: bash
+         - os: windows-2019
+           shell: msys2 {0}
+
+         # Linux cross
+         - os: ubuntu-latest
+           container: debian:buster
+           target: i386
+           shell: bash
+         - os: ubuntu-latest
+           container: debian:buster
+           target: armel
+           shell: bash
+         - os: ubuntu-latest
+           container: debian:buster
+           target: armhf
+           shell: bash
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+    - name: install dependencies (${{ runner.os }})
+      run: sudo sh -c "apt-get update && apt-get install libusb-dev"
+      if: runner.os == 'Linux' && matrix.target == ''
+
+    - name: install dependencies (${{ runner.os }})
+      if: runner.os == 'Linux' && matrix.target == ''
+      run: sudo sh -c "apt-get update && apt-get install libusb-dev"
+
+    - name: install dependencies (${{ matrix.target }} cross)
+      if: runner.os == 'Linux' && matrix.target != ''
+      run: |
+          dpkg --add-architecture ${{ matrix.target }}
+          apt-get update || true
+          apt-get install -y make zip crossbuild-essential-${{ matrix.target }} libusb-dev:${{ matrix.target }}
+
+    - name: install dependencies (${{ runner.os }})
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        install: git base-devel binutils mingw-w64-x86_64-toolchain make zip mingw-w64-x86_64-libusb-win32
+        update: true
+      if: runner.os == 'Windows'
+
+    - name: install dependencies (${{ runner.os }})
+      run: brew install libusb-compat
+      if: runner.os == 'macOS'
+
+    - uses: actions/checkout@v2
+
+    - name: make
+      id: make
+      env:
+        BUILD_OS: ${{ runner.os }}
+      run: |
+          bash -x $GITHUB_WORKSPACE/.github/workflows/build-pkg.sh ${{ matrix.target }}
+
+    - name: Branch head release
+      uses: johnwbyrd/update-release@v1.0.0
+      if: steps.make.outputs.RELEASE_BRANCH != ''
+      with:
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        release: "${{ steps.make.outputs.RELEASE_BRANCH }}-LATEST"
+        tag: "${{ steps.make.outputs.RELEASE_BRANCH }}-LATEST"
+        prerelease: true
+        message: "Development build on branch ${{ steps.make.outputs.RELEASE_BRANCH }}"
+        files: ${{ steps.make.outputs.RELEASE_FILE }}
+
+    - name: Tagged release
+      uses: johnwbyrd/update-release@v1.0.0
+      if: steps.make.outputs.RELEASE_TAG != ''
+      with:
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        message: "Release build ${{ steps.make.outputs.RELEASE_TAG }}"
+        files: ${{ steps.make.outputs.RELEASE_FILE }}

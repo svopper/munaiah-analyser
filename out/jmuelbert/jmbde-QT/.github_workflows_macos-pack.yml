@@ -1,0 +1,162 @@
+---
+name: Packaging macOS
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - '.github/workflows/macos-pack.yml'
+
+  pull_request:
+    branches:
+      - 'master'
+    types: [opened, reopened]
+    paths:
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - '.github/workflows/macos-pack.yml'
+
+env:
+  PRODUCT: jmbde
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: RelWithDebInfo
+
+jobs:
+  catalina:
+    name:
+      macOS 10.15 ${{ matrix.config.qt_arch }}-${{ matrix.qt_version}}-${{
+      matrix.config.cxx}}
+
+    strategy:
+      matrix:
+        qt_version: [5.15.2, 6.1.0]
+        qt_target: [desktop]
+        config:
+          - {
+              os: macos-10.15,
+              name: 'macos-12.0-x86_64',
+              macos_target: 10.15,
+              qt_arch: clang_64,
+              arch: clang_64,
+              cc: 'clang',
+              cxx: 'clang++',
+              generator: "-G 'Ninja'",
+            }
+
+      fail-fast: false
+
+    runs-on: ${{ matrix.config.os }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v1
+
+      - name: Set env & Print jmbde version
+        shell: bash
+        run: |
+          last_committed_tag=$(git tag -l --sort=-v:refname | head -1)
+          git_revno=$(git rev-list $(git describe --tags --abbrev=0)..HEAD --count)
+          git_hash=$(git rev-parse --short HEAD)
+          echo "=======jmbde VERSION========"
+          echo ${last_committed_tag:1}
+          echo "Details: ${last_committed_tag}+git${git_revno}.${git_hash}"
+          echo "================================"
+          echo "VERSION=${last_committed_tag:1}" >> $GITHUB_ENV
+
+      # # Common
+      # - name: Cache Qt
+      #   id: cache-qt
+      #   uses: actions/cache@v2.1.6
+      #   with:
+      #     path:
+      #       ${{ runner.workspace}}/build/Qt/${{ matrix.qt_version }}/${{
+      #       matrix.config.qt_arch }}
+      #     key:
+      #       ${{ runner.os }}-QtCache/${{ matrix.qt_version }}/${{ matrix.config.qt_arch
+      #       }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: ${{ matrix.qt_version }}
+          target: ${{ matrix.qt_target }}
+          arch: ${{ matrix.config.qt_arch }}
+          dir: '${{ github.workspace }}/build/'
+          # modules: 'qtscript'
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
+      - name: macOS - ${{ matrix.qt_version }} - Build preparation - Install Packages
+        run: |
+          brew upgrade cmake
+          cmake --version
+          brew install ninja pkg-config
+
+      - name: Get conan
+        id: conan
+        uses: turtlebrowser/get-conan@v1.0
+
+      - name: Create Build Environment
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Note the current convention is to use the -S and -B options here to specify source
+        # and build directories, but this is only available with CMake 3.13 and higher.
+        # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+        run: |
+          cmake $GITHUB_WORKSPACE \
+            ${{matrix.config.generator}} \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.config.macos_target }} \
+            -DUSE_LAUNCHER_ABSOLUTE_PATH:BOOL=OFF \
+            -DCMAKE_INSTALL_PREFIX:PATH=./app \
+            -DBUILD_TESTING=OFF  \
+            -DBUILD_TRANSLATIONS=ON \
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        # Execute the build.  You can specify a specific target with "--target <NAME>"
+        run: cmake --build . --config $BUILD_TYPE -j2 --target install
+
+      - name: Package Qt
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          macdeployqt ./app/${{env.PRODUCT}}.app -qmldir=. -appstore-compliant -libpath=./app/${{env.PRODUCT}}.app/Contents/Frameworks -verbose=1 -dmg
+          cp ./app/${{env.PRODUCT}}.dmg ./${{env.PRODUCT}}-Qt${{ matrix.qt_version }}.dmg
+          ls .
+
+      - name: macOS - ${{ matrix.qt_version }} - Uploading artifact
+        if: >
+          ${{ github.event.workflow_run.event == 'pull_request' &&
+                github.event.workflow_run.conclusion == 'success' }}
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: ${{env.PRODUCT}}-Qt${{ matrix.qt_version }}-${{env.BUILD_TYPE}}.dmg
+          path:
+            ${{runner.workspace}}/build/${{env.PRODUCT}}-Qt${{ matrix.qt_version }}.dmg
+
+      - name: macOS - ${{ matrix.qt_version }} - Upload binaries to release
+        if: >
+          ${{ github.event.workflow_run.event == 'pull_request' &&
+          github.event.workflow_run.conclusion == 'success' }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file:
+            ${{runner.workspace}}/build/${{env.PRODUCT}}-Qt${{ matrix.qt_version }}.dmg
+          asset_name:
+            ${{env.PRODUCT}}-${{ env.VERSION}}-Qt${{ matrix.qt_version
+            }}-${{env.BUILD_TYPE}}.dmg
+          tag: ${{ github.ref }}
+          overwrite: true

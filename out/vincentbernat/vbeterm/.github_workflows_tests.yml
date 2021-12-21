@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: 0 7 1 * *
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install dependencies
+        run: |
+          sudo apt -qyy update > /dev/null
+          sudo apt -qyy install build-essential libvte-2.91-dev > /dev/null
+      - name: Build
+        run: |
+          ./autogen.sh
+          ./configure
+          make

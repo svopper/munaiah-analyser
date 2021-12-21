@@ -1,0 +1,21 @@
+name: Schedule-Update
+
+on:
+  schedule:
+    - cron:  '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+
+    - run: dotnet run -c Release -p PlatformStatusTracker/PlatformStatusTracker.Updater/PlatformStatusTracker.Updater.csproj -- update-daily
+      env:
+        DOTNET_AzureStorageConnectionString: ${{ secrets.DOTNET_AZURESTORAGECONNECTIONSTRING }}

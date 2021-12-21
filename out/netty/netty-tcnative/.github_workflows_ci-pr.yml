@@ -1,0 +1,107 @@
+name: Build PR
+
+on:
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240
+
+jobs:
+  build-pr:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - setup: centos6-x86_64
+            docker-compose-build: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml build"
+            docker-compose-run: "-f docker/docker-compose.centos-6.yaml -f docker/docker-compose.centos-6.18.yaml run build"
+          - setup: debian7-x86_64
+            docker-compose-build: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml build"
+            docker-compose-run: "-f docker/docker-compose.debian.yaml -f docker/docker-compose.debian-7.18.yaml run build-dynamic-only"
+          - setup: centos7-aarch64
+            docker-compose-build: "-f docker/docker-compose.centos-7.yaml build"
+            docker-compose-run: "-f docker/docker-compose.centos-7.yaml run cross-compile-aarch64-build"
+
+    name: ${{ matrix.setup }}
+    steps:
+      - uses: actions/checkout@v2
+
+      # Enable caching of Docker layers
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+        with:
+          key: pr-${{ matrix.setup }}-docker-cache-{hash}
+          restore-keys: |
+            pr-${{ matrix.setup }}-docker-cache-
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: build-pr-${{ matrix.setup }}-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            build-pr-${{ matrix.setup }}-m2-repository-cache-
+
+      - name: Build docker image
+        run: docker-compose ${{ matrix.docker-compose-build }}
+
+      - name: Build project
+        run: docker-compose ${{ matrix.docker-compose-run }} | tee build.output
+
+      - name: Checking for test failures
+        run: ./.github/scripts/check_build_result.sh build.output
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:
+          name: build-pr-${{ matrix.setup }}-target
+          path: |
+            **/target/surefire-reports/
+            **/hs_err*.log
+
+  build-pr-windows:
+    runs-on: windows-2016
+    name: windows-x86_64
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Configuring Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86_amd64
+
+      - name: Install tools
+        uses: crazy-max/ghaction-chocolatey@v1
+        with:
+          args: install ninja nasm
+
+      # Cache .m2/repository
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: build-pr-windows-m2-repository-cache-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            build-pr-windows-m2-repository-cache-
+
+      - name: Build netty-tcnative-boringssl-static
+        run: ./mvnw.cmd --file pom.xml -pl boringssl-static clean package
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:
+          name: build-pr-windows-target
+          path: |
+            **/target/surefire-reports/
+            **/hs_err*.log

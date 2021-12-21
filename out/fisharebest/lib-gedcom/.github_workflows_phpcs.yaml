@@ -1,0 +1,17 @@
+name: Code style
+
+on: [push, pull_request]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    name: PHP/PHTML/CSS
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: composer validate --strict
+
+      - run: composer install --prefer-dist --no-progress
+
+      - run: vendor/bin/phpcs --standard=PSR12 --extensions=php src tests

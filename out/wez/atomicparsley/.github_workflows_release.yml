@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "20*"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: cmake .
+    - name: build
+      run: cmake --build . --config Release
+    - name: build-musl
+      if: runner.os == 'Linux'
+      run: |
+        rm CMakeCache.txt
+        mv AtomicParsley AtomicParsleyLinux
+        docker run --rm -v "$(pwd):/mnt" -w '/mnt' alpine sh -c "\
+          apk add cmake build-base linux-headers zlib-dev && \
+          cmake . && \
+          cmake --build . --config Release \
+        "
+    - name: zip
+      if: runner.os == 'macOS'
+      run: zip AtomicParsleyMacOS.zip AtomicParsley
+    - name: zip
+      if: runner.os == 'Linux'
+      run: |
+        zip AtomicParsleyAlpine.zip AtomicParsley
+        mv AtomicParsleyLinux AtomicParsley
+        zip AtomicParsleyLinux.zip AtomicParsley
+    - name: zip
+      if: runner.os == 'Windows'
+      run: 7z a -tzip AtomicParsleyWindows.zip Release/AtomicParsley.exe
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
+      with:
+         files: "AtomicParsley*.zip"
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

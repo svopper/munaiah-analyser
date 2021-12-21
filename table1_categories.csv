@@ -1,0 +1,29 @@
+Github Action categories,Frequency,Percentage
+Continuous integration,336,38.80\%
+Utilities,294,33.95\%
+Deployment,139,16.05\%
+Code quality,124,14.32\%
+Publishing,125,14.43\%
+Code review,88,10.16\%
+Testing,86,9.93\%
+Dependency management,67,7.74\%
+Open Source management,61,7.04\%
+Project management,57,6.58\%
+Container CI,38,4.39\%
+Chat,28,3.23\%
+Reporting,28,3.23\%
+Security,22,2.54\%
+Community,14,1.62\%
+Mobile CI,11,1.27\%
+Monitoring,7,0.81\%
+IDEs,7,0.81\%
+Mobile,6,0.69\%
+Desktop tools,6,0.69\%
+Support,5,0.58\%
+Code search,3,0.35\%
+API management,3,0.35\%
+Time tracking,2,0.23\%
+Localization,2,0.23\%
+GitHub Sponsors,1,0.12\%
+Code Scanning Ready,1,0.12\%
+Total Actions,866,180.25\%

@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [7.3, 7.4, 8.0]
+        stability: [prefer-lowest, prefer-stable]
+
+    name: PHP ${{ matrix.php }} - ${{ matrix.stability }} Test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
+
+      - name: Run lint
+        run: ./vendor/bin/phplint ./ --exclude=vendor
+
+      - name: Run unit tests
+        run: composer exec phpunit tests/unit
+
+      - name: Run acceptance tests
+        env:
+          PUSHERAPP_APPID: ${{ secrets.CI_APP_ID }}
+          PUSHERAPP_AUTHKEY: ${{ secrets.CI_APP_KEY }}
+          PUSHERAPP_SECRET: ${{ secrets.CI_APP_SECRET }}
+          PUSHERAPP_CLUSTER: ${{ secrets.CI_APP_CLUSTER }}
+        run: composer exec phpunit tests/acceptance

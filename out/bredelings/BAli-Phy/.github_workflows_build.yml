@@ -1,0 +1,178 @@
+name: Build and test
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+    - "*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        name: [ubuntu-gcc-9,
+               ubuntu-gcc-11-sanitize,
+               ubuntu-gcc-11-debugoptimized,
+               ubuntu-gcc-11,
+               ubuntu-clang-11,
+               macos-xcode-12.5,
+               windows
+               ]
+
+        include:
+          - name: ubuntu-gcc-9
+            os: ubuntu-latest
+            compiler: gcc
+            version: "9"
+            buildtype: "release"
+
+          - name: ubuntu-gcc-11-sanitize
+            os: ubuntu-latest
+            compiler: gcc
+            version: "11"
+            buildtype: "release"
+            sanitize: "address"
+
+          - name: ubuntu-gcc-11-debugoptimized
+            os: ubuntu-latest
+            compiler: gcc
+            version: "11"
+            buildtype: "debugoptimized"
+
+          - name: ubuntu-gcc-11
+            os: ubuntu-latest
+            compiler: gcc
+            version: "11"
+            buildtype: "release"
+
+          - name: ubuntu-clang-11
+            os: ubuntu-latest
+            compiler: clang
+            version: "11"
+            buildtype: "release"
+
+          - name: macos-xcode-12.5
+            os: macos-latest
+            compiler: xcode
+            version: "12.5"
+            buildtype: "release"
+
+          - name: windows
+            os: ubuntu-latest
+            compiler: mingw
+            version: "N/A"
+            buildtype: "release"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Install (Linux)
+      if: runner.os == 'Linux' && matrix.name != 'windows'
+      run: |
+        sudo apt install -y pandoc libcairo2-dev ccache
+        sudo rm -rf /usr/local/share/boost
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          sudo apt-get install -y g++-${{ matrix.version }}
+          echo "CC=ccache gcc-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=ccache g++-${{ matrix.version }}" >> $GITHUB_ENV
+        else
+          sudo apt-get install -y clang-${{ matrix.version }}
+          echo "CC=ccache clang-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=ccache clang++-${{ matrix.version }}" >> $GITHUB_ENV
+        fi
+
+    - name: Install (Linux -> Windows [cross])
+      if: matrix.name == 'windows'
+      run: |
+        sudo apt update
+        sudo apt install -y pandoc ccache
+        sudo apt install -y dos2unix g++-mingw-w64 wine64 zstd
+
+    - name: Install (macOS)
+      if: runner.os == 'macOS'
+      run: |
+          brew install pkg-config pandoc cairo ccache coreutils
+          echo "DEVELOPER_DIR=/Applications/Xcode_${{ matrix.version }}.app/Contents/Developer" >> $GITHUB_ENV
+          echo "CC=ccache clang" >> $GITHUB_ENV
+          echo "CXX=ccache clang++" >> $GITHUB_ENV
+          ccache --set-config=cache_dir=$HOME/.ccache
+
+    - name: Install meson
+      run: |
+        python3 -mpip install meson ninja
+
+    # Caches for different branches are isolated, so we don't need to put the branch name into the key.
+    # The total size for all caches in a repository is 5Gb.
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          stamp=$(date '+%s')
+        else
+          stamp=$(gdate '+%s')
+        fi
+        echo "${stamp}"
+        echo "::set-output name=timestamp::${stamp}"
+
+    - name: ccache cache files
+#      uses: actions/cache@v2
+      uses: pat-s/always-upload-cache@v2
+      with:
+         path: ~/.ccache
+         key: ${{ matrix.name }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+         restore-keys: |
+           ${{ matrix.name }}-ccache-
+
+    - name: Make windows sysroot and generate cross file
+      if: matrix.name == 'windows'
+      # This command also generates the cross file
+      run: |
+        ${GITHUB_WORKSPACE}/scripts/make_winroot.sh
+
+    - name: Configure
+      run: |
+        if [ "${{ matrix.name }}" = "windows" ]; then
+          ARGS="${ARGS} --cross-file=win64-cross.txt"
+        fi
+        if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.name }}" != "windows" ] && [ "${{ matrix.sanitize }}" != "" ] ; then
+          # Address sanitizer can't find its dylibs on OS X?
+          ARGS="${ARGS} -Db_sanitize=${{ matrix.sanitize }}"
+        fi
+        echo meson build --prefix=$HOME/local --buildtype=${{ matrix.buildtype }} -Dcpp_args='-g' ${ARGS}
+        meson build --prefix=$HOME/local --buildtype=${{ matrix.buildtype }} -Dcpp_args='-g' ${ARGS}
+
+    - name: Build
+      run: |
+        ccache -p
+        ccache -s
+        ninja -C build install -j4
+        ccache -s
+
+    - name: Test (not windows)
+      if: matrix.name != 'windows'
+      run: |
+        export PATH=$HOME/local/bin:$PATH
+        export seed=$RANDOM
+        echo "Running tests with seed=$seed"
+        echo ::group::Basic tests
+        bali-phy help
+        bali-phy --seed=$seed $HOME/local/share/doc/bali-phy/examples/sequences/5S-rRNA/5d-muscle.fasta --test
+        bali-phy --seed=$seed $HOME/local/share/doc/bali-phy/examples/sequences/5S-rRNA/5d-muscle.fasta --iter=20
+        echo ::group::Test suite
+        cd tests
+        ./run-tests.py bali-phy --seed=$seed
+        cd
+        echo ::endgroup::
+        echo ::group::testiphy
+        git clone https://gitlab.com/testiphy/testiphy.git
+        cd testiphy
+        which bali-phy || true
+        ./testiphy bali-phy --seed=$seed
+        echo ::endgroup::

@@ -1,0 +1,118 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: 2.7
+            PLONE_VERSION: 4
+            continue-on-error: false
+#           - python: 2.7
+#             PLONE_VERSION: 51
+#             continue-on-error: true
+          - python: 3.8
+            PLONE_VERSION: 52
+            continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python ${{matrix.python}}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{matrix.python}}
+      - name: Setup Env
+        run: |
+          sudo apt-get update -qqy
+          sudo apt-get install -qqy g++ libpng-dev cmake libqt4-dev libqt5widgets5 qttools5-dev
+          wget -t 3 -T 60 --waitretry 5 -O zint-2.8.0.tar.gz https://sourceforge.net/projects/zint/files/zint/2.8.0/zint-2.8.0.tar.gz/download
+          tar -xf zint-2.8.0.tar.gz
+          cd zint-2.8.0
+          sudo cmake .
+          sudo make
+          sudo make install
+          cd ..
+          mkdir -p buildout-cache/{eggs,downloads}
+          pip install -r requirements.txt coverage==5.3.1 wheel
+      - name: Cache eggs
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-eggs
+        with:
+          path: ~/buildout-cache/eggs
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.PLONE_VERSION }}
+      - name: buildout
+        run: |
+          cp test_plone${{matrix.PLONE_VERSION}}.cfg buildout.cfg
+          buildout -c ci.cfg annotate
+          buildout -c ci.cfg
+      - name: test
+        run: |
+          bin/test
+        continue-on-error: ${{matrix.continue-on-error}}
+  coverage:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        PLONE_VERSION: [4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 2.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+      - name: Setup Env
+        run: |
+          sudo apt-get update -qqy
+          sudo apt-get install -qqy g++ libpng-dev cmake libqt4-dev libqt5widgets5 qttools5-dev
+          wget -t 3 -T 60 --waitretry 5 -O zint-2.8.0.tar.gz https://sourceforge.net/projects/zint/files/zint/2.8.0/zint-2.8.0.tar.gz/download
+          tar -xf zint-2.8.0.tar.gz
+          cd zint-2.8.0
+          sudo cmake .
+          sudo make
+          sudo make install
+          cd ..
+          mkdir -p buildout-cache/{eggs,downloads}
+          pip install -r requirements.txt coverage==5.3.1 wheel
+      - name: Cache eggs
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-eggs
+        with:
+          path: ~/buildout-cache/eggs
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-coverage-${{ matrix.PLONE_VERSION }}
+      - name: buildout
+        run: |
+          cp test_plone${{matrix.PLONE_VERSION}}.cfg buildout.cfg
+          buildout -c ci.cfg annotate
+          buildout -c ci.cfg
+      - name: code-analysis
+        run: |
+          bin/code-analysis
+      - name: test coverage
+        run: |
+          bin/coverage run bin/test
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install Coveralls
+        run: |
+          pip3 install -U pip setuptools --no-cache-dir
+          pip3 install -U "coveralls>=3.0.0" coverage==5.3.1 --no-cache-dir
+      - name: Publish to Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          coveralls --service=github

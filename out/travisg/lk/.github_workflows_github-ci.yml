@@ -1,0 +1,114 @@
+name: LK CI
+
+# Brute force build a bunch of variants of LK in parallel jobs.
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain-ver: [11.2.0, 7.5.0]
+        debug: [2, 0]
+        project:
+          - qemu-virt-arm32-test
+          - qemu-virt-arm64-test
+          - qemu-microblaze-test
+          - qemu-mips-test
+          - qemu-virt-riscv32-test
+          - qemu-virt-riscv64-test
+          - qemu-virt-riscv64-supervisor-test
+          - qemu-virt-arm32-minimal
+          - pc-x86-test
+          - pc-x86-legacy-test
+          - pc-x86-64-test
+          - or1ksim
+          - vim2-test
+          - zybo-test
+          - rpi2-test
+          - rpi3-test
+          - uzed-test
+          - stm32-h103-test
+          - stm32746g-eval2-test
+          - stm32f429i-disco-test
+          - stm32f746g-disco-test
+          - stm32f4-discovery-test
+          - stellaris-launchpad-test
+          - nrf51-pca10028-test
+          - nucleo-f072rb
+          - pico-test
+          - sifive-e-test
+          - sifive-unleashed-test
+        exclude:
+          # no toolchain for 7.5.0 for or1k
+          - project: or1ksim
+            toolchain-ver: 7.5.0
+
+    env:
+      PROJECT: ${{ matrix.project }}
+      TOOLCHAIN_VER: ${{ matrix.toolchain-ver }}
+      # ${{ matrix.toolchain-arch }}-${{ matrix.toolchain-ver }}-Linux-x86_64
+      DEBUG: ${{ matrix.debug }}
+    steps:
+    - name: banner
+      shell: bash
+      run: |
+        printf "Building with %d processors\n" "$(nproc)"
+        grep -oP '(?<=model name\t: ).*' /proc/cpuinfo|head -n1
+        echo PROJECT = $PROJECT
+        echo TOOLCHAIN_VER = $TOOLCHAIN_VER
+        echo DEBUG = $DEBUG
+
+    # check out the source
+    - uses: actions/checkout@v2
+
+    # compute the toolchain prefix this project will need
+    - name: compute toolchain
+      shell: bash
+      run: |
+        TOOLCHAIN_PREFIX=$(make list-toolchain | grep TOOLCHAIN_PREFIX | tail -1 | cut -d ' ' -f 3)
+        echo "TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX}" >> $GITHUB_ENV
+        echo "TOOLCHAIN=${TOOLCHAIN_PREFIX}${{ matrix.toolchain-ver }}-$(uname)-$(uname -m)" >> $GITHUB_ENV
+
+    # maintain a directory archives/ in the repo
+    # it will contain tarballs of various toolchains
+    - name: cache
+      uses: actions/cache@v2.1.1
+      id: cache
+      with:
+        # A list of files, directories, and wildcard patterns to cache and restore
+        path: archives
+        # An explicit key for restoring and saving the cache
+        key: archives-${{ env.TOOLCHAIN }}
+
+    # download a toolchain from http://newos.org/toolchains
+    - name: fetch/extract toolchain
+      shell: bash
+      run: |
+        TOOLCHAIN_BASE_URL="http://newos.org/toolchains"
+        TOOLCHAIN_SUFFIX="tar.xz"
+        TOOLCHAIN_ADDRESS="$TOOLCHAIN_BASE_URL/$TOOLCHAIN.$TOOLCHAIN_SUFFIX"
+        mkdir -p archives
+        cd archives
+        echo "Downloading toolchain $TOOLCHAIN from $TOOLCHAIN_ADDRESS"
+        wget -v -N $TOOLCHAIN_ADDRESS || exit 1
+        cd ..
+        echo "Unpacking $TOOLCHAIN"
+        tar xf archives/$TOOLCHAIN.$TOOLCHAIN_SUFFIX || exit 1
+        echo "$GITHUB_WORKSPACE/$TOOLCHAIN/bin" >> $GITHUB_PATH
+
+    # build it
+    - name: build
+      shell: bash
+      run: |
+        make -j $(nproc)
+
+    # upload artifacts
+    #- uses: actions/upload-artifact@v2
+    #  with:
+    #   name: build-dir
+    #   path: build-${{ matrix.project }}/lk.*
+
+# vim: ts=2 sw=2 expandtab

@@ -1,0 +1,158 @@
+on:
+  push:
+    branches:
+      - main
+      - master
+      - availability
+  pull_request:
+    branches:
+      - main
+      - master
+      - availability
+
+name: tests
+
+jobs:
+  setup:
+    name: setup
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Slack Notification on Start
+        uses: rtCamp/action-slack-notify@v2.2.0
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TESTS }}
+          SLACK_CHANNEL: notify-nc3-tests
+          SLACK_TITLE: "${{ github.repository }}"
+          SLACK_COLOR: "#f0ad4e"
+
+  tests:
+    name: tests
+    needs: setup
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        php: [ '7.1', '7.2', '7.3', '7.4' ]
+        mysql: [ '5.7', '8.0' ]
+
+    env:
+        NC3_BUILD_DIR: "/opt/nc3"
+        NC3_DOCKER_DIR: "/opt/docker"
+        NC3_GIT_URL: "git://github.com/NetCommons3/NetCommons3.git"
+        NC3_GIT_BRANCH: "master"
+        PLUGIN_BUILD_DIR: ${{ github.workspace }}
+        PHP_VERSION: ${{ matrix.php }}
+        MYSQL_VERSION: ${{ matrix.mysql }}
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: cakephp_test
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: environment
+        run: |
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "PLUGIN_BUILD_DIR=${PLUGIN_BUILD_DIR}"
+          echo "PHP_VERSION=${PHP_VERSION}"
+          echo "MYSQL_VERSION=${MYSQL_VERSION}"
+          ls -al ${PLUGIN_BUILD_DIR}
+
+      - name: docker-compose install
+        run: |
+          curl -L https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+          chmod +x ~/docker-compose
+          sudo mv ~/docker-compose /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: git clone nc3
+        run: git clone -b ${NC3_GIT_BRANCH} ${NC3_GIT_URL} ${NC3_BUILD_DIR}
+
+      - name: git clone nc3_docker
+        run: git clone https://github.com/NetCommons3/nc3app-docker.git ${NC3_DOCKER_DIR}
+
+      - name: docker-compose start
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose up -d
+          docker-compose start
+
+      - run: docker ps
+
+      - name: check libraries
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/start-on-docker.sh
+
+      - name: nc3 build
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/app-build.sh
+
+      - name: phpcs (PHP CodeSniffer)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/phpcs.sh
+
+      - name: phpmd (PHP Mess Detector)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/phpmd.sh
+
+      - name: phpcpd (PHP Copy/Paste Detector)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/phpcpd.sh
+
+      - name: gjslint (JavaScript Style Check)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/gjslint.sh
+
+      - name: phpdoc (PHP Documentor)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/phpdoc.sh
+
+      - name: phpunit (PHP UnitTest)
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose exec -T nc3app bash /opt/scripts/phpunit.sh
+          sudo -s chmod a+w -R ${NC3_BUILD_DIR}/build
+
+      - name: push coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.php }}
+        run: |
+          cd ${NC3_BUILD_DIR}
+          ls -la ${NC3_BUILD_DIR}
+          vendors/bin/php-coveralls --coverage_clover=build/logs/clover.xml -v
+
+      - name: docker-compose remove
+        run: |
+          cd ${NC3_DOCKER_DIR}
+          docker-compose rm -f
+
+      # テスト失敗時はこちらのステップが実行される
+      - name: Slack Notification on Failure
+        uses: rtCamp/action-slack-notify@v2.2.0
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TESTS }}
+          SLACK_CHANNEL: notify-nc3-tests
+          SLACK_TITLE: "${{ github.repository }}(php${{ matrix.php }}, mysql${{ matrix.mysql }})"
+          SLACK_COLOR: danger
+
+  teardown:
+    name: teardown
+    runs-on: ubuntu-18.04
+    needs: tests
+    steps:
+      # テスト成功時はこちらのステップが実行される
+      - name: Slack Notification on Success
+        if: success()
+        uses: rtCamp/action-slack-notify@v2.2.0
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TESTS }}
+          SLACK_CHANNEL: notify-nc3-tests
+          SLACK_TITLE: "${{ github.repository }}"
+          SLACK_COLOR: good

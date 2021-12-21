@@ -1,0 +1,68 @@
+name: Build
+
+on:
+  schedule:
+    - cron: "2 4 * * *"
+  push:
+    branches:
+      - main
+      - v3.x
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build and analyse
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+      - name: Cache npm dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Cache pom dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.m2/repository
+            node/
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build
+        run: ./mvnw --batch-mode -Pcoverage clean verify
+      - name: Analyse with SonarCloud
+        if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+        run: >
+          ./mvnw --batch-mode
+          -Pcoverage
+          sonar:sonar
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=synyx
+          -Dsonar.projectKey=org.synyx:urlaubsverwaltung
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml,target/site/jacoco-it/jacoco.xml
+          -Dsonar.javascript.lcov.reportPaths=target/js-coverage/lcov.info
+          -Dsonar.javascript.exclusions=**/__tests__/**,**/*-spec.js,**/*.spec.js,**/*-test.js,**/*.test.js
+          -Dsonar.eslint.reportPaths=target/js-eslint/report.json
+          -Dsonar.coverage.exclusions=**/__tests__/**,**/*-spec.js,**/*.spec.js,**/*-test.js,**/*.test.js
+          -Dsonar.sources=src/main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Upload video of failed tests
+        uses: actions/upload-artifact@v2
+        if: hashFiles('target/FAILED-*.flv') != ''
+        with:
+          name: failed-selenium-tests
+          path: target/FAILED-*.flv

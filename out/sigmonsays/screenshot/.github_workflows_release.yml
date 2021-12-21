@@ -1,0 +1,96 @@
+name: Build debian package (.deb)
+
+on:
+  push:
+    #branches: [ master ]
+    tags: [ 'v*' ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        codename: [focal]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+
+      - name: Build debian package
+        uses: sigmonsays/dpkg-buildpackage-go@master
+
+      - name: list files
+        run: ls -l *.deb
+
+      - name: Upload result
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.codename }}
+          path: |
+            *.deb
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.codename }}
+          path: artifact
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          commitish: ${{ github.sha }}
+          draft: false
+          prerelease: false
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+  upload:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        codename: [focal]
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.codename }}
+          path: ${{ matrix.codename }}
+      - name: list files
+        shell: bash
+        run: find
+
+      - name: Get Name of Artifact
+        run: |
+            ARTIFACT_PATHNAME=$(ls ${{ matrix.codename }}/*.deb | head -n 1)
+            ARTIFACT_NAME=$(basename $ARTIFACT_PATHNAME)
+            echo "ARTIFACT_PATHNAME=${ARTIFACT_PATHNAME}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          # asset_path: ${{ matrix.codename }}
+          # asset_name: ${{ matrix.codename }}
+          asset_path: ${{ env.ARTIFACT_PATHNAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/deb

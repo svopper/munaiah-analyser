@@ -1,0 +1,48 @@
+name: cross
+
+on:
+  push:
+    paths:
+      - '.github/workflows/cross.yml'
+      - 'tools/*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: setup-1
+        run: 'sudo apt-get update'
+
+      - name: setup-2
+        run: 'sudo apt-get install libsdl2-dev'
+
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: cache
+        id: cache
+        uses: actions/cache@v1
+        with:
+          path: cross
+          key: cross-${{ hashFiles('tools/*') }}-${{ runner.os }}
+
+      - name: prepare
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: 'mkdir cross'
+
+      - name: build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/build.sh
+
+      - name: prune
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/prune.sh
+
+      - name: upload
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v1
+        with:
+          name: cross
+          path: cross

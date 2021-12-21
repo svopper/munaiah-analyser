@@ -1,0 +1,110 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        variant: [All]
+        build_type: [Debug]
+        static_link: [OFF]
+        modules_shared: [ON]
+        multi_process: [ON]
+        double_precision: [OFF]
+        large_index: [OFF]
+        include:
+          - variant: All
+            build_type: Release
+            static_link: ON
+            modules_shared: OFF
+            multi_process: OFF
+            double_precision: ON
+            large_index: ON
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: Install Dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install
+        ninja-build
+        libglew-dev
+        qttools5-dev
+        qtscript5-dev
+        libqt5scripttools5
+        libqt5svg5-dev
+        libqt5opengl5-dev
+        libqt5webkit5-dev
+        libpng-dev
+        libopenscenegraph-dev
+        libtbb-dev
+        libjpeg-dev
+        libsnappy-dev
+        zlib1g-dev
+        libassimp-dev
+        libboost-atomic-dev
+        libboost-date-time-dev
+        libboost-exception-dev
+        libboost-filesystem-dev
+        libboost-iostreams-dev
+        libboost-locale-dev
+        libboost-log-dev
+        libboost-math-dev
+        libboost-program-options-dev
+        libboost-random-dev
+        libboost-serialization-dev
+        libboost-system-dev
+        libboost-thread-dev
+        libboost-timer-dev
+        libboost-tools-dev
+        libboost-dev
+        libtinyxml2-dev
+        libturbojpeg0-dev
+        liblz4-dev
+        libzstd-dev
+        libzip-dev
+        libarchive-dev
+        libbotan-2-dev
+        libvtk7-dev
+
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: >
+        cmake -G Ninja
+        $GITHUB_WORKSPACE
+        -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+        -DVISTLE_BUILD_SHARED=${{matrix.static_link}}
+        -DVISTLE_MODULES_SHARED=${{matrix.modules_shared}}
+        -DVISTLE_64BIT_INDICES=${{matrix.large_index}}
+        -DVISTLE_DOUBLE_PRECISION=${{matrix.double_precision}}
+        -DVISTLE_MULTI_PROCESS=${{matrix.multi_process}}
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config ${{matrix.build_type}}

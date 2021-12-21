@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+      branches: [ master, 2.x ]
+
+jobs:
+    run:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                php:
+                    - '7.4'
+                    - '8.0'
+                    - '8.1'
+                symfony-versions: [false]
+                include:
+                    -   description: 'Symfony 4.4'
+                        php: '7.4'
+                        symfony-versions: 4.4.*
+                    -   description: 'Symfony 5.3'
+                        php: '7.4'
+                        symfony-versions: 5.3.*
+                    -   description: 'Symfony 4.4'
+                        php: '8.0'
+                        symfony-versions: 4.4.*
+                    -   description: 'Symfony 5.3'
+                        php: '8.0'
+                        symfony-versions: 5.3.*
+
+        name: PHP ${{ matrix.php }} ${{ matrix.description }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.composer/cache/files
+                  key: ${{ matrix.php }}-${{ matrix.symfony-versions }}
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+
+            - name: Install dependencies
+              run: composer install
+
+            - name: Setup Symfony version
+              run: composer bin symfony require "symfony/symfony:${{ matrix.symfony-versions }}" --no-update
+              if: matrix.symfony-versions
+
+            - name: Install bin dependencies
+              run: composer bin symfony install
+              if: matrix.symfony-versions
+
+            - name: Run PHPUnit tests
+              run: XDEBUG_MODE=coverage bin/phpunit --coverage-clover=coverage.xml
+              if: false == matrix.symfony-versions
+
+            - name: Run Symfony tests
+              run: bin/phpunit --configuration phpunit_symfony.xml.dist
+              if: matrix.symfony-versions
+
+            - name: Run codecov
+              uses: codecov/codecov-action@v1
+              with:
+                  file: './coverage.xml'
+                  fail_ci_if_error: true
+              if: false == matrix.symfony-versions

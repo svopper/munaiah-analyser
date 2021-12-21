@@ -1,0 +1,138 @@
+﻿# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: 'Lucene.Net.Website'
+
+# This will:
+# checkout this repo
+# get current or latest tag to parse a version for use in the website
+# Build the website
+# Checkout the website repo
+# Create a branch
+# Commit/Push to the branch
+# Create a PR
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+    - Website_*
+    #branches:
+    #- master
+    paths:
+    - 'websites/site/**'
+
+env:
+  # If a tag is specified, the tag will be in the format: Website_4_8_0_beta00013 which
+  # will be parsed to create the version number used in the docs like 4.8.0-beta00013
+  RELEASE_VERSION: "(no tag)"
+  SITE_REPO: "${{ github.repository }}-site"
+  GIT_MAIN_REPO:  "${{ github.workspace }}\\main-repo\\.git"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+
+      # Checkout the main repo with all history so we get all tags
+      - name: Checkout Lucene.Net source
+        uses: actions/checkout@v2
+        with:
+          path: main-repo
+          fetch-depth: 0
+
+      - name: Set version from tag
+        run: |
+          $ref = $Env:GITHUB_REF
+
+          if ($ref.StartsWith("refs/tags/")) {
+            $tag = $ref.Substring(10)
+            echo "extracted tag name from refs/tags as $tag"
+          }
+          else {
+            echo "Get the latest Lucene.Net_ tag"
+            $tag = & git --git-dir "$Env:GIT_MAIN_REPO" tag --list --sort=-version:refname 'Lucene.Net_[0-9]_[0-9]_[0-9]*' | select -first 1
+          }
+
+          if ($tag -eq $null) {
+            echo "::error::Could not determine current version tag"
+            exit 1
+          }
+
+          $parts = $tag.Split("_")
+          $version = '';
+          For ($i=1; $i -le $parts.Length; $i++) {
+            $version += $parts[$i]
+            if ($i -eq ($parts.Length - 2)) {
+              $version += "-"
+            }
+            elseif ($i -lt ($parts.Length - 1)) {
+              $version += "."
+            }
+          }
+
+          if ($version -ne '') {
+            # the tag parsed to the correct version format, write the environment var
+            echo "parsed version is $version"
+            echo ("RELEASE_VERSION=" + $version) >> $env:GITHUB_ENV
+          }
+          else {
+            echo "::error::Could not parse current version tag"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Verify environment variables
+        run: |
+          echo "RELEASE_VERSION=$Env:RELEASE_VERSION"
+        shell: powershell
+
+      - name: Build website
+        run: ./main-repo/websites/site/site.ps1 -Clean
+        shell: powershell
+
+      - name: Checkout Lucene.Net website
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.SITE_REPO }}
+          ref: asf-site
+          path: website-repo
+
+      - name: Copy website files
+        run: Get-ChildItem -Path "$Env:GITHUB_WORKSPACE\main-repo\websites\site\_site" | Copy-Item -Destination "$Env:GITHUB_WORKSPACE\website-repo" -Recurse -Force
+        shell: powershell
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.LUCENE_NET_WEBSITE_BUILD }}
+          path: website-repo
+          commit-message: New website version built
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: task/website-build-${{ github.sha }}
+          delete-branch: true
+          title: 'New website build ${{ github.sha }}'
+          body: |
+            New website build on rev/tag ${{ github.sha }}
+            For release version ${{ env.RELEASE_VERSION }}
+
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"

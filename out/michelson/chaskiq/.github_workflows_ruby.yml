@@ -1,0 +1,75 @@
+# .github/workflows/ci.yml
+
+name: CI
+on: [ pull_request ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports: ['6379:6379']
+        options: --entrypoint redis-server
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ruby/setup-ruby@v1
+        with:
+          # ruby-version: 2.7.2 # no need with ruby-version file
+          bundler-cache: true
+      - uses: borales/actions-yarn@v2.3.0
+        with:
+          cmd: install
+      - name: Build and run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+          REDIS_URL: redis://localhost:6379/0
+          RAILS_ENV: test
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+        run: |
+          sudo apt-get -yqq install libpq-dev
+          gem install bundler
+          bundle install --jobs 4 --retry 3
+          bundle exec rails db:prepare
+          bundle exec rspec ./spec
+
+      - name: Build and run E2E tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+          REDIS_URL: redis://localhost:6379/0
+          RAILS_ENV: test
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+        run: |
+          sudo apt-get -yqq install libpq-dev curl libgconf-2-4
+          gem install bundler
+          bundle install --jobs 4 --retry 3
+          bundle exec rails db:prepare
+
+          cp ./config/webpacker.ci.yml ./config/webpacker.yml
+          bundle exec rake assets:precompile
+
+          curl ifconfig.me
+          bundle exec rails server -e test -p 5002 -d
+
+          ./node_modules/.bin/cypress install
+
+          yarn cypress:ga-ci
+
+      #- name: Deploy to Heroku
+      #  env:
+      #    HEROKU_API_TOKEN: ${{ secrets.HEROKU_API_TOKEN }}
+      #    HEROKU_APP_NAME: "hermesapp"
+      #  if: github.ref == 'refs/heads/master' && job.status == 'success'
+      #  run: git push https://heroku:$HEROKU_API_TOKEN@git.heroku.com/$HEROKU_APP_NAME.git origin/master:master

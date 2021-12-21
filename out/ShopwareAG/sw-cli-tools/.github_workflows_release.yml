@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.3'
+          ini-values: phar.readonly=Off
+
+      - name: Install dependencies
+        run: composer install --no-dev
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
+      - name: Set version string
+        run: sed -i -e "s/__VERSION__/${{ steps.get_version.outputs.VERSION }}/g" src/Application.php
+
+      - name: Build
+        run: ./bin/build.sh
+
+      - name: Deploy
+        run: |
+          mv sw.phar sw.phar.tmp
+          git config --global user.email "development@shopware.com"
+          git config --global user.name "shopwareBot"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          git fetch origin
+          git checkout -t origin/gh-pages -f
+          mv sw.phar.tmp sw.phar
+          sha1sum sw.phar > sw.phar.version
+          git add sw.phar sw.phar.version
+          git commit -m 'Rebuilt phar; version: ${{ steps.get_version.outputs.VERSION }}'
+          git push origin gh-pages:gh-pages
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: sw.phar
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false

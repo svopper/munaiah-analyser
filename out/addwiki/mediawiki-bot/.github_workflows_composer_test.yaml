@@ -1,0 +1,78 @@
+name: Tests
+
+on:
+    pull_request: null
+    push:
+        branches:
+            - main
+        tags:
+            - '*'
+
+env:
+    # see https://github.com/composer/composer/issues/9368#issuecomment-718112361
+    COMPOSER_ROOT_VERSION: "dev-main"
+
+jobs:
+
+    # first step
+    provide_php_versions_json:
+        name: Collect PHP versions to test
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+
+            -   uses: shivammathur/setup-php@v2
+                with:
+                    # this is the only place we have to use PHP to avoid the lock to bash scripting
+                    php-version: 7.4
+
+            -   run: composer install --no-progress --ansi
+
+            # to see the provided output, just to be sure
+            -   run: vendor/bin/easy-ci php-versions-json
+
+            # here we create the json, we need the "id:" so we can use it in "outputs" bellow
+            -
+                id: output_data
+                run: echo "::set-output name=matrix::$(vendor/bin/easy-ci php-versions-json)"
+
+        # here, we save the result of this 1st phase to the "outputs"
+        outputs:
+            matrix: ${{ steps.output_data.outputs.matrix }}
+
+    tests:
+        needs: provide_php_versions_json
+
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                php: ${{ fromJson(needs.provide_php_versions_json.outputs.matrix) }}
+
+        name: Test monorepo with PHP ${{ matrix.php }}
+
+        steps:
+            -   uses: actions/checkout@v2
+
+            -   uses: shivammathur/setup-php@v2
+                with:
+                    php-version: ${{ matrix.php }}
+                    coverage: none
+
+            -
+                if: "matrix.php == 7.4"
+                run: composer update  --no-progress --ansi --prefer-lowest
+            -
+                if: "matrix.php >= 8"
+                uses: "ramsey/composer-install@v1"
+                with:
+                    composer-options: "--ignore-platform-req php"
+
+            -   name: Run CI docker-compose if present
+                run: '(test -f docker-compose-ci.yml && docker-compose --file docker-compose-ci.yml up -d) || echo No docker-compose-ci.yml, skipping step'
+            -   name: Wait for docker-compose to be ready (if needed)
+                run: '(test -f build/docker-compose-ci-wait.sh && build/docker-compose-ci-wait.sh) || echo No docker-compose-ci-wait.sh, not waiting'
+
+            -
+                run: composer test

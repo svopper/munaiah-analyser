@@ -1,0 +1,65 @@
+name: "Workflow Ubuntu macOS"
+on:
+  push:
+    branches:
+      - main
+      - release/**
+  pull_request:
+
+jobs:
+  build:
+    name: Build Job ${{ matrix.os }} - Java ${{ matrix.java }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # we want that the matrix keeps running, default is to cancel them if it fails.
+      fail-fast: false
+      matrix:
+        # TODO: windows-latest
+        os: [ubuntu-latest, macos-latest]
+        # Zulu Community distribution of OpenJDK
+        java: [ '11' ]
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: "Set up Java: ${{ matrix.java }}"
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Clean, check formatting, build and do a dry release
+      - name: Make all
+        run: make all
+
+      # We stop gradle at the end to make sure the cache folders
+      # don't contain any lock files and are free to be cached.
+      - name: Make stop
+        run: make stop
+
+      - name: Archive packages
+        # We need artifacts from only one the builds
+        if: runner.os == 'Linux' && matrix.java == '11'
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ./*/build/distributions/*.zip
+            ./sentry-android-ndk/build/intermediates/merged_native_libs/release/out/lib/*
+
+      - name: Upload coverage to Codecov
+        # We need coverage data from only one the builds
+        if: runner.os == 'Linux' && matrix.java == '11'
+        uses: codecov/codecov-action@v1
+        with:
+          name: sentry-java

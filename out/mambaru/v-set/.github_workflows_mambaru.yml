@@ -1,0 +1,35 @@
+name: C++ CI
+
+on:
+  push:
+    branches:
+      - mambaru
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install packages
+        run: |
+          export GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+          bash setup.sh
+        working-directory: ./.github/workflows
+
+      - name: Coverage report and push to master branches
+        run: |
+          echo "Субмодули подключаються при первой сборке (фиксируем их)"
+          git config --global user.email "migashko@gmail.com"
+          git config --global user.name "Vladimir Migashko"
+          git config pull.rebase true
+          git pull origin master
+          make coverage-report
+          git add .
+          git commit -am "[subm] build submodule autocommit" || true
+          pushd build
+             export CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}
+             bash <(curl -s https://codecov.io/bash) || echo "Coverage FAIL!"
+          popd
+          git push https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git HEAD:master
+          git push https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git :mambaru || echo "Delete mambaru FAIL"

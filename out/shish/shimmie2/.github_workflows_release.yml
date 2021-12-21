@@ -1,0 +1,62 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+
+      - name: Get version from tag
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Test version in sys_config
+        run: grep ${{ steps.get_version.outputs.VERSION }} core/sys_config.php
+
+      - name: Build
+        run: |
+          composer install --no-dev
+          cd ..
+          tar cvzf shimmie2-${{ steps.get_version.outputs.VERSION }}.tgz shimmie2
+          zip -r shimmie2-${{ steps.get_version.outputs.VERSION }}.zip shimmie2
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Shimmie ${{ steps.get_version.outputs.VERSION }}
+          body: Automated release from tags
+          draft: false
+          prerelease: false
+
+      - name: Upload Zip
+        id: upload-release-asset-zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ../shimmie2-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: shimmie2-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Tar
+        id: upload-release-asset-tar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ../shimmie2-${{ steps.get_version.outputs.VERSION }}.tgz
+          asset_name: shimmie2-${{ steps.get_version.outputs.VERSION }}.tgz
+          asset_content_type: application/gzip

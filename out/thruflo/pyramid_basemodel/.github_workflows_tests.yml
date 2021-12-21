@@ -1,0 +1,13 @@
+name: Run tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    uses: fizyk/actions-reuse/.github/workflows/tests-pytests.yml@v1.0.0
+    with:
+      cover_package: pyramid_basemodel

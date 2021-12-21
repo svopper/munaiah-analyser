@@ -1,0 +1,84 @@
+name: Build component
+on:
+  push:
+  pull_request:
+  repository_dispatch:
+    types: [upstream-build, manual-build]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources from component repository
+      uses: actions/checkout@v2
+
+    - name: Checkout additional sources from product repository
+      uses: actions/checkout@v2
+      with:
+        repository: Guite/MostProduct
+        token: ${{ secrets.ACCESS_MOST_PRODUCT }}
+        path: MostProduct
+
+    # see https://github.com/actions/setup-java
+    - name: Setup JDK
+      uses: actions/setup-java@master
+      with:
+        distribution: 'adopt'
+        java-version: 11
+
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2-
+
+    # https://stackoverflow.com/questions/71069/can-maven-be-made-less-verbose
+    - name: Maven Build
+      run: |
+        mvn verify -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+
+    - name: Collect artifacts to deploy
+      run: |
+        mkdir -p deploy/repo
+        mkdir -p deploy/assets
+        cp -R releng/de.guite.modulestudio.help.build/target/repository/* deploy/repo
+        cd bundles/de.guite.modulestudio.help
+        tar cfvz docs.tar.gz doc
+        mv docs.tar.gz ../../deploy/assets
+        cd ../../
+        cp bundles/de.guite.modulestudio.help/pdfmanual/*.pdf deploy/assets
+
+    # see https://github.com/SamKirkland/FTP-Deploy-Action
+    - name: Deploy repository
+      uses: SamKirkland/FTP-Deploy-Action@master
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: deploy/repo/
+        server-dir: components/help/
+        dangerous-clean-slate: true
+
+    - name: Deploy other artifacts
+      uses: SamKirkland/FTP-Deploy-Action@master
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: deploy/assets/
+        server-dir: help-assets/
+        dangerous-clean-slate: true
+
+    # see https://github.com/peter-evans/repository-dispatch
+    - name: Dispatch downstream job
+      uses: peter-evans/repository-dispatch@master
+      with:
+        token: ${{ secrets.DISPATCH_TOKEN }}
+        repository: Guite/MostLocales
+        event-type: upstream-build
+    - name: Dispatch downstream job
+      uses: peter-evans/repository-dispatch@master
+      with:
+        token: ${{ secrets.DISPATCH_TOKEN }}
+        repository: Guite/Static_modulestudio.de
+        event-type: docs-update

@@ -1,0 +1,57 @@
+name: build
+on: push
+jobs:
+  build-4:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-4.0 llvm-4.0-dev clang-4.0 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-4.0 . && make && make tests
+  build-5:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-5.0 llvm-5.0-dev clang-5.0 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-5.0 . && make && make tests
+  build-6:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-6.0 llvm-6.0-dev clang-6.0 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-6.0 . && make && make tests
+  build-7:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-7 llvm-7-dev clang-7 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-7 . && make && make tests
+  build-8:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-8 llvm-8-dev clang-8 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-8 . && make && make tests
+  build-9:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-9 llvm-9-dev clang-9 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-9 . && make && make tests
+  build-10:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-10 llvm-10-dev clang-10 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-10 . && make && make tests
+  build-11:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-11 llvm-11-dev clang-11 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-11 . && make && make tests
+  build-12:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt-get install build-essential llvm-12 llvm-12-dev clang-12 libedit-dev
+      - run: cmake -DLLVM_CONFIG=/usr/bin/llvm-config-12 . && make && make tests

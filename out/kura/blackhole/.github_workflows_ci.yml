@@ -1,0 +1,198 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10', 'pypy-3.7', 'pyston']
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        if: ${{ matrix.python-version != 'pyston' }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Set up Pyston
+        if: ${{ matrix.python-version == 'pyston' }}
+        run: |
+          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+          ~/.pyenv/bin/pyenv install pyston-2.2
+          echo "$HOME/.pyenv/versions/pyston-2.2/bin" >> $GITHUB_PATH
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: unittest-cache-${{ matrix.python-version }}
+      - name: Apt install
+        run: sudo apt install shellcheck
+      - name: Pip install
+        run: pip install -U codecov tox tox-gh-actions
+      - name: Build and install libuv
+        run: |
+          git clone https://github.com/libuv/libuv.git
+          pushd libuv
+          git checkout $(git describe --tags)
+          sh autogen.sh
+          ./configure
+          make
+          sudo make install
+          popd
+      - name: Run tests
+        env:
+          TOX_PARALLEL_NO_SPINNER: 1
+        run: tox -vvp
+      - name: Generate coverage report
+        run: tox -e coverage-report
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1.0.10
+        if: github.ref == 'refs/heads/main'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          name: blackhole
+          flags: unittests
+          env_vars: PYTHON
+          fail_ci_if_error: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: lint-cache
+      - name: Pip install
+        run: pip install tox
+      - name: Lint
+        run: tox -e lint
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: docs-cache
+      - name: Pip install
+        run: pip install tox
+      - name: Docs
+        run: tox -e docs
+      - name: Minify
+        run: scripts/minify.sh
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./.tox/docs/tmp/html
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: build-cache
+      - name: Pip install
+        run: pip install tox
+      - name: Build
+        run: tox -e build
+
+  man:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: man-cache
+      - name: Pip install
+        run: pip install tox
+      - name: Man
+        run: tox -e man
+
+  poetry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: poetry-cache
+      - name: Pip install
+        run: pip install tox
+      - name: Poetry
+        run: tox -e poetry
+
+  setuppy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: setuppy-cache
+      - name: Pip install
+        run: pip install tox
+      - name: setup.py
+        run: tox -e setuppy
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: shellcheck-cache
+      - name: Install shellcheck
+        run: sudo apt install shellcheck
+      - name: Pip install
+        run: pip install tox
+      - name: Shellcheck
+        run: tox -e shellcheck

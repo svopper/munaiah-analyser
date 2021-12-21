@@ -1,0 +1,58 @@
+name: "Continuous Integration"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  macos:
+    name: macOS
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: brew install macfuse
+
+    - name: Build
+      run: make
+
+    - name: Test
+      run: make check
+
+    - name: Install
+      run: sudo make install
+
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, i386]
+
+    env:
+      ARCH: ${{ matrix.arch }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo dpkg --add-architecture $ARCH
+        sudo apt-get update
+        sudo apt-get install -y g++-multilib pkg-config:$ARCH libfuse-dev:$ARCH fuse:$ARCH
+
+    - name: Build
+      run: make
+
+    - name: Install
+      run: sudo make install

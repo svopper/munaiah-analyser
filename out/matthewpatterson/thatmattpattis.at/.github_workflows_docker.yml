@@ -1,0 +1,45 @@
+name: Docker
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: "Build mattpatt.io"
+        run: |
+          docker build -t "matthewpatterson/mattpatt.io:${GITHUB_SHA:0:7}" .
+          docker tag "matthewpatterson/mattpatt.io:${GITHUB_SHA:0:7}" "docker.pkg.github.com/atmattpatt/mattpatt.io/mattpatt.io:${GITHUB_SHA:0:7}"
+      - name: "Build mattpatt.io_nginx"
+        run: |
+          docker build -t "matthewpatterson/mattpatt.io_nginx:${GITHUB_SHA:0:7}" config/nginx
+          docker tag "matthewpatterson/mattpatt.io_nginx:${GITHUB_SHA:0:7}" "docker.pkg.github.com/atmattpatt/mattpatt.io/mattpatt.io_nginx:${GITHUB_SHA:0:7}"
+      - name: "Log in to Docker Hub"
+        run: |
+          docker login -u "${DOCKER_HUB_USERNAME}" -p "${DOCKER_HUB_PASSWORD}"
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: "Log in to GitHub Packages"
+        run: |
+          docker login docker.pkg.github.com -u "${DOCKER_GPR_USERNAME}" -p "${DOCKER_GPR_ACCESS_TOKEN}"
+        env:
+          DOCKER_GPR_USERNAME: ${{ secrets.DOCKER_GPR_USERNAME }}
+          DOCKER_GPR_ACCESS_TOKEN: ${{ secrets.DOCKER_GPR_ACCESS_TOKEN }}
+      - name: "Push mattpatt.io to Docker Hub"
+        run: |
+          docker push "matthewpatterson/mattpatt.io:${GITHUB_SHA:0:7}"
+      - name: "Push mattpatt.io to GitHub Packages"
+        run: |
+          docker push "docker.pkg.github.com/atmattpatt/mattpatt.io/mattpatt.io:${GITHUB_SHA:0:7}"
+      - name: "Push mattpatt.io_nginx to Docker Hub"
+        run: |
+          docker push "matthewpatterson/mattpatt.io_nginx:${GITHUB_SHA:0:7}"
+      - name: "Push mattpatt.io_nginx to GitHub Packages"
+        run: |
+          docker push "docker.pkg.github.com/atmattpatt/mattpatt.io/mattpatt.io_nginx:${GITHUB_SHA:0:7}"
+      - name: "Log out of Docker Hub"
+        run: docker logout
+      - name: "Log out of GitHub Packages"
+        run: docker logout docker.pkg.github.com

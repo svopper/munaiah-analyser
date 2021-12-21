@@ -1,0 +1,68 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+#        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.event.pusher.email != 'version-bump@solenopsis.org'
+
+name: CD-CI for RPM
+
+on:
+    push:
+        branches: [ master ]
+
+jobs:
+    build:
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.event.pusher.email != 'version-bump@solenopsis.org'
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Preparing environment
+              run: sudo apt-get update
+
+            - name: Compute version
+              run: echo "VERSION=`cat solenopsis.spec | egrep Version | cut -f 2 -d ':' | tr -d ' '`" >> $GITHUB_ENV
+
+            - name: Compute old release version
+              run: echo "OLD_RELEASE=`cat solenopsis.spec | egrep Release | cut -f 2 -d ':' | tr -d ' '`" >> $GITHUB_ENV
+
+            - name: Compute new release
+              run: echo "NEW_RELEASE=`expr ${OLD_RELEASE} + 1`" >> $GITHUB_ENV
+
+            - name: Set RPM build dir
+              run: echo "RPM_BUILD_DIR=/tmp/solenopsis/RPMBUILD" >> $GITHUB_ENV
+
+            - name: Compute sources dir
+              run: echo "RPM_SOURCES_DIR=${RPM_BUILD_DIR}/SOURCES" >> $GITHUB_ENV
+              
+            - name: Update spec version
+              run: |
+                  sed -i "s/Release: .*/Release: ${NEW_RELEASE}/g" solenopsis.spec
+
+            - name: New spec file
+              run:  cat solenopsis.spec
+
+            - name: Prepare for RPM build
+              run: |
+                  mkdir -p "${RPM_BUILD_DIR}" "${RPM_SOURCES_DIR}" "/tmp/solenopsis-${VERSION}" "${RPM_BUILD_DIR}/BUILD" "${RPM_BUILD_DIR}/RPMS" "${RPM_BUILD_DIR}/SOURCES" "${RPM_BUILD_DIR}/SPECS" "${RPM_BUILD_DIR}/SRPMS" "${RPM_BUILD_DIR}/SOURCES/solenopsis-${VERSION}"
+
+                  cp -a * "/tmp/solenopsis-${VERSION}"
+                  tar czf "${RPM_SOURCES_DIR}/solenopsis-${VERSION}.tar.gz" -C /tmp "solenopsis-${VERSION}"
+                  cp -a * "${RPM_SOURCES_DIR}/solenopsis-${VERSION}"
+              
+            - name: Build rpm
+              run: |
+                  rpmbuild --define "_topdir ${RPM_BUILD_DIR}" -ba solenopsis.spec
+
+            - name: Deploy to baltorepo
+              run: |
+                  curl --header "Authorization: Bearer ${{ secrets.BALTO_REPO_API_TOKEN }}" --form "package=@${RPM_BUILD_DIR}/RPMS/noarch/solenopsis-${VERSION}-${NEW_RELEASE}.noarch.rpm" --form "readme=README.md" https://solenopsis.baltorepo.com/solenopsis/rpm/upload/
+
+            - name: Commit files
+              run: |
+                  git config --local user.email "version-bump@solenopsis.org"
+                  git config --local user.name "Version Upgrade"
+                  git commit -m "Version bump [${VERSION}-${NEW_RELEASE}]" -a
+                  git tag "${VERSION}-${NEW_RELEASE}"
+                  git push origin master
+                  git push origin "${VERSION}-${NEW_RELEASE}"
+

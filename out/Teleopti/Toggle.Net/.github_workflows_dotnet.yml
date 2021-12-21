@@ -1,0 +1,30 @@
+name: Toggle.Net Build
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - run: echo "Building version 2.3.0$env:GITHUB_RUN_NUMBER"
+    - uses: actions/checkout@v2
+    - name: Setup .NET 5.0.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Setup .NET Core 2.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.0.x
+    - name: Restore dependencies
+      run: dotnet restore code\\Toggle.Net.sln
+    - name: Build
+      run: dotnet build --configuration Release --no-restore code\\Toggle.Net.sln
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal code\\Toggle.Net.sln
+    - name: NuGet Push
+      run: dotnet nuget push "**/*.nupkg" --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json

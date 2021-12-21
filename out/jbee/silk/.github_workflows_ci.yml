@@ -1,0 +1,69 @@
+# This workflow builds a modular Java project with Bach.java
+# For more information see:
+# - https://help.github.com/en/actions/language-and-framework-guides/github-actions-for-java
+# - https://github.com/sormuras/bach
+
+name: 'CI'
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  PROJECT_VERSION: '8.2-ea'
+
+jobs:
+  build:
+    name: "Build (JDK-${{ matrix.java }}, ${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        java: [ 16 ]
+        language: [ 'java' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 'Check out sources'
+        uses: actions/checkout@v2
+      - name: 'Set up JDK'
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: 'Set up version'
+        run: |
+          SHA7=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION=${PROJECT_VERSION}+${SHA7}
+          echo "VERSION=${VERSION}" >> ${GITHUB_ENV}
+      - name: 'Build with Bach'
+        run: .bach/bin/bach --project-version ${VERSION} build
+      - name: 'Report test summary'
+        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: .bach/workspace/reports/junit/*/*.xml
+      - name: 'Upload build artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.event.repository.name }}-build-${{ env.VERSION }}
+          path: |
+            .bach/workspace/logbook.md
+            .bach/workspace/modules
+      - name: 'Release early-access build'
+        if: github.ref == 'refs/heads/master'
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          automatic_release_tag: ${{ env.PROJECT_VERSION }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: true
+          title: "purejin ${{ env.VERSION }}"
+          files: |
+            .bach/workspace/modules/se.jbee.lang@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject.api@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject.container@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject.bind@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject.bootstrap@*-ea.jar
+            .bach/workspace/modules/se.jbee.inject.action@*-ea.jar

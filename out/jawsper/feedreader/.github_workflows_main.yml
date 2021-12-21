@@ -1,0 +1,36 @@
+name: Build and push docker images
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Set env
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Login to registry
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v2
+      with:
+        context: app
+        tags: |
+          jawsper/feedreader:${{ env.RELEASE_VERSION }}
+          jawsper/feedreader:latest
+        cache-from: type=registry,ref=jawsper/feedreader:latest
+        cache-to: type=inline
+        push: true
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')

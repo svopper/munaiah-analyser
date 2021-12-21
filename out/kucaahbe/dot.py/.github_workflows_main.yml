@@ -1,0 +1,20 @@
+name: build
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: build
+      run: make
+    - uses: actions/upload-artifact@master
+      with:
+        name: dotfiles
+        path: dotfiles

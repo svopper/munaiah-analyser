@@ -1,0 +1,25 @@
+name: CI
+
+on: [push]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ruby:2.5.8
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Cache gems
+        uses: actions/cache@preview
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gem-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gem-
+      - run: gem install bundler --no-document
+      - run: bundle install --jobs 4 --retry 3 --path vendor/bundle
+      - run: bundle exec rake db:migrate RAILS_ENV=test
+      - run: bundle exec rake spec

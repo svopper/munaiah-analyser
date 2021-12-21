@@ -1,0 +1,84 @@
+---
+
+name: Python application
+
+on:                      # yamllint disable rule:truthy
+  push:
+    branches:
+      - master
+      - 'feature/*'
+  schedule:
+    - cron: '0 0 * * *'  # daily
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      # name: cache
+      # uses: actions/cache@v2
+      # with:
+      #   path: venv
+      #   key: $GITHUB_REF
+
+      - name: setup
+        run: |
+          python -V
+          python -m pip install --upgrade pip virtualenv
+          python -m virtualenv venv
+          source venv/bin/activate
+          pip install -Ur requirements.txt
+          echo isort $(isort --version-number)
+          pylint --version
+          yamllint --version
+          yapf --version
+
+      - name: check
+        run: |
+          source venv/bin/activate
+          isort --check --diff \
+            read_yaml.py employees/*.py utils/*.py tests/*.py
+          yapf --style google --diff --parallel \
+            read_yaml.py employees/*.py utils/*.py tests/*.py
+          pylint \
+            read_yaml.py employees/*.py utils/*.py tests/*.py
+          yamllint --strict \
+            .gitlab-ci.yml .github/workflows/python.yml \
+            bitbucket-pipelines.yml tests/test.yaml
+          python setup.py check
+
+      - name: test
+        run: |
+          source venv/bin/activate
+          pytest -v --cov-report term-missing --cov=employees tests/
+
+      - name: run
+        run: |
+          source venv/bin/activate
+          python -m read_yaml -h
+          python -m read_yaml --version
+          python -m read_yaml -v tests/test.yaml
+
+      - name: document
+        run: |
+          source venv/bin/activate
+          pytest -v --html=cover/report.html --cov=employees tests/
+          coverage html -d cover employees/employees.py
+          (cd docs; make html)
+
+      - name: publish
+        uses: crazy-max/ghaction-github-pages@v1
+        if: success()
+        with:
+          target_branch: gh-pages
+          build_dir: target/docs/html
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAGES_TOKEN }}

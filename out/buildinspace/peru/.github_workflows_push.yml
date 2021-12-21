@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    # Confirm that the `python` maps to the version we just installed.
+    # PowerShell on Windows does this differently than the Unix shells.
+    - run: which python ; python --version ; which pip ; pip --version
+      if: matrix.os != 'windows-latest'
+    - run: get-command python ; python --version ; get-command pip ; pip --version
+      if: matrix.os == 'windows-latest'
+    # macOS doesn't currently have Mercurial installed by default.
+    - run: pip install wheel && pip install mercurial
+      if: matrix.os == 'macOS-latest'
+    # Install test dependencies, like flake8.
+    - run: pip install -r ./requirements-dev.txt
+    # Run tests.
+    - run: python test.py -v

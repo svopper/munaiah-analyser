@@ -1,0 +1,37 @@
+name: CI
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ['2.x', '3.x', 'pypy3']
+        steps:
+            - uses: actions/checkout@v2
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v2
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - name: Install dependencies
+              run: |
+                  sudo apt install libxml2-dev libxslt-dev
+                  python -m pip install --upgrade pip
+                  pip install codecov coverage mock nose
+                  pip install -r requirements.txt
+            - name: Run tests
+              run: |
+                  nosetests
+            - name: Upload code coverage
+              if: github.event_name == 'push'
+              env:
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+              run: |
+                  codecov || true

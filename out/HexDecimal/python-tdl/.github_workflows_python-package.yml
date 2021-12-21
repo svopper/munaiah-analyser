@@ -1,0 +1,266 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Package
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  black:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Black
+        run: pip install black
+      - name: Run Black
+        run: black --check --diff examples/ scripts/ tcod/ tests/ *.py
+
+  isort:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install isort
+        run: pip install isort
+      - name: isort
+        uses: liskin/gh-problem-matcher-wrap@v1
+        with:
+          linters: isort
+          run: isort scripts/ tcod/ tests/ --check --diff
+      - name: isort (examples)
+        uses: liskin/gh-problem-matcher-wrap@v1
+        with:
+          linters: isort
+          run: isort examples/ --check --diff --thirdparty tcod
+
+  flake8:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Flake8
+        run: pip install Flake8
+      - name: Flake8
+        uses: liskin/gh-problem-matcher-wrap@v1
+        with:
+          linters: flake8
+          run: flake8 scripts/ tcod/ tests/
+
+  mypy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth 1
+      - name: Install Python dependencies
+        run: pip install mypy pytest -r requirements.txt
+      - name: Fake initialize package
+        run: |
+          echo '__version__ = ""' > tcod/version.py
+      - name: Mypy
+        uses: liskin/gh-problem-matcher-wrap@v1
+        with:
+          linters: mypy
+          run: mypy --show-column-numbers .
+
+  # This makes sure that the latest versions of the SDL headers parse correctly.
+  parse_sdl:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["windows-2019", "macos-11"]
+        sdl-version: ["2.0.14", "2.0.16"]
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v1 # v1 required to build package.
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth 1
+      - name: Build package
+        run: ./setup.py build
+        env:
+          SDL_VERSION: ${{ matrix.sdl-version }}
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-20.04", "windows-2019"]
+        python-version: ["3.7", "3.8", "3.9", "pypy-3.7"]
+        architecture: ["x64"]
+        include:
+          - os: "windows-2019"
+            python-version: "3.7"
+            architecture: "x86"
+          - os: "windows-2019"
+            python-version: "pypy-3.7"
+            architecture: "x86"
+      fail-fast: false
+
+    steps:
+      # v2 breaks `git describe` so v1 is needed.
+      # https://github.com/actions/checkout/issues/272
+      - uses: actions/checkout@v1
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive --depth 1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture }}
+      - name: Install APT dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsdl2-dev xvfb
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-benchmark wheel twine
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Initialize package
+        run: |
+          python setup.py check  # Creates tcod/version.py.
+      - name: Build package.
+        run: |
+          python setup.py build sdist develop bdist_wheel --py-limited-api cp36  # Install the package in-place.
+      - name: Test with pytest
+        if: runner.os == 'Windows'
+        run: |
+          pytest --cov-report=xml
+      - name: Test with pytest (Xvfb)
+        if: always() && runner.os != 'Windows'
+        run: |
+          xvfb-run -e /tmp/xvfb.log --server-num=$RANDOM --auto-servernum pytest --cov-report=xml
+      - name: Xvfb logs
+        if: runner.os != 'Windows'
+        run: cat /tmp/xvfb.log
+      - uses: codecov/codecov-action@v2
+      - name: Upload to PyPI
+        if: startsWith(github.ref, 'refs/tags/') && runner.os != 'Linux'
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload --skip-existing dist/*
+      - uses: actions/upload-artifact@v2
+        if: runner.os == 'Linux'
+        with:
+          name: sdist
+          path: dist/tcod-*.tar.gz
+          retention-days: 3
+
+  isolated: # Test installing the package from source.
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-20.04", "windows-2019"]
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install wheel
+      - name: Install APT dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsdl2-dev
+      - uses: actions/download-artifact@v2
+        with:
+          name: sdist
+      - name: Build package in isolation
+        run: |
+          pip install tcod-*.tar.gz
+      - name: Confirm package import
+        run: |
+          python -c "import tcod"
+
+  linux-wheels:
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: actions/checkout@v1
+      - name: Checkout submodules
+        run: |
+          git submodule update --init --recursive --depth 1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install twine cibuildwheel==2.0.0
+      - name: Build wheels
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: cp36-* pp*
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_MANYLINUX_PYPY_X86_64_IMAGE: manylinux2014
+          CIBW_BEFORE_ALL_LINUX: yum install -y SDL2-devel
+          CIBW_BEFORE_TEST: pip install numpy
+          CIBW_TEST_COMMAND: python -c "import tcod"
+      - name: Archive wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-linux
+          path: wheelhouse/*.whl
+          retention-days: 1
+      - name: Upload to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload --skip-existing wheelhouse/*
+
+  build-macos:
+    runs-on: "macos-10.15"
+    strategy:
+      fail-fast: true
+      matrix:
+        python: ["cp38-*_universal2", "cp38-*_x86_64", "cp38-*_arm64", "pp37-*"]
+    steps:
+      # v2 breaks `git describe` so v1 is needed.
+      # https://github.com/actions/checkout/issues/272
+      - uses: actions/checkout@v1
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth 1
+      - name: Print git describe
+        run: git describe
+      - name: Install Python dependencies
+        run: pip3 install wheel twine -r requirements.txt
+      - name: Prepare package
+        # Downloads SDL2 for the later step.
+        run: python3 setup.py check
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.0.0a4
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+          CIBW_BEFORE_BUILD_MACOS: pip install --upgrade delocate
+          CIBW_BEFORE_TEST: pip install numpy
+          CIBW_TEST_COMMAND: python -c "import tcod"
+          CIBW_TEST_SKIP: "pp* *-macosx_arm64 *-macosx_universal2:arm64"
+      - name: Archive wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-macos
+          path: wheelhouse/*.whl
+          retention-days: 1
+      - name: Upload to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: twine upload --skip-existing wheelhouse/*

@@ -1,0 +1,38 @@
+name: BuildSolutions
+on:
+  schedule:
+    - cron: '0 */4 * * 1-5' # Every 4 hours, Monday-Friday
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_ROLL_FORWARD: Major
+jobs:
+  build-solutions:
+    name: Build samples & snippets
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup .NET 5 SDK
+        uses: actions/setup-dotnet@v1.8.1
+        with:
+          dotnet-version: 5.0.x
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1
+      - name: Build affected samples & snippets
+        run: pwsh.exe -NoLogo -NonInteractive -File .\tools\build-samples-and-snippets.ps1
+      - name: Notify Slack on failure
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: Build Samples & Snippets has failed.
+          author_name: Samples and Snippets
+          fields: message,author,action,eventName,ref,workflow
+          username: GitHub Actions
+          icon_emoji: ":github_actions:"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DOCS_CHANNEL_WEBHOOK }}
+      - name: Output failed solutions
+        if: ${{ failure() }}
+        run: cat .\failed-solutions.log

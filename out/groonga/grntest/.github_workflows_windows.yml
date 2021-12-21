@@ -1,0 +1,56 @@
+name: Windows
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version:
+          - "2.6"
+          - "2.7"
+          - "3.0"
+    runs-on: windows-latest
+    steps:
+      - name: Disable crash dialog
+        run: |
+          reg add "HKCU\SOFTWARE\Microsoft\Windows\Windows Error Reporting" `
+            /v DontShowUI `
+            /t REG_DWORD `
+            /d 1 `
+            /f
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - name: Update MSYS2
+        run: |
+          ridk exec pacman --sync --refresh --sysupgrade --sysupgrade --noconfirm
+          taskkill /F /FI "MODULES eq msys-2.0.dll"
+          ridk exec pacman --sync --refresh
+      - name: Update GCC
+        run: |
+          ridk exec pacman --remove --noconfirm --unneeded `
+            mingw-w64-x86_64-gcc-ada `
+            mingw-w64-x86_64-gcc-fortran `
+            mingw-w64-x86_64-gcc-libgfortran `
+            mingw-w64-x86_64-gcc-objc `
+            mingw-w64-x86_64-libgccjit
+          ridk exec pacman --sync --noconfirm mingw-w64-x86_64-gcc
+      - name: Install dependencies
+        run: |
+          bundle install
+      - name: Build
+        run: |
+          bundle exec ruby -rdevkit -S rake build
+      - name: Test
+        run: |
+          bundle exec ruby -rdevkit test/run-test.rb
+      - name: Install
+        run: |
+          bundle exec ruby -rdevkit -S rake install
+          gem list
+          ruby -r grntest/version -e "puts `$LOADED_FEATURES"
+          grntest --help

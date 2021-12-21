@@ -1,0 +1,40 @@
+name: CD
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Install Hugo
+        run: |
+          curl -LO https://github.com/gohugoio/hugo/releases/download/v0.76.3/hugo_0.76.3_Linux-64bit.deb
+          sudo dpkg -i hugo_0.76.3_Linux-64bit.deb
+
+      - name: Build Site
+        run: |
+          rm -rfv public resources
+          hugo -D
+
+      - name: Set Remote Sync Path
+        run: |
+          echo "REMOTE_PATH=/var/www/html/ashokraja.in/${GITHUB_REF##*/}/" >> $GITHUB_ENV
+
+      - name: Deploy to WebServer
+        uses: burnett01/rsync-deployments@4.0
+        with:
+          switches: -avzr --delete
+          path: public/
+          remote_path: ${{ env.REMOTE_PATH }}
+          remote_host: mylife.ashokraja.in
+          remote_user: ubuntu
+          remote_key: ${{ secrets.DEPLOY_KEY }}

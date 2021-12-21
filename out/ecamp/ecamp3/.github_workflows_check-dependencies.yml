@@ -1,0 +1,32 @@
+name: Dependency Check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "42 3 * * *"
+
+env:
+  USER_ID: 1001
+
+jobs:
+  backend-check-dependencies:
+    name: "Backend check dependencies"
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@1e204e9a9253d643386038d443f96446fa156a97 # renovate: tag=v2
+
+      - run: |
+          chmod +w backend
+          ./docker-compose-run-as-entrypoint.sh backend composer update --lock --no-interaction --no-plugins --no-scripts --prefer-dist
+          
+  api-check-dependencies:
+    name: "Api Platform check dependencies"
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@1e204e9a9253d643386038d443f96446fa156a97 # renovate: tag=v2
+
+      - run: ./docker-compose-run-as-entrypoint.sh php composer update --lock --no-interaction --no-plugins --no-scripts --prefer-dist

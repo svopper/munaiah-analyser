@@ -1,0 +1,93 @@
+name: 'Code scanning - action'
+
+on:
+  schedule:
+    - cron: '1 07 * * *'
+
+jobs:
+  CodeQL-Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          # We must fetch at least the immediate parents so that if this is
+          # a pull request then we can checkout the head.
+          fetch-depth: 2
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        # Override language selection by uncommenting this and choosing your languages
+        # with:
+        #   languages: go, javascript, csharp, python, cpp, java
+
+      # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
+      # If this step fails, then you should remove it and run the build manually (see below)
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v1
+
+      # ℹ️ Command-line programs to run using the OS shell.
+      # 📚 https://git.io/JvXDl
+
+      # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
+      #    and modify them (or add more) to build your code if your project
+      #    uses a compiled language
+
+      #- run: |
+      #   make bootstrap
+      #   make release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+  Code:
+    runs-on: ubuntu-latest
+    name: Static Code Analysis
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Version
+        run: cat ${{github.workspace}}/config/version.php
+
+      - name: PHP Security Checker
+        uses: StephaneBour/actions-php-security-checker@1.1
+        with:
+          composer-lock: './composer.lock'
+
+      - name: SonarCloud - Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{github.workspace}}
+
+      # This workflow integrates ShiftLeft Scan with GitHub's code scanning feature
+      # ShiftLeft Scan is a free open-source security tool for modern DevOps teams
+      # Visit https://docs.shiftleft.io/shiftleft/scan/integrations/github-actions for help
+      - name: ShiftLeft Scan
+        uses: ShiftLeftSecurity/scan-action@master
+        env:
+          WORKSPACE: ''
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SCAN_AUTO_BUILD: true
+        with:
+          output: reports
+          # Scan auto-detects the languages in your project. To override uncomment the below variable and set the type
+          #type: php,javascript,json,nodejs,plsql,yaml,depscan
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: shiftleft-scan-reports
+          path: reports
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: javascript.zip
+          path: /home/runner/work/_temp/codeql_databases/javascript.zip

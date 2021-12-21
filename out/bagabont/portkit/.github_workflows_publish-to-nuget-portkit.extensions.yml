@@ -1,0 +1,21 @@
+name: PortKit.Extensions NuGet
+
+on:
+  release:
+    branches: [ main ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: publish on release
+      id: publish_nuget
+      uses: rohith/publish-nuget@v2
+      with:
+        # Filepath of the project to be packaged, relative to root of repository
+        PROJECT_FILE_PATH: Source/PortKit.Extensions/PortKit.Extensions.csproj
+        PACKAGE_NAME: PortKit.Extensions
+        TAG_COMMIT: true
+        TAG_FORMAT: v*
+        NUGET_KEY: ${{secrets.nuget_api_key}}

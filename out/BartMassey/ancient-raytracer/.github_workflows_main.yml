@@ -1,0 +1,14 @@
+# Adapted from the `hello-github-actions` tutorial on Github
+# Learning Labs
+name: Workflow for Makefile-based project
+on: push
+
+jobs:
+  build:
+    name: Build and static analyze code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: |
+          make
+          make analyze

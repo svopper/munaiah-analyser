@@ -1,0 +1,21 @@
+name: build
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc:
+        - clang
+        - gcc
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: make all
+      - run: make check
+      - run: sudo make install

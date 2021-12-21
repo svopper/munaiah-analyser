@@ -1,0 +1,36 @@
+name: Maven deploy snapshot
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    if: "!contains(github.event.head_commit.message, '[release]') && !contains(github.event.head_commit.message, '[doc]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Maven settings
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+          server-id: eredrim
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+        
+      - name: Deploy the package
+        run: mvn --batch-mode deploy -T4 -DaltDeploymentRepository="eredrim::default::https://repo.eredrim.fr/repository/maven-snapshots/"
+        env:
+          MAVEN_USERNAME: ${{ secrets.MVN_USER }}
+          MAVEN_PASSWORD: ${{ secrets.MVN_PASSWORD }}
+          
+      - name: Post discord notification
+        run: |
+          commits="${{ join(github.event.commits.*.message, '\n - ') }}"
+          avatar_url=https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+          bot_username="Build notification (modules)"
+          filename=$(ls dist/target | grep .zip)
+          payload_json='{ "username": "'$bot_username'", "avatar_url": "'$avatar_url'", "content": "A new dev build of PVP Arena Modules is available! Download it by saving the attached file.", "embeds": [{"description": ":spiral_note_pad: **New commits:**\n\n - '$commits'"}] }'
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} -F payload_json="${payload_json}"
+          sleep 1
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} -F username="${bot_username}" -F avatar_url="${avatar_url}" -F file=@dist/target/$filename

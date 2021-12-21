@@ -1,0 +1,27 @@
+name: CI [Linux]
+
+on: [push]
+
+jobs:
+  build_and_test:
+    name: Build and test all targets
+    runs-on: ubuntu-20.04
+    container:
+      image: paradajz168/opendeck-dev:latest
+      options: --user root
+    steps:
+      - name: Pull the repository and submodules
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Build targets
+        run: |
+          git fetch --tags
+          cd src/
+          ../scripts/build_targets.sh
+      - name: Test targets
+        run: |
+          cd tests/
+          ../scripts/build_targets.sh
+          make exec

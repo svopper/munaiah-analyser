@@ -1,0 +1,37 @@
+on:
+  push:
+    branches:
+      - master
+
+name: Publish
+jobs:
+  chore:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+
+      - name: Print environment
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/python --version
+          .venv/bin/pip --version
+
+      - name: Install dependencies
+        run: |
+          .venv/bin/pip install pelican
+          .venv/bin/pip install ghp-import
+
+      - name: Build HTML
+        run: |
+          source .venv/bin/activate
+          make publish
+
+      - name: Push to Github Pages
+        run: |
+          source .venv/bin/activate
+          make github 2> /dev/null

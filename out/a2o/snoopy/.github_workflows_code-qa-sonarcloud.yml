@@ -1,0 +1,210 @@
+name: Code QA - SonarCloud
+
+
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+      - sonarcloud-scan
+    tags:
+      - '*'
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'configure.scan'
+      - 'contrib/**'
+      - 'dev-tools/**'
+#      - '!dev-tools/libexec/get-release-*.sh'
+      - 'doc/**'
+      - 'etc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+  pull_request_target:
+    types:
+      - labeled
+    branches:
+      - master
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'configure.scan'
+      - 'contrib/**'
+      - 'dev-tools/**'
+#      - '!dev-tools/libexec/get-release-*.sh'
+      - 'doc/**'
+      - 'etc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+
+
+jobs:
+  code-qa-sonarcloud:
+
+    name: Static code analysis submission
+    runs-on: ubuntu-20.04
+    container: ciready/ubuntu:20.04-ci-c
+
+    # For PRs, start the execution only when a specific label is added
+    if: |
+      (
+        (github.event_name == 'workflow_dispatch')
+        ||
+        (github.event_name == 'push')
+        ||
+        (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, '/ci run additional tests'))
+      )
+
+    steps:
+
+
+
+      ### Fetch the code
+      #
+      - name: Checkout branch ${{ github.ref }}
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0   # Shallow clones should be disabled for a better relevancy of analysis
+        if: |
+          (
+            (github.event_name == 'workflow_dispatch')
+            ||
+            (github.event_name == 'push')
+          )
+
+      # In the PR-related operation mode, unlike regular github's CI workflows (where
+      # the workflow operates on a (preview) merge commit (as if PR was merged into the base
+      # branch already), we're operating on PR's HEAD (last commit of the PR) itself here.
+      - name: Checkout (preview) merge commit for PR ${{ github.event.pull_request.number }}
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0   # Shallow clones should be disabled for a better relevancy of analysis
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+          ref: ${{github.event.pull_request.head.ref}}
+        if: ${{ github.event_name == 'pull_request_target' }}
+
+
+
+      ### Install build environment tools + unzip
+      #
+      - run: ./dev-tools/install-dev-software.sh
+      - run: DEBIAN_FRONTEND=noninteractive apt-get install -y unzip
+
+
+
+      ### Bootstrap & configure the code
+      #
+      - run: ./bootstrap.sh
+      - run: ./configure --enable-everything --enable-code-coverage
+
+
+
+      ### Install SonarCloud build & scan tools
+      #
+      - name: Install SonarCloud build wrapper
+        run: |
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+        working-directory: /opt
+
+
+
+      ### Build with SonarCloud wrapper
+      #
+      - name: Build with SonarCloud build wrapper
+        run: |
+          /opt/build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
+            --out-dir ../snoopy-sonarcloud-build-wrapper-output \
+            make -j4
+
+
+
+      ### Generate coverage info
+      #
+      # No need to run `make check`, as the test suite is started by
+      # the `coverage` target in Makefile.
+      #
+      - name: Run tests and generate coverage information
+        run: make coverage
+
+
+
+      ### Install SonarCloud scanner
+      #
+      # The installation of the scanner is deferred to this point for security reasons,
+      # as the build is done on a PR code that can easily mess with the scanner
+      # installation to reveal the tokens.
+      #
+      - name: Install SonarClound scanner
+        run: |
+          rm -rf sonar-scanner*
+          LATEST_SONAR_SCANNER_VERSION=`wget -q -O - --header "Accept: application/vnd.github.v3+json" https://api.github.com/repos/SonarSource/sonar-scanner-cli/releases/latest | grep '"tag_name"' | head -n1 | cut -d '"' -f4`
+          echo "Got the latest Sonar Scanner version: $LATEST_SONAR_SCANNER_VERSION"
+          LATEST_SONAR_SCANNER_ZIP="sonar-scanner-cli-$LATEST_SONAR_SCANNER_VERSION-linux.zip"
+          LATEST_SONAR_SCANNER_DIR="sonar-scanner-$LATEST_SONAR_SCANNER_VERSION-linux"
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/$LATEST_SONAR_SCANNER_ZIP
+          unzip $LATEST_SONAR_SCANNER_ZIP
+          ln -s $LATEST_SONAR_SCANNER_DIR/bin/sonar-scanner /opt/sonar-scanner
+        working-directory: /opt
+
+
+
+      ### Trigger the SonarCloudscan and submission
+      #
+      - name: Scan and submit to SonarCloud - on push
+        run: |
+            CURRENT_BRANCH_NAME=`git branch --show-current`
+            SONARCLOUD_TAG=`./dev-tools/libexec/get-sonarcloud-tag.sh`
+            /opt/sonar-scanner \
+              -Dsonar.organization=a2o \
+              -Dsonar.projectKey=snoopy \
+              -Dsonar.sources=. \
+              -Dsonar.branch.name=$CURRENT_BRANCH_NAME \
+              -Dsonar.projectVersion=$SONARCLOUD_TAG \
+              -Dsonar.cfamily.build-wrapper-output=../snoopy-sonarcloud-build-wrapper-output \
+              -Dsonar.cfamily.gcov.reportsPath=. \
+              -Dsonar.cfamily.threads=4 \
+              -Dsonar.cfamily.cache.enabled=false \
+              -Dsonar.host.url=https://sonarcloud.io
+            echo "Submission tag: $SONARCLOUD_TAG (branch: $CURRENT_BRANCH_NAME)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        if: ${{ github.event_name == 'push' }}
+
+
+      - name: Scan and submit to SonarCloud - on PR
+        run: |
+            CURRENT_BRANCH_NAME=`git branch --show-current`
+            SONARCLOUD_TAG=`./dev-tools/libexec/get-sonarcloud-tag.sh`
+            /opt/sonar-scanner \
+              -Dsonar.organization=a2o \
+              -Dsonar.projectKey=snoopy \
+              -Dsonar.sources=. \
+              -Dsonar.pullrequest.provider=github \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{github.event.pull_request.head.repo.owner.login}}:$PR_HEAD_REF \
+              -Dsonar.pullrequest.github.repository=${{ github.event.pull_request.base.repo.full_name }} \
+              -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }} \
+              -Dsonar.cfamily.build-wrapper-output=../snoopy-sonarcloud-build-wrapper-output \
+              -Dsonar.cfamily.gcov.reportsPath=. \
+              -Dsonar.cfamily.threads=4 \
+              -Dsonar.cfamily.cache.enabled=false \
+              -Dsonar.host.url=https://sonarcloud.io
+            echo "Submission tag: $SONARCLOUD_TAG (branch: $CURRENT_BRANCH_NAME)"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        if: ${{ github.event_name == 'pull_request_target' }}

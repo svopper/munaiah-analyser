@@ -1,0 +1,164 @@
+name: Create release if everything passes
+
+on:
+  push:
+    branches:
+    - develop
+  pull_request:
+  schedule:
+  - cron: '0 0 1 * *'
+
+jobs:
+  publish-binaries:
+    name: "Publish Tarball"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      
+      - name: 'Wait for status checks'
+        id: waitforstatuschecks
+        uses: "WyriHaximus/github-action-wait-for-status@v1.2"
+        with:
+          ignoreActions: "Publish Tarball"
+          checkInterval: 60
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+#      - name: Delete Tag
+#        uses: dev-drprasad/delete-tag-and-release@v0.1.2
+#        with:
+#          delete_release: true
+#          tag_name: last_all_tests_passing
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Tarball
+        if: steps.waitforstatuschecks.outputs.status == 'success'
+        shell: bash
+        run: |
+         cd doc/html
+         git checkout gh-pages
+         git pull
+         cd ../..
+         mkdir quickcpplib
+         git clone --recurse-submodules --depth 1 --jobs 8 --shallow-submodules "https://github.com/ned14/quickcpplib.git" quickcpplib/repo
+         cd ..
+         tar cJf outcome-v2-all-sources.tar.xz --exclude .git outcome
+         cd outcome
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        if: steps.waitforstatuschecks.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: all_tests_passed_${{ github.sha }}
+          release_name: All tests passed ${{ github.sha }}
+          body: |
+            ```
+            ${{ github.event.head_commit.message }}
+            ```
+            
+            Use the 'all-sources' tarball below, NOT the github generated one which is missing dependencies:
+          draft: false
+          prerelease: true
+          
+      - name: Upload
+        uses: actions/upload-release-asset@v1
+        if: steps.waitforstatuschecks.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ../outcome-v2-all-sources.tar.xz
+          asset_name: outcome-v2-all-sources-${{ github.sha }}.tar.xz
+          asset_content_type: application/gzip
+          
+      - name: Extract boostorg/outcome ssh keys
+        id: vars
+        env:
+          BOOSTORG_OUTCOME_DEPLOY_KEY: ${{ secrets.BOOSTORG_OUTCOME_DEPLOY_KEY }}
+        shell: bash
+        run: |
+         if [ -n "$BOOSTORG_OUTCOME_DEPLOY_KEY" ] && [ "${{ steps.waitforstatuschecks.outputs.status }}" = "success" ]; then
+           mkdir -p $HOME/.ssh;
+           printf "%s" "$BOOSTORG_OUTCOME_DEPLOY_KEY" > "$HOME/.ssh/id_ed25519";
+           chmod -R og-rwx $HOME/.ssh;
+           unset HAS_DEPLOY_KEY;
+           HAS_DEPLOY_KEY='true';
+         fi
+         echo ::set-output name=HAS_DEPLOY_KEY::${HAS_DEPLOY_KEY}
+
+      - name: Get Hugo
+        if: steps.vars.outputs.HAS_DEPLOY_KEY
+        uses: actions/cache@v2
+        with:
+          path: hugo_bin
+          key: hugo_bin
+
+      - name: Convert to boostorg/outcome
+        if: steps.vars.outputs.HAS_DEPLOY_KEY
+        shell: bash
+        run: |
+         if [ ! -f "hugo_bin/hugo" ]; then
+           wget -O hugo.tar.gz https://github.com/gohugoio/hugo/releases/download/v0.52/hugo_0.52_Linux-64bit.tar.gz;
+           mkdir hugo_bin;
+           tar xf hugo.tar.gz -C hugo_bin;
+         fi
+         ls -l hugo_bin
+         ls -l $HOME/.ssh
+         git config --global push.default simple
+         git config --global user.name "Jenkins nedprod CI"
+         git config --global user.email "foo@nowhere"
+         export PATH=$PATH:`pwd`/hugo_bin
+         pip install --user gitpython
+         git remote add outcome https://github.com/ned14/outcome
+         git fetch outcome
+         git submodule update --init
+         cd ..
+         git clone https://github.com/boostorg/outcome boost-outcome
+         cd boost-outcome
+         git checkout -b develop origin/develop
+         git checkout master
+         git remote add outcome https://github.com/ned14/outcome
+         git fetch outcome
+         git checkout -b orig-develop outcome/develop
+         git checkout -b orig-master outcome/master
+         git checkout master
+         cd ..
+         git clone --depth 1 https://github.com/ned14/quickcpplib.git
+         python quickcpplib/scripts/boostify_git_repo.py boost-outcome outcome ned14/outcome@
+         cd boost-outcome
+         git checkout master
+         cd doc/src
+         rm -rf ../html
+         HUGO_BOOSTDOCDISABLECOMMONHEADING=1 hugo
+         cd ../html
+         git add . || true
+         cd ../..
+         git commit -a -m "CI regenerates Boost.Outcome docs" || true
+         git checkout develop
+         cd doc/src
+         rm -rf ../html
+         HUGO_BOOSTDOCDISABLECOMMONHEADING=1 hugo
+         cd ../html
+         git add . || true
+         cd ../..
+         git commit -a -m "CI regenerates Boost.Outcome docs" || true
+         git push git@github.com:boostorg/outcome.git master || true
+         git push git@github.com:boostorg/outcome.git develop || true
+         cd doc
+         rm -rf html
+         git clone -b gh-pages --single-branch https://github.com/boostorg/outcome html
+         cd src
+         hugo
+         cd ../html
+         git add . || true
+         git commit -a -m "CI regenerates Boost.Outcome docs" || true
+         git push -f git@github.com:boostorg/outcome.git gh-pages
+         cd ../..

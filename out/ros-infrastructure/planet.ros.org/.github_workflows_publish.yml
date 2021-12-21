@@ -1,0 +1,26 @@
+name: publish-to-ghpages
+on:
+  push:
+    branches:
+     - master
+     - move_to_actions
+  schedule:
+    - cron: '0 */4 * * *'  # every 4 hours
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2.3.1
+
+      - name: Install and Build 🔧
+        run: | 
+          ./build.bash
+          echo 'planet.ros.org'  | sudo tee output/CNAME
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: output # The folder the action should deploy.
+          single-commit: true

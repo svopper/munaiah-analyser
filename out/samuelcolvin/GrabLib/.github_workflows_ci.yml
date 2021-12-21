@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '**'
+  pull_request: {}
+
+jobs:
+  test:
+    name: ${{ matrix.os }} & python ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, macos]
+        python-version: ['3.6', '3.7', '3.8', '3.9']
+
+    env:
+      PYTHON: ${{ matrix.python-version }}
+      OS: ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: set up python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - run: make install
+    - run: pip freeze
+
+    - run: grablib -V
+
+    - run: make lint
+
+    - run: make test
+    - run: coverage xml
+
+    - uses: samuelcolvin/codecov-action@env-vars
+      with:
+        file: ./coverage.xml
+        env_vars: PYTHON,OS
+
+  deploy:
+    needs: test
+    if: "success() && startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: install
+        run: |
+          make install
+          pip install -U wheel twine
+
+      - name: set version
+        run: VERSION_PATH='grablib/version.py' python <(curl -Ls https://git.io/JT3rm)
+
+      - name: build
+        run: python setup.py sdist bdist_wheel
+
+      - run: twine check dist/*
+
+      - name: upload to pypi
+        run: twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.pypi_token }}

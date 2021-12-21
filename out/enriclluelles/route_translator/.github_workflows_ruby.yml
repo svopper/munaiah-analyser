@@ -1,0 +1,72 @@
+name: Ruby tests
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['2.5', '2.6', '2.7', '3.0']
+        gemfile: [ rails_5.2, rails_6.0, rails_6.1 ]
+        experimental: [false]
+
+        include:
+          - ruby-version: '2.7'
+            gemfile: rails_edge
+            experimental: true
+          - ruby-version: '3.0'
+            gemfile: rails_edge
+            experimental: true
+          - ruby-version: 'head'
+            gemfile: rails_6.0
+            experimental: true
+          - ruby-version: 'head'
+            gemfile: rails_6.1
+            experimental: true
+          - ruby-version: 'head'
+            gemfile: rails_edge
+            experimental: true
+
+        exclude:
+          - ruby-version: '2.7'
+            gemfile: rails_5.2
+          - ruby-version: '3.0'
+            gemfile: rails_5.2
+
+    env:
+      BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
+
+    continue-on-error: ${{ matrix.experimental }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+    - name: Run tests
+      run: bundle exec rake test
+    - name: Coveralls Parallel
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        flag-name: run-${{ matrix.ruby-version }}
+        parallel: true
+
+  coverage:
+    name: Coverage
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        parallel-finished: true

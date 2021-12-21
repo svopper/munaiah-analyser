@@ -1,0 +1,166 @@
+name: Build Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      requested_release_tag:
+        description: 'The tag to use for this release (e.g., `v2.3.0`)'
+        required: true
+
+jobs:
+  sanity_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.10'
+
+      - run: |
+          pip install packaging
+
+      - name: Normalize the release version
+        run: |
+          echo "release_version=`echo '${{ github.event.inputs.requested_release_tag }}' | sed 's/^v//'`" >> $GITHUB_ENV
+
+      - name: Normalize the release tag
+        run: |
+          echo "release_tag=v${release_version}" >> $GITHUB_ENV
+
+      - name: Get the VERSION from setup.py
+        run: |
+          echo "ciso8601_version=`grep -Po 'VERSION = "\K[^"]*' setup.py`" >> $GITHUB_ENV
+
+      - name: Get the latest version from PyPI
+        run: |
+          curl https://pypi.org/pypi/ciso8601/json | python -c 'import json, sys; contents=sys.stdin.read(); parsed = json.loads(contents); print("pypi_version=" + parsed["info"]["version"])' >> $GITHUB_ENV
+
+      - name: Log all the things
+        run: |
+          echo 'Requested release tag `${{ github.event.inputs.requested_release_tag }}`'
+          echo 'Release version       `${{ env.release_version }}`'
+          echo 'Release tag           `${{ env.release_tag }}`'
+          echo 'VERSION in setup.py   `${{ env.ciso8601_version }}`'
+          echo 'Version in PyPI       `${{ env.pypi_version }}`'
+
+      - name: Verify that  the version string we produced looks like a version string
+        run: |
+          echo "${{ env.release_version }}" | sed '/^[0-9]\+\.[0-9]\+\.[0-9]\+$/!{q1}'
+
+      - name: Verify that the version tag we produced looks like a version tag
+        run: |
+          echo "${{ env.release_tag }}" | sed '/^v[0-9]\+\.[0-9]\+\.[0-9]\+$/!{q1}'
+
+      - name: Verify that the release version matches the VERSION in setup.py
+        run: |
+          [[ ${{ env.release_version }} == ${{ env.ciso8601_version }} ]]
+
+      - name: Verify that the `release_version` is larger/newer than the existing release in PyPI
+        run: |
+          python -c 'import sys; from packaging import version; code = 0 if version.parse("${{ env.ciso8601_version }}") < version.parse("${{ env.release_version }}") else 1; sys.exit(code)'
+
+      - name: Verify that the `release_version` is present in the CHANGELOG
+        # TODO: Use something like `changelog-cli` to extract the correct version number
+        run: |
+          grep ${{ env.release_version }} CHANGELOG.md
+
+      - name: Serialize normalized release values
+        run: |
+          echo -e "release_version=${{ env.release_version }}\nrelease_tag=${{ env.release_tag }}" > release_values.txt
+
+      - name: Share normalized release values
+        uses: actions/upload-artifact@v2
+        with:
+          name: release_values
+          path: release_values.txt
+
+  build_wheels:
+    name: Build wheel on ${{ matrix.os }}
+    needs: [sanity_check]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.3
+        env:
+          CIBW_SKIP: "pp*-macosx* *-win32 *-manylinux_i686"
+          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    needs: [sanity_check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.10'
+
+      - name: Build sdist
+        run: python setup.py sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  # create_or_update_draft_release:
+  #   # TODO: Figure out how to do this in an idempotent way
+  #   name: Create or update draft release in GitHub
+  #   needs: [build_wheels, build_sdist, sanity_check]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Get normalized release values
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: release_values
+
+  #     - name: Load normalized release values
+  #       run: |
+  #         xargs -a release_values.txt -l -I{} bash -c 'echo {} >> $GITHUB_ENV'
+
+  #     - uses: actions/create-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions
+  #       with:
+  #         tag_name: ${{ env.release_tag }}
+  #         commitish: master # Default branch
+  #         release_name: ${{ env.release_tag }}
+  #         body: "" # TODO: Pull this in using `changelog-cli`
+  #         draft: true
+
+  # upload_to_pypi:
+  #   name: Upload wheels to PyPI
+  #   needs: [build_wheels, build_sdist, sanity_check]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: artifact
+  #         path: dist
+
+  #     - uses: pypa/gh-action-pypi-publish@v1.4.2
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.PYPI_PASSWORD }}
+  #         # repository_url: https://test.pypi.org/legacy/ # Test PyPI
+
+  # create_release:
+  #   name: Create release in GitHub
+  #   needs: [upload_to_pypi]
+  #   runs-on: ubuntu-latest
+  #   steps:  # TODO
+  #     - run: |
+  #         echo "We're doing a release!? ${{ github.event }}"

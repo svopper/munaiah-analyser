@@ -1,0 +1,87 @@
+# Automatically create a release whenever a version-tag is created.
+name: Create release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Create release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Setup node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: '12'
+
+      - name: PHP Syntax check
+        working-directory: ./src/php
+        run: find . \( -name '*.php' \) -exec php -lf {} \;
+
+      - name: Set up composer
+        working-directory: ./
+        run: composer install
+
+      - name: PHPCS
+        working-directory: ./
+        run: composer run check-cs
+
+      - name: Set up node modules
+        working-directory: ./
+        run: npm install
+
+      - name: CSS Lint
+        working-directory: ./
+        run: npm run lint:css
+
+      - name: JavaScript Lint
+        working-directory: ./
+        run: npm run lint:js
+
+      - name: Create build
+        working-directory: ./
+        run: npm run build
+
+      - name: Package build
+        working-directory: ./
+        run: zip -r string-locator string-locator
+
+      - name: Get changelog entries
+        id: changelog
+        working-directory: ./docs
+        run: |
+          changelog=$(grep -A100 -m1 -e '== Changelog ==' readme.txt)
+          changelog="${changelog//'%'/'%25'}"
+          changelog="${changelog//$'\n'/'%0A'}"
+          changelog="${changelog//$'\r'/'%0D'}"
+          echo $changelog
+          echo "::set-output name=changes::$changelog"
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          body: ${{ steps.changelog.outputs.changes }}
+          prerelease: false
+
+      - name: Upload release build
+        id: upload_release_assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./string-locator.zip
+          asset_name: string-locator.zip
+          asset_content_type: application/zip

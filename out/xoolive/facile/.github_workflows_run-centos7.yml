@@ -1,0 +1,102 @@
+name: tests
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    outputs:
+      uid_gid: ${{ steps.get-user.outputs.uid_gid }}
+    steps:
+      - id: get-user
+        run: echo "::set-output name=uid_gid::$(id -u):$(id -g)"
+
+      - name: Set up private ssh key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Checkout OCaml facile library
+        run: |
+          ssh-keyscan git.recherche.enac.fr > ~/.ssh/known_hosts
+          git clone git@git.recherche.enac.fr:facile.git facile.ml
+          cd facile.ml
+          git checkout 03a93f9
+          sed -i'' -e '/^OPT_INSTALL/ s/$/ _build\/$(NAME).lib/' Makefile
+
+  deploy:
+    needs: configure
+    runs-on: ubuntu-latest
+    container:
+      image: "xoolive/centos7-dev:0.2"
+      options: --user ${{ needs.configure.outputs.uid_gid }} -v /home/runner/facile.ml:/facile.ml
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+
+    steps:
+      - name: Checkout Python code
+        uses: actions/checkout@v2
+
+      - name: Checkout OCaml facile library
+        run: |
+          cp -r /facile.ml .
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1.1.6
+        with:
+          version: 1.1.6
+          virtualenvs-in-project: true
+
+      - name: Use OCaml for Ubuntu
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ocaml-variants.4.04.2+fPIC
+
+      - name: Compile and install facile.ml library
+        working-directory: ./facile.ml
+        run: |
+          opam install ocamlfind ocamlbuild
+          opam exec -- make
+          opam exec -- make install
+
+      - name: Install Python facile library
+        run: |
+          opam exec -- poetry install
+
+      - name: Style checking
+        run: |
+          poetry run flake8 facile examples tests
+          poetry run isort --check-only facile examples tests
+          poetry run black --check facile examples tests
+
+      - name: Type checking
+        run: |
+          poetry run mypy facile examples tests
+
+      - name: Run Pytest
+        run: |
+          poetry run pytest
+
+      - name: Build wheel
+        run: |
+          poetry build
+
+      - name: Upload the build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-centos7-${{ matrix.python-version }}-facile-wheel
+          path: dist/*.whl

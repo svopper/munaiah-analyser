@@ -1,0 +1,77 @@
+---
+# Continuous Integration Workflow: Test case suite run + validation build check
+name: CI
+
+# Controls when the action will run.
+# Triggers the workflow on push or pull request events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  # Job: Unit test suite
+  unit-tests:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: [2.5, 2.6, 2.7, 3.0]
+    steps:
+      # Install Binutils, Multilib, etc
+      - name: Install C dev Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --assume-yes --quiet gcc-multilib
+          sudo apt-get install -qq gcc-avr binutils-avr avr-libc
+
+      # Install GCovr
+      - name: Install GCovr
+        run: |
+          sudo pip install gcovr
+
+      # Checks out repository under $GITHUB_WORKSPACE
+      - name: Checkout Latest Repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      # Setup Ruby Testing Tools to do tests on multiple ruby version
+      - name: Setup Ruby Testing Tools
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      # Install Ruby Testing Tools (Bundler version should match the one in Gemfile.lock)
+      - name: Install Ruby Testing Tools
+        run: |
+          gem install rspec
+          gem install rubocop -v 0.57.2
+          gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
+          bundle install
+
+      # Run Tests
+      - name: Run All Self Tests
+        run: |
+          bundle exec rake ci
+
+      # Build & Install Gem
+      - name: Build and Install Gem
+        run: |
+          gem build ceedling.gemspec
+          gem install --local ceedling-*.gem
+
+      # Run Blinky
+      # Disabled because it's set up for avr-gcc
+      #- name: Run Tests On Blinky Project
+      #  run: |
+      #    cd examples/blinky
+      #    ceedling module:create[someNewModule] module:destroy[someNewModule] test:all
+      #    cd ../..
+
+      # Run Temp Sensor
+      - name: Run Tests On Temp Sensor Project
+        run: |
+          cd examples/temp_sensor
+          ceedling module:create[someNewModule] module:destroy[someNewModule] test:all
+          cd ../..

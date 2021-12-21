@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.5
+      - uses: actions/setup-python@v2.2.2
+        with:
+          python-version: '3.7'
+      - name: install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libnss-db libdb-dev libcurl4-gnutls-dev libgnutls28-dev libldap2-dev libsasl2-dev
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-github-actions-annotate-failures
+      - name: Test
+        run: python setup.py test --addopts "-v --durations=0 --junitxml=test-results/junit.xml --cov=nss_cache"
+      - uses: codecov/codecov-action@v2.1.0
+      - name: Install
+        run: pip install --user .
+      - name: slapd Regression Test
+        run: |
+          sudo apt-get install -y slapd ldap-utils libnss-db db-util
+          tests/slapd-regtest
+      - name: yapf
+        run: |
+          pip install yapf
+          yapf --diff --recursive nss_cache nsscache
+      - name: pylint
+        run: |
+          pip install pylint
+          pylint nsscache nss_cache
+        # TODO(jaq): eventually make this lint clean and remove this line
+        continue-on-error: true

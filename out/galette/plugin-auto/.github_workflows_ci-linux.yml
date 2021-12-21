@@ -1,0 +1,76 @@
+name: Linux
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - 'feature/*'
+      - 'hotfix/*'
+      - 'release/*'
+  pull_request:
+
+jobs:
+  ubuntu-latest:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-versions: [ '7.2', '7.3', '7.4', '8.0', '8.1' ]
+        coverage: [none]
+      fail-fast: false
+
+    name: PHP ${{ matrix.php-versions }} on ubuntu-latest
+
+    steps:
+      - name: PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer
+          coverage: ${{ matrix.coverage }}
+
+      - name: Checkout plugin
+        uses: actions/checkout@v2
+
+      - name: Checkout Galette core
+        uses: actions/checkout@v2
+        with:
+          repository: galette/galette
+          path: galette-core
+          fetch-depth: 1
+          ref: develop
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: |
+          mv composer.json.checker composer.json
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+        if: ${{ matrix.php-versions!= '7.2' && matrix.php-versions!= '7.3' }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+        if: ${{ matrix.php-versions!= '7.2' && matrix.php-versions!= '7.3' }}
+
+      - name: Install dependencies
+        run: |
+          composer install --ignore-platform-reqs
+        if: ${{ matrix.php-versions!= '7.2' && matrix.php-versions!= '7.3' }}
+
+      - name: Install CS only
+        run: |
+          composer require squizlabs/php_codesniffer
+        if: ${{ matrix.php-versions== '7.2' || matrix.php-versions== '7.3' }}
+
+      - name: CS
+        run: |
+          vendor/bin/phpcs -n -p --standard=galette-core/phpcs-rules.xml lib/ ./*.php
+
+      - name: Check missing symbols
+        run: |
+          vendor/bin/composer-require-checker check --config-file=.composer-require-checker.config.json
+        if: ${{ matrix.php-versions!= '7.2' && matrix.php-versions!= '7.3' }}

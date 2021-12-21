@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  run:    
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-18.04]
+        php-versions: ['7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: intl #optional
+        ini-values: "post_max_size=256M" #optional
+    - name: Check PHP Version
+      run: php -v
+    - name: Composer & Npm Install
+      run: |
+       composer validate --no-check-all --strict
+       composer install --no-progress --no-suggest
+       npm install selenium-standalone

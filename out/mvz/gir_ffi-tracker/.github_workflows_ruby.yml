@@ -1,0 +1,53 @@
+# This workflow will download a prebuilt Ruby version, install dependencies and
+# run tests with Rake
+# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+
+name: Ruby
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.6, 2.7, "3.0", head]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install non-ruby dependencies
+        run: |
+          # Provides libgirepository-1.0.so.1
+          sudo apt-get install libgirepository-1.0-1
+          # Provides Tracker-2.0.typelib
+          sudo apt-get install gir1.2-tracker-2.0
+          # Sets up a mimimal tracker installation
+          sudo apt-get --no-install-recommends install -y tracker
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run tests in a DBus session
+        run: dbus-run-session bundle exec rake
+
+  rubocop:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+      - name: Run RuboCop
+        run: bundle exec rubocop -P

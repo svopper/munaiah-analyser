@@ -1,0 +1,137 @@
+name: Build MacOS
+
+on:
+  push:
+    branches-ignore:
+      - 'coverityScan'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  build-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macos-11
+          - macos-10.15
+        coverage: [false, true]
+      fail-fast: false
+    steps:
+      - name: Runtime environment
+        shell: bash
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          echo "GITHUB_WORKSPACE=`pwd`" >> $GITHUB_ENV
+      - name: Coverage environment
+        env:
+          COVERAGE: ${{ matrix.coverage }}
+        run: |
+          echo "Coverage enabled for build? ${{ matrix.coverage }}"
+          echo -n "COVERAGE=" >> $GITHUB_ENV
+          ([ $COVERAGE == "true" ] && echo 1 || echo 0) >> $GITHUB_ENV
+          echo -n "BUILD_OPTS=" >> $GITHUB_ENV
+          ([ $COVERAGE == "true" ] && echo "--buildtype=debug" || echo "") >> $GITHUB_ENV
+      - name: Checkout rSON
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          submodules: true
+      - name: Setup Meson + Ninja
+        shell: bash
+        run: |
+          brew install meson ninja
+        working-directory: ${{ runner.temp }}
+      - name: Version tools
+        shell: bash
+        run: |
+          cc --version || true
+          ld --version || true
+          meson --version
+          ninja --version
+      - name: Configure
+        run: meson build --prefix=$HOME/.local -Db_coverage=${{ matrix.coverage }} $BUILD_OPTS
+      - name: Build
+        run: ninja -C build
+      - name: Test
+        run: ninja -C build test
+      - name: Install
+        run: ninja -C build install
+      - name: Codecov
+        if: success() && matrix.coverage
+        uses: codecov/codecov-action@v2
+  build-macos-homebrew:
+    # Do not use Big Sur here, GCC < 9 is known to crash
+    # on exception unwind
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98805
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        compiler:
+          # GCC5 cannot compile anything on macOS
+          # - gcc@5
+          - gcc@6
+          - gcc@7
+          - gcc@8
+          - gcc@9
+          - gcc@10
+          - gcc
+        coverage: [false, true]
+      fail-fast: false
+    steps:
+      - name: Runtime environment
+        shell: bash
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          echo "GITHUB_WORKSPACE=`pwd`" >> $GITHUB_ENV
+      - name: Coverage environment
+        env:
+          COVERAGE: ${{ matrix.coverage }}
+        run: |
+          echo "Coverage enabled for build? ${{ matrix.coverage }}"
+          echo -n "COVERAGE=" >> $GITHUB_ENV
+          ([ $COVERAGE == "true" ] && echo 1 || echo 0) >> $GITHUB_ENV
+          echo -n "BUILD_OPTS=" >> $GITHUB_ENV
+          ([ $COVERAGE == "true" ] && echo "--buildtype=debug" || echo "") >> $GITHUB_ENV
+      - name: Setup compiler
+        shell: bash
+        run: |
+          brew install ${{ matrix.compiler }}
+          CC=${COMPILER/@/-}
+          CXX=${CC/#gcc/g++}
+          echo "CC=$CC" >> $GITHUB_ENV
+          echo "CXX=$CXX" >> $GITHUB_ENV
+          [ $COVERAGE -ne 0 ] && echo "GCOV=${CC/#gcc/gcov}" >> $GITHUB_ENV || true
+        env:
+          COMPILER: ${{ matrix.compiler }}
+      - name: Checkout rSON
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          submodules: true
+      - name: Setup Meson + Ninja
+        shell: bash
+        run: |
+          brew install meson ninja
+        working-directory: ${{ runner.temp }}
+      - name: Version tools
+        shell: bash
+        run: |
+          $CC --version
+          $CXX --version
+          meson --version
+          ninja --version
+      - name: Configure
+        run: meson build --prefix=$HOME/.local -Db_coverage=${{ matrix.coverage }} $BUILD_OPTS
+      - name: Build
+        run: ninja -C build
+      - name: Test
+        run: ninja -C build test
+      - name: Install
+        run: ninja -C build install
+      - name: Codecov
+        if: success() && matrix.coverage
+        uses: codecov/codecov-action@v2

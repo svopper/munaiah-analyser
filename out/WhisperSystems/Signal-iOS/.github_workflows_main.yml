@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - release/*
+
+jobs:
+  build_and_test:
+    name: Build and Test
+
+    runs-on: macos-11
+
+    steps:
+      - name: Setup environment
+        shell: bash
+        run: |
+          # Set this if there's a code change that requires a newer Xcode than the default
+          REQUIRED_VERSION=13.0
+          CURRENT_VERSION=$(xcodebuild -version | grep "Xcode" | awk '{print $2}')
+
+          echo "Current Xcode version: $CURRENT_VERSION"
+          echo "Required Xcode version: $REQUIRED_VERSION"
+
+          if [[ $CURRENT_VERSION < $REQUIRED_VERSION ]]; then
+            # Path format pulled from https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
+            NEW_XCODE="/Applications/Xcode_$REQUIRED_VERSION.app"
+            echo "Updating selected Xcode to $NEW_XCODE"
+            sudo xcode-select -s $NEW_XCODE
+
+            CURRENT_VERSION=$(xcodebuild -version | grep "Xcode" | awk '{print $2}')
+            echo "$?: Current Xcode version: $CURRENT_VERSION"
+          fi
+
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Initialize workflow variables
+        id: vars
+        shell: bash
+        run: |
+          # check for ACCESS_TOKEN availability (work-around for inaccessible 'secrets' object for 'if'; see <https://github.community/t5/GitHub-Actions/jobs-lt-job-id-gt-if-does-not-work-with-env-secrets/m-p/38549>)
+          if [ -z $ACCESS_TOKEN ]; then unset HAS_ACCESS_TOKEN ; else HAS_ACCESS_TOKEN='true' ; fi
+          echo ::set-output name=HAS_ACCESS_TOKEN::${HAS_ACCESS_TOKEN}
+        env:
+          ACCESS_TOKEN: "${{ secrets.ACCESS_TOKEN }}"
+
+      # Checkout private pods repo iff we have an access token to read private repos
+      - name: Checkout Private Pods
+        uses: actions/checkout@v2
+        # if: secrets.ACCESS_TOKEN (not supported {yet?}; see <https://github.community/t5/GitHub-Actions/jobs-lt-job-id-gt-if-does-not-work-with-env-secrets/m-p/38549>)
+        if: steps.vars.outputs.HAS_ACCESS_TOKEN
+        with:
+          repository: signalapp/signal-pods-private
+          token: ${{ secrets.ACCESS_TOKEN }}
+          path: Pods
+
+      - name: Initialize Submodules
+        run: make dependencies
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1 # Reads .ruby-version file by default
+
+      - name: Cache Bundle Install
+        uses: actions/cache@v1
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Bundle Install
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Set up Rust
+        run: rustup target install x86_64-apple-ios
+        working-directory: Pods/SignalClient
+
+      - name: Build and Test
+        run: |
+          function formatFailures() {
+            grep '<failure message' fastlane/test_output/report.junit | sed -E "s/^.*<failure message='(.*)'>(.*):([0-9]+)<\/failure>/::error file=\2,line=\3::\1/" | sed -E 's/&quot;/"/g'
+            exit 1
+          }
+
+          bundle exec fastlane scan --scheme Signal --output_types junit || formatFailures
+
+  lint:
+    name: Lint
+
+    runs-on: macos-11
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fetch base commit
+        run: git fetch origin --depth 1 ${{ github.base_ref }}
+
+      - name: Install Dependencies
+        run: brew install clang-format
+
+      - name: Lint files changed in the PR
+        run: |
+          python Scripts/precommit.py --ref origin/${{ github.base_ref }}
+
+          # https://help.github.com/en/actions/reference/development-tools-for-github-actions#logging-commands
+          git diff --name-only | sed -E 's|(.*)|::error file=\1::Incorrectly formatted (Scripts/precommit.py)|'
+          git diff --quiet || exit 1

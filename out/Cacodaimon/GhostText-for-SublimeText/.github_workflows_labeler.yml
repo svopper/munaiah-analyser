@@ -1,0 +1,20 @@
+env: {}
+
+# FILE GENERATED WITH: npx ghat fregante/title-to-labels-action/workflow
+# SOURCE: https://github.com/fregante/title-to-labels-action
+
+name: Labeler
+
+on:
+  pull_request:
+    types: [opened, edited]
+  issues:
+    types: [opened, edited]
+
+jobs:
+  Label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: fregante/title-to-labels-action@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

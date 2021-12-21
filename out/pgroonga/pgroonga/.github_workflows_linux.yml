@@ -1,0 +1,118 @@
+name: Linux
+on:
+  push:
+    branches:
+      - "*"
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+  schedule:
+    - cron: |
+        0 0 * * *
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        label:
+          - PostgreSQL 10
+          - PostgreSQL 11
+          - PostgreSQL 12
+          - PostgreSQL 13
+          - PostgreSQL 14
+          - PostgreSQL 14 with Groonga master
+        include:
+          - label: PostgreSQL 10
+            postgresql-version: "10"
+          - label: PostgreSQL 11
+            postgresql-version: "11"
+          - label: PostgreSQL 12
+            postgresql-version: "12"
+          - label: PostgreSQL 13
+            postgresql-version: "13"
+          - label: PostgreSQL 14
+            postgresql-version: "14"
+          - label: PostgreSQL 14 with Groonga master
+            postgresql-version: "14"
+            groonga-master: "yes"
+    env:
+      GROONGA_MASTER: ${{ matrix.groonga-master }}
+      POSTGRESQL_UNRELEASED: ${{ matrix.postgresql-unreleased }}
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Install dependency
+        run: |
+          curl \
+            --silent \
+            --location \
+            https://github.com/groonga/groonga/raw/master/data/travis/setup.sh | \
+            sh
+          if [ "${GROONGA_MASTER}" != "yes" ]; then
+            sudo apt -y -V install \
+              groonga-token-filter-stem \
+              groonga-tokenizer-mecab \
+              libmsgpack-dev
+          fi
+          sudo apt -y -V install \
+            libxxhash-dev
+      - name: Install PostgreSQL
+        run: |
+          sudo apt -y -V purge '^postgresql'
+          ls -lah /etc/apt/sources.list.d/
+          if [ "${POSTGRESQL_UNRELEASED}" = "yes" ]; then
+            component=${{ matrix.postgresql-version }}
+          else
+            component=main
+          fi
+          sudo tee /etc/apt/sources.list.d/pgdg.list <<APT_SOURCE
+          deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg ${component}
+          APT_SOURCE
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt update
+          sudo apt -y -V install \
+            postgresql-${{ matrix.postgresql-version }} \
+            postgresql-server-dev-${{ matrix.postgresql-version }}
+          sudo systemctl start postgresql
+          sudo -u postgres -H psql -c "CREATE ROLE ${USER} SUPERUSER LOGIN;"
+      - name: Run regression test
+        run: |
+          if [ "$(echo "${{ matrix.postgresql-version }} < 13" | bc)" = 1 ]; then
+            rm sql/full-text-search/text/single/declarative-partitioning.sql
+          fi
+          if [ "${GROONGA_MASTER}" = "yes" ]; then
+            # TODO: We don't know why this case doesn't use parallel scan...
+            rm sql/full-text-search/text/single/declarative-partitioning.sql
+          fi
+          test/run-sql-test.sh
+        env:
+          HAVE_XXHASH: "1"
+          NEED_SUDO: "yes"
+          PG_CONFIG: "/usr/lib/postgresql/${{ matrix.postgresql-version }}/bin/pg_config"
+          SUPPRESS_LOG: "no"
+      - name: Show diff
+        if: failure()
+        run: |
+          cat regression.diffs
+      - name: Show pgroonga.log
+        if: failure()
+        run: |
+          sudo cat \
+            /var/lib/postgresql/${{ matrix.postgresql-version }}/main/pgroonga.log
+      - name: Install test dependencies
+        run: |
+          sudo gem install groonga-synonym
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/red-datasets
+          key: red-datasets-ubuntu
+      - name: Run unit test
+        run: |
+          PATH="/usr/lib/postgresql/${{ matrix.postgresql-version }}/bin:$PATH" \
+            test/run-test.rb

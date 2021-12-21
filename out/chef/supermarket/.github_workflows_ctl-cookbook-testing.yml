@@ -1,0 +1,37 @@
+---
+name: ctl-cookbook-testing
+
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  cookstyle:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        working-directory: omnibus
+        ruby-version: 2.7
+        bundler-cache: true
+    - uses: r7kamura/rubocop-problem-matchers-action@v1 # this shows the failures in the PR
+    - name: run cookstyle
+      run: bundle exec cookstyle cookbooks
+      working-directory: omnibus
+  chefspec:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        # once we move the -ctl command to its own gemspec this can be changed back to omnibus like above
+        working-directory: omnibus/cookbooks/omnibus-supermarket
+        ruby-version: 2.7
+        bundler-cache: true
+    - uses: r7kamura/rubocop-problem-matchers-action@v1 # this shows the failures in the PR
+    - name: run chefspec
+      run: bundle exec rspec
+      working-directory: omnibus/cookbooks/omnibus-supermarket

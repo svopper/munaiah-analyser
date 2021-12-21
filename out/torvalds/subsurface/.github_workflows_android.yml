@@ -1,0 +1,39 @@
+name: Android
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  buildAndroid:
+    runs-on: ubuntu-latest
+    container:
+      image: docker://subsurface/android-build-container:5.15.1
+
+    steps:
+    - name: checkout sources
+      uses: actions/checkout@v1
+
+    - name: run build
+      run: |
+        # this is rather awkward, but it allows us to use the preinstalled
+        # Android and Qt versions with relative paths
+        cd $GITHUB_WORKSPACE/..
+        ln -s /android/5.15.* .
+        ln -s /android/build-tools .
+        ln -s /android/cmdline-tools .
+        ln -s /android/ndk .
+        ln -s /android/platform-tools .
+        ln -s /android/platforms .
+        ln -s /android/tools .
+        ls -l
+        git config --global user.email "ci@subsurface-divelog.org"
+        git config --global user.name "Subsurface CI"
+        # it turns out our build container doesn't have a native compiler
+        # yet ECM needs that
+        apt-get install --reinstall cpp-7 gcc-7-base libgcc-7-dev libcc1-0 gcc-7
+        bash -x ./subsurface/packaging/android/qmake-build.sh
+

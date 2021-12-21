@@ -1,0 +1,61 @@
+name: Continuous Integration
+on: push
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.5, 3.6, 3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v1
+      - run: development/tests/run.sh ${{ matrix.python_version }}
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: development/checks/run.sh
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: |
+          development/doc/build.sh
+          sudo chown runner:docker -R .
+          git checkout -- docs/_images
+          git diff --exit-code --stat docs
+  demo:
+    name: Demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: |
+          development/demo/run.sh
+  publish:
+    name: Publish
+    needs:
+      - tests
+      - checks
+      - docs
+      - demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - run: python setup.py sdist
+      - run: test ${{ github.event.ref }} == refs/tags/$(grep ^version setup.py | cut -d '"' -f 2)
+        if: startsWith(github.event.ref, 'refs/tags')
+      - name: Publish to PyPI
+        if: startsWith(github.event.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          # [PyPI API token](https://pypi.org/manage/account/#api-tokens) set as a [secret](https://github.com/jacquev6/ActionTree/settings/secrets)
+          password: ${{ secrets.pypi_password }}
+
+# @todo Ensure repository settings?
+# @todo Ensure file headers have copyright notices?

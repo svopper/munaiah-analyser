@@ -1,0 +1,62 @@
+name: Build
+on:
+  - push
+  - pull_request
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-3.10
+            python-version: "3.10"
+            os: ubuntu-latest
+          - name: linux-3.9
+            python-version: "3.9"
+            os: ubuntu-latest
+          - name: linux-3.8
+            python-version: "3.8"
+            os: ubuntu-latest
+          - name: linux-3.7
+            python-version: "3.7"
+            os: ubuntu-latest
+          - name: linux-3.6
+            python-version: "3.6"
+            os: ubuntu-latest
+          - name: linux-pypy-3.8
+            python-version: pypy-3.8
+            os: ubuntu-latest
+          - name: linux-pypy-3.7
+            python-version: pypy-3.7
+            os: ubuntu-latest
+          - name: linux-pypy-3.6
+            python-version: pypy-3.6
+            os: ubuntu-latest
+    steps:
+      - name: Install system dependencies
+        run: sudo apt install texlive texlive-latex-extra latexmk poppler-utils
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip setuptools wheel
+      - name: Install dependencies
+        run: pip install .[test]
+      - name: Run tests
+        run: |
+          coverage run clean-example.py
+          coverage run --append make-example.py
+          coverage run --append paginate-example.py
+          coverage report
+          coverage html
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+      - name: Upload artifacts ${{ matrix.name }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.name }}
+          path: example/_output/*.pdf

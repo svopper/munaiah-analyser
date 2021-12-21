@@ -1,0 +1,36 @@
+# Honeypot Github Actions Workflow
+
+name: Honeypot CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# for any branch (current state of this file will be used for build)
+on: [push, pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build-and-test"
+  build-and-test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.4
+
+      # VIPS
+      - name: Set up VIPS
+        run: sudo apt-get install libvips-dev
+
+      # Install gems
+      - name: Install dependencies
+        run: bundle install
+    
+      # Run unit tests excluding tagged as indicated
+      - name: Run tests
+        run: bundle exec rspec spec --tag '~ignore:github'

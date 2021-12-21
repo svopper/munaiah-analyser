@@ -1,0 +1,24 @@
+name: Release
+on:
+  push:
+    tags:
+    - '*.*.*'
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: .NET SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.100'
+    - name: Build and Test
+      run: pwsh ./build.ps1 --pack
+    - name: Release to NuGet
+      env:
+        PACKAGE_URL: https://api.nuget.org/v3/index.json
+        PACKAGE_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: pwsh ./release.ps1

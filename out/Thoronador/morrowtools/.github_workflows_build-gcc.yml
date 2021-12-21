@@ -1,0 +1,97 @@
+name: GitHub CI with GCC 8, 9, 10
+
+on: push
+
+jobs:
+  build_ubuntu_20_04_gcc10:
+    runs-on: ubuntu-20.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake g++-10 pkg-config zlib1g-dev
+      - name: Syntax check
+        run: |
+          export CXX=g++-10
+          ./ci/cpplint.sh
+      - name: Build with GNU GCC 10
+        run: |
+          export CXX=g++-10
+          export CC=gcc-10
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V
+  build_gcc10_lto_static:
+    runs-on: ubuntu-20.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake g++-10 pkg-config zlib1g-dev
+      - name: Build with GNU GCC 10
+        run: |
+          export CXX=g++-10
+          export CC=gcc-10
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake -DENABLE_LTO=ON -DENABLE_STATIC_LINKING=ON ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V
+  build_ubuntu_20_04_gcc9:
+    runs-on: ubuntu-20.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake g++-9 pkg-config zlib1g-dev
+      - name: Build with GNU GCC 9
+        run: |
+          export CXX=g++-9
+          export CC=gcc-9
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V
+  build_ubuntu_18_04_gcc8:
+    runs-on: ubuntu-18.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake g++-8 pkg-config zlib1g-dev
+      - name: Build with GNU GCC 8
+        run: |
+          export CXX=g++-8
+          export CC=gcc-8
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V

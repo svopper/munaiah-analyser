@@ -1,0 +1,36 @@
+
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build-and-deploy:
+    name: Python (${{ matrix.PYTHON_VERSION }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PYTHON_VERSION: ["3.7", "3.8", "3.9"]
+    env:
+      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add /etc/hosts entries
+      run: |
+        cat .github/workflows/etchosts.txt | sudo tee -a /etc/hosts
+
+    - name: Setup CI from ci-tooling
+      run: |
+        git clone --depth 1 https://github.com/akrherz/iem-database.git database
+        git clone --depth 1 https://github.com/akrherz/ci_tooling.git .ci_tooling
+        . .ci_tooling/postgres.sh
+        . .ci_tooling/miniconda.sh
+        pip install codecov
+        export PATH="/usr/lib/postgresql/12/bin:$PATH"
+        cd database; sh bootstrap.sh
+        python schema_manager.py
+        cd ..
+        coverage run --source=scripts -m pytest scripts/cligen/daily_clifile_editor.py
+        if [[ ${{ matrix.PYTHON_VERSION }} == '3.8' ]]; then
+          codecov
+        fi
+

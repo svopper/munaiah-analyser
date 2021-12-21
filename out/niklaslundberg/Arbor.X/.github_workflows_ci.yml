@@ -1,0 +1,31 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: install-tools
+      env:
+        NuGetPassword: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        dotnet tool install --global Arbor.Tooler.GlobalTool
+        dotnet tool install --global Arbor.Build.Bootstrapper
+        dotnet tool install --global Arbor.NuGetConfig.GlobalTool
+        dotnet-arbor-tooler -outputdirectory=C:\Tools\NuGet
+        arbor-nugetconfig directory=C:\Tools\NuGet
+        C:\Tools\NuGet\nuget.exe source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/niklaslundberg/index.json" -UserName niklaslundberg -Password "%NuGetPassword%" -ConfigFile C:\Tools\NuGet\nuget.config
+    - name: build
+      env:
+        Arbor.Build.NuGet.PackageUpload.Server.ApiKey: ${{ secrets.GITHUB_TOKEN }}
+        Arbor.Build.NuGet.PackageUpload.Server.Uri: "https://nuget.pkg.github.com/niklaslundberg/index.json"
+        Arbor.Build.NuGet.PackageUpload.Enabled: "true"
+        Arbor.Build.NuGet.PackageUpload.ForceUploadEnabled: "true"
+        Arbor.Build.NuGet.PackageUpload.ConfigFile: "C:\\Tools\\NuGet\\nuget.config"
+      run: |
+        C:\Tools\NuGet\nuget.exe sources
+        build\build.bat

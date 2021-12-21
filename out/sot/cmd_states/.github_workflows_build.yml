@@ -1,0 +1,66 @@
+name: Conda build
+on:
+  push:
+    branches:
+    - master
+  release:
+    types:
+    - created
+  repository_dispatch:
+    types:
+    - conda-build
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    name: Build on Linux
+    steps:
+    - name: Login to GitHub Package Registry
+      run: docker login docker.pkg.github.com -u $GITHUB_ACTOR -p ${{ secrets.GITHUB_TOKEN }}
+    - name: Pull Docker image
+      run: docker pull docker.pkg.github.com/sot/skare3/centos7-builder:latest
+    - name: Build
+      id: build
+      run: >
+        docker run --rm  --name builder -v $GITHUB_WORKSPACE:/github/workspace -w /github/workspace
+        -e CONDA_PASSWORD -e GIT_USERNAME -e GIT_PASSWORD
+        docker.pkg.github.com/sot/skare3/centos7-builder:latest
+        ${GITHUB_REPOSITORY} --tag ${GITHUB_SHA}
+      env:
+        CONDA_PASSWORD: ${{ secrets.CONDA_PASSWORD }}
+        GIT_USERNAME: chandra-xray
+        GIT_PASSWORD: ${{ secrets.CHANDRA_XRAY_TOKEN }}
+        GIT_ASKPASS: /home/aca/git_pass.py
+    - name: Save package
+      uses: actions/upload-artifact@v2
+      with:
+        name: conda-package
+        path: |
+          builds/noarch/
+          builds/linux-64/
+          !builds/*/*repodata*
+          !builds/*/index.html
+
+
+  update-channel:
+    runs-on: head
+    name: Update Conda Channel
+    needs: [build-linux]
+    steps:
+      - name: Get linux package
+        uses: actions/download-artifact@v2
+        with:
+          name: conda-package
+          path: package
+      - name: Update channel
+        run: |
+          rsync -a package/ ${CONDA_CHANNEL_DIR}
+          for d in noarch linux-64 osx-64 win-64;
+          do
+            if [ -d "${CONDA_CHANNEL_DIR}/$d" ];
+            then
+              conda index ${CONDA_CHANNEL_DIR}/$d;
+            fi
+          done;
+        env:
+          CONDA_CHANNEL_DIR: /proj/sot/ska/www/ASPECT/ska3-conda/masters

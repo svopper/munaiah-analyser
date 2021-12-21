@@ -1,0 +1,39 @@
+name: Test python
+
+on:
+  push:
+    branches:
+    - master
+    - '[0-9]+.[0-9]+.x'
+    tags:
+    - '**'
+  pull_request:
+    branches:
+    - master
+    - '[0-9]+.[0-9]+.x'
+
+jobs:
+  py:
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        apt update
+        apt install -y python3-dev libssl-dev gcc
+        apt install -y r-base r-base-dev
+
+        python -m pip install --upgrade pip
+        python -m pip install six
+      env:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: tests
+      run: |
+        python -m unittest

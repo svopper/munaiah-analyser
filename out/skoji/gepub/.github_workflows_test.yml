@@ -1,0 +1,29 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        ruby: [2.5, 2.6, 2.7, 3.0, jruby]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    env:
+      CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: setup gems
+      run: bundle install --jobs 4 --retry 3
+    - name: run test and publish code coverage
+      if: runner.os == 'Linux' && matrix.ruby == '2.7' && env.CC_TEST_REPORTER_ID != ''
+      uses: paambaati/codeclimate-action@v2.3.0
+      env:
+        CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+      with:
+        coverageCommand: bundle exec rake spec
+    - name: run test
+      if: runner.os != 'Linux' || matrix.ruby != '2.7' || env.CC_TEST_REPORTER_ID == ''
+      run: bundle exec rake spec

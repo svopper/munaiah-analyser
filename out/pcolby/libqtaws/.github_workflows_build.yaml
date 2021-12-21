@@ -1,0 +1,108 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        env:
+        - { cc: clang, cxx: clang++ }
+        - { cc: gcc, cxx: g++ }
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Grantlee
+      run: sudo apt install libgrantlee5-dev
+    - name: Build
+      env:
+        CC:  ${{ matrix.env.cc }}
+        CXX: ${{ matrix.env.cxx }}
+      run: |
+        cmake -D BUILD_CODEGEN=YES -D CMAKE_BUILD_TYPE=Release -S "$GITHUB_WORKSPACE" -B "$RUNNER_TEMP"
+        cmake --build "$RUNNER_TEMP" --target codegen QtAwsAcm QtAwsCore QtAwsS3 QtAwsS3Control QtAwsXRay
+
+  linux-qts:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        qt: [ '5.9.9', '5.12.11', '5.15.2' ]
+        env:
+        - { cc: clang, cxx: clang++ }
+        - { cc: gcc, cxx: g++ }
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Tools
+      run: sudo apt install clang
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ matrix.qt }}
+    - name: Build
+      env:
+        CC:  ${{ matrix.env.cc }}
+        CXX: ${{ matrix.env.cxx }}
+      run: |
+        # We don't build codegen when using jurplel Qt's, because installing libgrantlee5-dev
+        # pulls in Ubuntu's own Qt5 libraries, which is not ideal.
+        cmake -D BUILD_CODEGEN=NO -D CMAKE_BUILD_TYPE=Release -S "$GITHUB_WORKSPACE" -B "$RUNNER_TEMP"
+        cmake --build "$RUNNER_TEMP" --target QtAwsAcm QtAwsCore QtAwsS3 QtAwsS3Control QtAwsXRay
+
+  mac:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macOs-latest ]
+        qt: [ '5.9.9', '5.12.11', '5.15.2' ]
+        env:
+        - { cc: clang, cxx: clang++ }
+        - { cc: gcc-11, cxx: g++-11 }
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ matrix.qt }}
+    - name: Build
+      env:
+        CC:  ${{ matrix.env.cc }}
+        CXX: ${{ matrix.env.cxx }}
+      run: |
+        cmake -D BUILD_CODEGEN=NO -D CMAKE_BUILD_TYPE=Release -S "$GITHUB_WORKSPACE" -B "$RUNNER_TEMP"
+        cmake --build "$RUNNER_TEMP" --target QtAwsAcm QtAwsCore QtAwsS3 QtAwsS3Control QtAwsXRay
+
+  win:
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { shell: cmd } }
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        qt: [ '5.12.11', '5.15.2' ]
+        generator: [ 'MinGW Makefiles', 'NMake Makefiles' ]
+        include:
+        - qt: '5.12.11'
+          arch: win64_mingw73
+        - qt: '5.15.2'
+          arch: win64_mingw81
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Qt (mingw)
+      if: ${{ contains(matrix.generator, 'mingw') }}
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ matrix.qt }}
+        arch: ${{ matrix.arch }}
+    - name: Install Qt (msvc)
+      if: ${{ contains(matrix.generator, 'nmake') }}
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ matrix.qt }}
+    - name: Configure MSVC
+      if: ${{ contains(matrix.generator, 'nmake') }}
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Build
+      run: |
+        cmake -D BUILD_CODEGEN=NO -D CMAKE_BUILD_TYPE=Release -G "${{ matrix.generator }}" -S "%GITHUB_WORKSPACE%" -B "%RUNNER_TEMP%"
+        cmake --build "%RUNNER_TEMP%" --target QtAwsAcm QtAwsCore QtAwsS3 QtAwsS3Control QtAwsXRay

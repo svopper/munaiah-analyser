@@ -1,0 +1,23 @@
+name: Tests
+on: [push]
+
+jobs:
+  ruby:
+    name: Ruby Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: ["2.6", "2.7", "3.0"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run tests
+        env:
+          CI: true
+        run: bundle exec rake test
+

@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+
+env:
+    PHP_VERSION: 7.2
+
+jobs:
+    PHPUnit:
+        name: PHPUnit
+        runs-on: ubuntu-18.04
+        steps:
+            -   uses: actions/checkout@v2
+            -   name: Konfiguriere PHP-Version und -Einstellungen im Worker-Node
+                uses: shivammathur/setup-php@v2
+                with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  tools: composer:v2
+                  ini-values: variables_order=EGPCS, date.timezone=Europe/Berlin
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v1
+                with:
+                    path: vendor/
+                    key: composer-${{ env.PHP_VERSION }}-${{ hashFiles('composer.*') }}
+                    restore-keys: |
+                        composer-${{ env.PHP_VERSION }}-${{ github.ref }}
+                        composer-${{ env.PHP_VERSION }}-
+            -   run: |
+                    composer install --no-interaction --no-scripts --no-progress --no-suggest
+                    composer show
+            -   run: vendor/bin/phpunit

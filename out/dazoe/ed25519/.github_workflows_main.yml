@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [8, 10, 12, 14]
+
+    steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node }}
+
+    - uses: actions/checkout@v2
+    - run: npm ci && npm i -g mocha
+
+    - if: matrix.node == 8
+      run: npm i -g mocha@7.2
+
+    - run: mocha ./test/ed25519.js

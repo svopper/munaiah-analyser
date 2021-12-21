@@ -1,0 +1,112 @@
+name: RELEASE
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  Pre_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Create GitHub release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG=$(git describe --tags --abbrev=0)
+        gh release create $TAG --draft --title $TAG
+
+  Build_release:
+    needs: Pre_release
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-10.15, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    # Required to upload release artifacts to GitHub
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: 'lts/*'
+    - name: Cache Node.js modules
+      uses: actions/cache@v2
+      with:
+        # npm cache files are stored in `~/.npm` on Linux/macOS
+        path: ~/.npm
+        key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.OS }}-node-
+          ${{ runner.OS }}-
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build release (Linux)
+      if: ${{ runner.OS == 'Linux' }}
+      env:
+        CSC_LINK: "${{ secrets.CSC_LINK }}"
+        CSC_KEY_PASSWORD: "${{ secrets.CSC_KEY_PASSWORD }}"
+        ET_ENDPOINT: "${{ secrets.ET_ENDPOINT }}"
+        SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+        SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
+        SENTRY_ORG: "${{ secrets.SENTRY_ORG }}"
+        SENTRY_PROJECT: "${{ secrets.SENTRY_PROJECT }}"
+        UPDATES_SERVER_PRODUCT_NAME: "${{ secrets.UPDATES_SERVER_PRODUCT_NAME }}"
+        GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: npm run build -- --linux --publish
+    - name: Build release (MacOS)
+      if: ${{ runner.os == 'macOS' }}
+      env:
+        APPLE_DEVELOPER_ID: "${{ secrets.APPLE_DEVELOPER_ID }}"
+        APPLE_DEVELOPER_ID_PASSWORD: "${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}"
+        CSC_LINK: "${{ secrets.CSC_LINK }}"
+        CSC_KEY_PASSWORD: "${{ secrets.CSC_KEY_PASSWORD }}"
+        ET_ENDPOINT: "${{ secrets.ET_ENDPOINT }}"
+        SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+        SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
+        SENTRY_ORG: "${{ secrets.SENTRY_ORG }}"
+        SENTRY_PROJECT: "${{ secrets.SENTRY_PROJECT }}"
+        UPDATES_SERVER_PRODUCT_NAME: "${{ secrets.UPDATES_SERVER_PRODUCT_NAME }}"
+        GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: npm run build -- --mac --publish
+    - name: Build release (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      env:
+        CSC_LINK: "${{ secrets.WIN_CSC_LINK }}"
+        CSC_KEY_PASSWORD: "${{ secrets.WIN_CSC_KEY_PASSWORD }}"
+        ET_ENDPOINT: "${{ secrets.ET_ENDPOINT }}"
+        SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+        SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
+        SENTRY_ORG: "${{ secrets.SENTRY_ORG }}"
+        SENTRY_PROJECT: "${{ secrets.SENTRY_PROJECT }}"
+        UPDATES_SERVER_PRODUCT_NAME: "${{ secrets.UPDATES_SERVER_PRODUCT_NAME }}"
+        GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: npm run build -- --win --publish
+
+  Post_release:
+    needs: Build_release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        # required to compare versions in the
+        # license book summary
+        fetch-depth: 0
+    - name: Install dependencies
+      run: npm ci
+    - name: Send license book summary
+      env:
+        EMAIL_HOST: "${{ secrets.EMAIL_HOST }}"
+        EMAIL_PASSWORD: "${{ secrets.EMAIL_PASSWORD }}"
+        EMAIL_REPLY_TO: "${{ secrets.EMAIL_REPLY_TO }}"
+        EMAIL_TO: "${{ secrets.EMAIL_TO }}"
+        EMAIL_USERNAME: "${{ secrets.EMAIL_USERNAME }}"
+      run: npm run send-license-book-summary

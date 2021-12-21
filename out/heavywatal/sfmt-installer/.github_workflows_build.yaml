@@ -1,0 +1,28 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: cmake
+        run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=${HOME}/local
+      - name: build
+        run: cmake --build build --parallel 2 --target install
+      - name: test
+        run: cd build; ctest -V -j 2

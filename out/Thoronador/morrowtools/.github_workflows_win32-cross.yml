@@ -1,0 +1,93 @@
+name: Cross-compile for Win32
+
+on: push
+
+jobs:
+  build_ubuntu_20_04_cross-win32_dynamic:
+    runs-on: ubuntu-20.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake libz-mingw-w64-dev pkg-config
+          sudo apt-get install -y binutils-mingw-w64-i686 g++-mingw-w64-i686 gcc-mingw-w64-i686 mingw-w64-i686-dev
+      - name: Build with MinGW for Win32
+        run: |
+          export CXX=i686-w64-mingw32-c++-win32
+          export CC=i686-w64-mingw32-gcc-win32
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V
+      - name: Collect zlib1.dll and other DLLs for artifact upload
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"/build/artifacts
+          cp /usr/i686-w64-mingw32/lib/zlib1.dll "$GITHUB_WORKSPACE"/build/artifacts/zlib1.dll
+          cp /usr/lib/gcc/i686-w64-mingw32/9.3-win32/libstdc++-6.dll "$GITHUB_WORKSPACE"/build/artifacts/libstdc++-6.dll
+          cp /usr/lib/gcc/i686-w64-mingw32/9.3-win32/libgcc_s_sjlj-1.dll "$GITHUB_WORKSPACE"/build/artifacts/libgcc_s_sjlj-1.dll
+      - name: Collect build artifacts in one place
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          cp mw/cell_translator/cell_translator.exe artifacts/
+          cp mw/data_cleaner/data_cleaner.exe artifacts/
+          cp mw/skill_rebalance/skill_rebalance.exe artifacts/
+          cp mw/spell_rename/spell_rename.exe artifacts/
+          cp sr/bsa_cli/bsa-cli.exe artifacts/
+          cp sr/conv_cams/conv_cams.exe artifacts/
+          cp sr/formID_finder/formID_finder.exe artifacts/
+          cp sr/race_resize/race_resize.exe artifacts/
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts-dynamic-linking
+          path: |
+            build/artifacts/*.exe
+            build/artifacts/*.dll
+  build_ubuntu_20_04_cross-win32_static:
+    runs-on: ubuntu-20.04
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y catch cmake libz-mingw-w64-dev pkg-config
+          sudo apt-get install -y binutils-mingw-w64-i686 g++-mingw-w64-i686 gcc-mingw-w64-i686 mingw-w64-i686-dev
+      - name: Build with MinGW for Win32
+        run: |
+          export CXX=i686-w64-mingw32-c++-win32
+          export CC=i686-w64-mingw32-gcc-win32
+          cd $GITHUB_WORKSPACE
+          mkdir build
+          cd build
+          cmake -DENABLE_LTO=ON -DENABLE_STATIC_LINKING=ON ../
+          make -j4
+      - name: Tests
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          ctest -V
+      - name: Collect build artifacts in one place
+        run: |
+          cd "$GITHUB_WORKSPACE"/build
+          mkdir -p "$GITHUB_WORKSPACE"/build/artifacts
+          cp mw/cell_translator/cell_translator.exe artifacts/
+          cp mw/data_cleaner/data_cleaner.exe artifacts/
+          cp mw/skill_rebalance/skill_rebalance.exe artifacts/
+          cp mw/spell_rename/spell_rename.exe artifacts/
+          cp sr/bsa_cli/bsa-cli.exe artifacts/
+          cp sr/conv_cams/conv_cams.exe artifacts/
+          cp sr/formID_finder/formID_finder.exe artifacts/
+          cp sr/race_resize/race_resize.exe artifacts/
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts-static-linking
+          path: |
+            build/artifacts/*.exe

@@ -1,0 +1,58 @@
+name: Jekyll site CI
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1.52.0
+        with:
+          ruby-version: 2.7
+      - name: Install dependencies & build site
+        uses: limjh16/jekyll-action-ts@v2
+        with:
+          enable_cache: true
+      - name: Upload built site
+        uses: actions/upload-artifact@v2
+        with:
+          name: site-build
+          path: _site
+  lint:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1.52.0
+        with:
+          ruby-version: 2.7
+      - name: Download built site
+        uses: actions/download-artifact@v2
+        with:
+          name: site-build
+      - name: Install dependencies & build site
+        uses: limjh16/jekyll-action-ts@v2
+        with:
+          enable_cache: true
+      - name: Lint code
+        run: bundle exec rubocop --fail-level warning
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' # only deploy on master
+    steps:
+      - name: Download built site
+        uses: actions/download-artifact@v2
+        with:
+          name: site-build
+          path: ${{ github.workspace }}/sendecomp-website
+      - name: Deploy the site to web.mst.edu
+        uses: SamKirkland/FTP-Deploy-Action@2.0.0
+        env:
+          FTP_SERVER: minersftp.mst.edu
+          FTP_USERNAME: ${{ secrets.SFTP_USER }}
+          FTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          METHOD: sftp
+          LOCAL_DIR: ${{ github.workspace }}/sendecomp-website
+          REMOTE_DIR: /userweb/sendecomp

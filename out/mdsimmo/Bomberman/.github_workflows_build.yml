@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+    - mc1.12.2-we6
+  pull_request:
+    branches: 
+    - master
+    - mc1.12.2-we6
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Java JDK
+      uses: actions/setup-java@v2.3.0
+      with:
+        java-version: 8.0    
+        distribution: 'adopt'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v2.1.6
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+        restore-keys: ${{ runner.os }}-gradle
+    - name: Build and test
+      run: ./gradlew build
+
+    - uses: actions/upload-artifact@v2.2.4
+      with:
+        name: Package
+        path: build/libs

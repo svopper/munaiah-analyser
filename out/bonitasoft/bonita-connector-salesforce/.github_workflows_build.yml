@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+       fetch-depth: 0
+       
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+
+    - name: Build and test
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
+      run: ./mvnw -B clean verify sonar:sonar -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+    - run: mkdir staging && cp target/*.zip staging
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Connectors
+        path: staging

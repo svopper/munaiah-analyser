@@ -1,0 +1,29 @@
+name: Build ACT
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+    runs-on: ${{ matrix.os }}
+
+    steps: 
+    - name: Install Dependencies (Ubuntu)
+      run: sudo apt-get install make gcc libc6-dev
+      if: matrix.os == 'ubuntu-latest'
+    - name: Get Sources
+      uses: actions/checkout@v2
+    - name: build
+      run: make
+    - name: Upload Artifact 
+      uses: actions/upload-artifact@v2.2.4
+      with: 
+        name: act-linux-$GITHUB_REF
+        path: target/bin/
+        if-no-files-found: error

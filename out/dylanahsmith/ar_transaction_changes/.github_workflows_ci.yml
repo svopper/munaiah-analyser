@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push: {}
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.owner.login != 'dylanahsmith'
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        entry:
+          - name: 'Minimum supported'
+            ruby: 2.6
+            gemfile: Gemfile.rails52
+          - name: "Latest released versions"
+            ruby: 3.0
+            gemfile: Gemfile
+          - name: "Rails main branch"
+            ruby: 3.0
+            gemfile: Gemfile.rails_head
+
+    name: ${{ matrix.entry.name }}
+
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.entry.gemfile }}
+
+    steps:
+    - name: Install required packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install libsqlite3-dev
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.entry.ruby }}
+    - name: Install bundler and gems
+      run: |
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+    - name: Run tests
+      run: bundle exec rake

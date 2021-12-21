@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  # Run CI on all pushes.
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+    name: Build and Test (Python ${{ matrix.python-version }} on ${{ matrix.os }})
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+          - macos-latest
+          - windows-latest
+        python-version:
+          - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install Tox and any other packages
+      run: pip install tox tox-gh-actions
+    - name: Build package and run tests with tox
+      # XXX: Remove `-e py3-ci` and rely on the settings in tox.ini as soon as
+      # https://github.com/ymyzk/tox-gh-actions/issues/44 is resolved.
+      run: tox -e py3-ci

@@ -1,0 +1,35 @@
+name: RPM build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  rpm-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        fedora-version: [30, 31, 32, rawhide]
+    container:
+      image: fedora:${{ matrix.fedora-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Show os-release
+        run: |
+          cat /etc/os-release
+      - name: install dependencies for RPM build
+        run: |
+          dnf install tito -y
+      - name: build deps for RHTS
+        run: |
+          dnf builddep rhts.spec -y
+      - name: Build RPM w/ tito
+        run: |
+          tito build --test --rpm
+

@@ -1,0 +1,16 @@
+name: Build project
+on: [push]
+jobs:
+  build_project:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+      - name: Build
+        run: |
+          mvn test --batch-mode
+      - name: Install
+        run: |
+          mvn install --batch-mode

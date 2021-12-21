@@ -1,0 +1,36 @@
+---
+name: Quality Assurance
+on:
+  push: ~
+  pull_request: ~
+
+jobs:
+  phpunit:
+    name: PHPUnit tests on ${{ matrix.php }} ${{ matrix.composer-flags }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [ '7.2', '7.3', '7.4' ]
+        composer-flags: [ '' ]
+        phpunit-flags: [ '--coverage-text' ]
+        include:
+          - php: '8.0'
+            composer-flags: '--ignore-platform-req=php'
+            phpunit-flags: '--no-coverage'
+          - php: '7.2'
+            composer-flags: '--prefer-lowest'
+            phpunit-flags: '--no-coverage'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: pcov
+          tools: composer:v2
+      - run: composer update --no-progress ${{ matrix.composer-flags }}
+      - run: vendor/bin/phpunit ${{ matrix.phpunit-flags }}
+      - run: vendor/bin/phpstan analyse -l max src
+        if: ${{ matrix.php == '7.4' }}
+      - run: vendor/bin/php-cs-fixer fix --dry-run
+        if: ${{ matrix.php == '7.4' }}
+

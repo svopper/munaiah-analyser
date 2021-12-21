@@ -1,0 +1,41 @@
+---
+name: tests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+jobs:
+  tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: ["2.7", "3.6"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Lint
+        run: |
+          pip install pep8
+          pep8 --exclude=tests,templates *.py cnxepub/
+          pep8 --max-line-length=1000 cnxepub/tests
+          pep8 --max-line-length=1000 cnxepub/templates
+      - name: Test
+        run: |
+          pip install -U pip
+          pip --version
+          pip install coverage
+          pip install codecov
+          pip install mock
+          pip install git+https://github.com/openstax/cnx-cssselect2.git#egg=cnx-cssselect2
+          pip install git+https://github.com/Connexions/cnx-easybake.git#egg=cnx-easybake
+          python setup.py install
+          coverage run --source=cnxepub -m unittest discover
+          codecov

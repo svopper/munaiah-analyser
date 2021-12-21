@@ -1,0 +1,20 @@
+name: Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+      - run: npm install
+      - run: npm test
+      - run: npm run tweet -- --debug
+        env:
+          STAGING_TWITTER_CONSUMER_KEY: ${{ secrets.STAGING_TWITTER_CONSUMER_KEY }}
+          STAGING_TWITTER_CONSUMER_SECRET: ${{ secrets.STAGING_TWITTER_CONSUMER_SECRET }}
+          STAGING_TWITTER_ACCESS_TOKEN_KEY: ${{ secrets.STAGING_TWITTER_ACCESS_TOKEN_KEY }}
+          STAGING_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.STAGING_TWITTER_ACCESS_TOKEN_SECRET }}

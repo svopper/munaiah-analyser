@@ -1,0 +1,36 @@
+name: Run
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        site: [ BTHUSTLE, LBB ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install construi
+      run: |
+        pip install wheel
+        pip install construi
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: ./.m2/repository
+        key: maven-${{ hashFiles('pom.xml') }}
+        restore-keys: maven-
+    - uses: satackey/action-docker-layer-caching@v0.0.8
+      continue-on-error: true
+    - name: Run
+      run: construi run
+      env:
+        OOTPAI_SITE: ${{ matrix.site }}
+        OOTPAI_CLEAR_CACHE: true
+        GITHUB_TOKEN: ${{ secrets.OOTPAI_GITHUB_TOKEN }}

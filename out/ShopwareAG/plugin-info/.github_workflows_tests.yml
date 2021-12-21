@@ -1,0 +1,19 @@
+name: Code Check
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Check code style
+        run: vendor/bin/php-cs-fixer fix --dry-run
+
+      - name: run phpunit
+        run: vendor/bin/phpunit

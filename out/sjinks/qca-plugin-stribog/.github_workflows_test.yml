@@ -1,0 +1,48 @@
+name: Build and Test
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    if: ${{ !contains(github.event.head_commit.message, '[ci skip]') || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        cxx:
+          - clang++
+          - g++
+        qt:
+          - version: 4
+            deps: libqt4-dev libqca2-dev
+          - version: 5
+            deps: qtbase5-dev libqca-qt5-2-dev
+    name: "Build and Test (${{ matrix.cxx }}, Qt ${{ matrix.qt.version }})"
+    runs-on: ubuntu-18.04
+    env:
+      QT_SELECT: ${{ matrix.qt.version }}
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v2.3.4
+
+      - name: Install dependencies
+        run: sudo apt-get -qq update && sudo apt-get install -qq ${{ matrix.qt.deps }}
+
+      - name: Add error matcher
+        run: echo "::add-matcher::$(pwd)/.github/problem-matcher-gcc.json"
+
+      - name: Build the plugin
+        run: qmake && make
+
+      - name: Build tests
+        run: qmake && make
+        working-directory: tests
+
+      - name: Create a symlink to the plugin
+        run: mkdir -p tests/crypto/ && ln -s ../../qca-plugin-stribog.so tests/crypto/qca-plugin-stribog.so
+
+      - name: Run tests
+        run: ./tst_stribog
+        working-directory: tests

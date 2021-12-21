@@ -1,0 +1,43 @@
+name: Build and test
+
+on: [push]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: sudo apt install libgeoip-dev
+      - name: mkdir
+        run: mkdir build
+      - name: Cmake
+        working-directory: build
+        run:  cmake ..
+      - name: Build
+        run: make
+        working-directory: build
+      - name: Upload build
+        uses: actions/upload-artifact@v1
+        with:
+          name: build
+          path: build
+  test:
+    name: Test
+    needs: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build
+        uses: actions/download-artifact@v1
+        with:
+          name: build
+      - name: find
+        run: find .
+      - name: Chmod
+        run: chmod +x ip2geo
+        working-directory: build
+      - name: run
+        run: ./ip2geo || exit 0
+        working-directory: build

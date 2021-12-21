@@ -1,0 +1,63 @@
+---
+name: Continuous Integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: ['7.1', '7.2', '7.3', '7.4']
+        symfony: ['^4.0', '^5.0']
+        exclude:
+          - php: '7.1'
+            symfony: '^5.0'
+
+    services:
+      rabbitmq:
+        image: rabbitmq:latest
+        ports:
+        - 5672/tcp
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: pecl
+          extensions: amqp
+        env:
+          fail-fast: true
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run:  echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: composer-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            composer-
+
+      - name: Install dependencies
+        run: |
+          composer require --no-interaction \
+            symfony/config:${{ matrix.symfony }} \
+            symfony/console:${{ matrix.symfony }} \
+            symfony/dependency-injection:${{ matrix.symfony }} \
+            symfony/framework-bundle:${{ matrix.symfony }} \
+            symfony/http-kernel:${{ matrix.symfony }}
+          composer install --no-interaction --prefer-source
+
+      - name: PHPUnit
+        run: php vendor/bin/phpunit

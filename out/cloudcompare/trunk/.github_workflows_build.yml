@@ -1,0 +1,229 @@
+name: Build
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }} SCALAR_DOUBLE=${{ matrix.scalar_double }}
+    runs-on: ${{ matrix.config.os }}
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scalar_double: [ "OFF", "ON" ]
+        config:
+          - {
+            name: "Windows MSVC",
+            os: windows-latest,
+            generator: "Ninja",
+            conda_library_dir: "Library",
+            compile_qanimation_with_ffmpeg: "ON",
+            compile_qpcl: "ON",
+            compile_qransac: "ON",
+          }
+          - {
+            name: "macOS Clang",
+            os: macos-latest,
+            generator: "Ninja",
+            conda_library_dir: ".",
+            compile_qanimation_with_ffmpeg: "OFF",
+            compile_qpcl: "OFF",
+            compile_qransac: "ON",
+          }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      # Turn off for now since GitHub Actions is broken (will eventually move to brew anyways)
+      # - name: Conda Cache (macOS)
+      #   if:  matrix.config.os == 'macos-latest'
+      #   uses: actions/cache@v1
+      #   with:
+      #     path: /Users/runner/miniconda3/envs/CloudCompareDev
+      #     key: conda-cache-${{ runner.os }}-${{ hashFiles('.ci/conda.yml') }}
+
+      - name: Conda Cache (Windows)
+        if: matrix.config.os == 'windows-latest'
+        uses: actions/cache@v1
+        with:
+          path: C:\Miniconda3\envs\CloudCompareDev
+          key: conda-cache-${{ runner.os }}-${{ hashFiles('.ci/conda.yml') }}
+
+      - name: Install Dependencies
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: CloudCompareDev
+          auto-activate-base: false
+          environment-file: .ci/conda.yml
+          miniconda-version: 'latest'
+
+      - name: Install Dependencies (macOS)
+        if: matrix.config.os == 'macos-latest'
+        run: brew install xerces-c
+
+      - name: Configure MSVC console (Windows)
+        if: matrix.config.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set environment for MSVC (Windows)
+        if: matrix.config.os == 'windows-latest'
+        run: |
+          # Set these env vars so cmake picks the correct compiler
+          # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#environment-files
+          echo "CXX=cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "CC=cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Configure CMake
+        shell: bash -l {0}
+        run: |
+          mkdir build
+
+          export CONDA_LIB_DIR="$CONDA_PREFIX/${{ matrix.config.conda_library_dir }}"
+          export EIGEN_ROOT_DIR="$CONDA_LIB_DIR/include/eigen3"
+
+          cmake \
+            -B build \
+            -G "${{ matrix.config.generator }}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$CONDA_LIB_DIR" \
+            -DCCCORELIB_SCALAR_DOUBLE=${{ matrix.scalar_double }} \
+            -DEIGEN_ROOT_DIR="$EIGEN_ROOT_DIR" \
+            -DOPTION_SUPPORT_GAMEPADS=ON \
+            -DPLUGIN_EXAMPLE_GL=ON \
+            -DPLUGIN_EXAMPLE_IO=ON \
+            -DPLUGIN_EXAMPLE_STANDARD=ON \
+            -DPLUGIN_GL_QEDL=ON \
+            -DPLUGIN_GL_QSSAO=ON \
+            -DPLUGIN_IO_QADDITIONAL=ON \
+            -DPLUGIN_IO_QCORE=ON \
+            -DPLUGIN_IO_QE57=ON \
+            -DPLUGIN_IO_QPHOTOSCAN=ON \
+            -DPLUGIN_IO_QPDAL=ON \
+            -DPLUGIN_IO_QRDB=ON \
+            -DPLUGIN_IO_QRDB_FETCH_DEPENDENCY=ON \
+            -DPLUGIN_IO_QRDB_INSTALL_DEPENDENCY=ON \
+            -DPLUGIN_STANDARD_QANIMATION=ON \
+            -DQANIMATION_WITH_FFMPEG_SUPPORT=${{ matrix.config.compile_qanimation_with_ffmpeg }} \
+            -DPLUGIN_STANDARD_QBROOM=ON \
+            -DPLUGIN_STANDARD_QCANUPO=OFF \
+            -DPLUGIN_STANDARD_QCOMPASS=ON \
+            -DPLUGIN_STANDARD_QCSF=ON \
+            -DPLUGIN_STANDARD_QFACETS=ON \
+            -DPLUGIN_STANDARD_QHOUGH_NORMALS=ON \
+            -DPLUGIN_STANDARD_QHPR=ON \
+            -DPLUGIN_STANDARD_QM3C2=ON \
+            -DPLUGIN_STANDARD_QPCV=ON \
+            -DPLUGIN_STANDARD_QPOISSON_RECON=ON \
+            -DPLUGIN_STANDARD_QSRA=ON \
+            -DPLUGIN_STANDARD_QRANSAC_SD=${{ matrix.config.compile_qransac }} \
+            -DPLUGIN_STANDARD_QPCL=${{ matrix.config.compile_qpcl }} \
+            .
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Install (macOs)
+        if: matrix.config.os == 'macos-latest'
+        run: sudo cmake --install build
+
+      - name: Install (Windows)
+        if: matrix.config.os == 'windows-latest'
+        run: cmake --install build
+
+  ubuntu-build:
+    name: Ubuntu ${{ matrix.compiler }} SCALAR_DOUBLE=${{ matrix.scalar_double }}
+    runs-on: ubuntu-20.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scalar_double: [ "OFF", "ON" ]
+        compiler: ["GCC", "Clang"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      - name: Install Dependencies
+        run: >
+          sudo apt-get update -qq
+
+          sudo apt-get install -qy cmake ninja-build
+          libqt5svg5-dev libqt5opengl5-dev qt5-default qttools5-dev qttools5-dev-tools libqt5websockets5-dev
+          libtbb-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+          libboost-program-options-dev libboost-thread-dev
+          libeigen3-dev
+          libcgal-dev libcgal-qt5-dev libgdal-dev libpcl-dev
+          libdlib-dev libproj-dev libxerces-c-dev xvfb libpdal-dev libjsoncpp-dev
+
+      - name: Setup GCC
+        if: matrix.compiler == 'GCC'
+        run: |
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+
+      - name: Setup Clang
+        if: matrix.compiler == 'Clang'
+        run: |
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+      - name: Configure cmake
+        run: >
+          mkdir build
+
+          cmake
+          -B build
+          -S .
+          -G Ninja
+          -DEIGEN_ROOT_DIR=/usr/include/eigen3
+          -DJSON_ROOT_DIR=/usr/include/jsoncpp
+          -DDLIB_ROOT=/usr/include
+          -DCCCORELIB_SCALAR_DOUBLE=${{ matrix.scalar_double }}
+          -DCCCORELIB_USE_TBB=ON
+          -DPLUGIN_EXAMPLE_GL=ON
+          -DPLUGIN_EXAMPLE_IO=ON
+          -DPLUGIN_EXAMPLE_STANDARD=ON
+          -DPLUGIN_GL_QEDL=ON
+          -DPLUGIN_GL_QSSAO=ON
+          -DPLUGIN_IO_QADDITIONAL=ON
+          -DPLUGIN_IO_QCORE=ON
+          -DPLUGIN_IO_QE57=ON
+          -DPLUGIN_IO_QPHOTOSCAN=ON
+          -DPLUGIN_IO_QPDAL=ON
+          -DPLUGIN_IO_QRDB=ON
+          -DPLUGIN_IO_QRDB_FETCH_DEPENDENCY=ON
+          -DPLUGIN_IO_QRDB_INSTALL_DEPENDENCY=ON
+          -DPLUGIN_STANDARD_QANIMATION=ON
+          -DQANIMATION_WITH_FFMPEG_SUPPORT=ON
+          -DPLUGIN_STANDARD_QBROOM=ON
+          -DPLUGIN_STANDARD_QCANUPO=ON
+          -DPLUGIN_STANDARD_QCOMPASS=ON
+          -DPLUGIN_STANDARD_QCSF=ON
+          -DPLUGIN_STANDARD_QFACETS=ON
+          -DPLUGIN_STANDARD_QHOUGH_NORMALS=ON
+          -DPLUGIN_STANDARD_QHPR=ON
+          -DPLUGIN_STANDARD_QM3C2=ON
+          -DPLUGIN_STANDARD_QPCV=ON
+          -DPLUGIN_STANDARD_QPOISSON_RECON=ON
+          -DPLUGIN_STANDARD_QSRA=ON
+          -DPLUGIN_STANDARD_QRANSAC_SD=ON
+          -DPLUGIN_STANDARD_QPCL=ON
+          -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: xvfb-run ctest --test-dir build
+
+      - name: Install
+        run: sudo cmake --install build

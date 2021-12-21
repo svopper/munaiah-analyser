@@ -1,0 +1,26 @@
+name: Lint
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: "Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-pipenv
+
+      - name: flake8
+        run: pipenv run flake8
+
+      - name: Django
+        run: pipenv run python manage.py check

@@ -1,0 +1,83 @@
+name: 🧹 Static Tests
+
+on:
+  push:
+    branches:
+      - master
+      - release-**
+  pull_request:
+    branches:
+      - master
+      - release-**
+
+jobs:
+  license_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Requirements
+        run: |
+          sudo apt install -y \
+              cpanminus
+            cpanm --notest App::Licensecheck
+
+      - name: Run License Check
+        run: ./scripts/test_licenses.sh
+
+  banned_keywords_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Banned Keywords Test
+        run: ./scripts/test_banned_keywords.sh
+
+  cppcheck-1_8:
+    runs-on: ubuntu-18.04 # cppcheck 1.8 shows some errors 1.9 does not show
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Requirements
+        run: |
+          sudo apt install -y cppcheck
+      - name: Run cppcheck test
+        run: ./scripts/cppcheck.sh
+
+  cppcheck-1_9:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Requirements
+        run: |
+          sudo apt install -y cppcheck
+      - name: Run cppcheck test
+        run: ./scripts/cppcheck.sh
+
+  qfield-sdk-check:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check sdk pattern
+        run: |
+          grep -E 'osgeo4a_version=2[0-9]{7}' sdk.conf
+
+  pre-commit:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Requirements
+        run: |
+            sudo apt install -y \
+              shellcheck \
+              astyle
+
+      - name: Check pre-commit hooks
+        uses: pre-commit/action@v2.0.3

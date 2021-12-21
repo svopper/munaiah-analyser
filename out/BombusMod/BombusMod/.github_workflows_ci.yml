@@ -1,0 +1,13 @@
+name: Gradle CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: ./gradlew --no-daemon check -PenableIOS=true -PenableDesktop=true

@@ -1,0 +1,26 @@
+name: Verify Build
+on:
+  push:
+    branches: 
+      - master
+      - release/*
+  pull_request:
+    branches: 
+      - master
+      - release/*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup dotnet 3.1.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.x'
+    - name: Setup dotnet 5.0.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+    - name: Build with dotnet
+      run: dotnet publish --configuration Release

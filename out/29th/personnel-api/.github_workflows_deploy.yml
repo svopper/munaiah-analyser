@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      
+    - name: Build container image
+      run: docker build -t $GITHUB_REPOSITORY:latest .
+
+    - name: Login to docker hub
+      run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Push image to docker hub
+      run: docker push $GITHUB_REPOSITORY
+
+    - name: Pull latest image to server and recreate container
+      uses: appleboy/ssh-action@v0.0.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        envs: GITHUB_SHA
+        script: |
+          cd /usr/local/src
+          docker-compose pull api
+          docker-compose up -d api

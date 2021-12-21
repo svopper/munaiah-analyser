@@ -1,0 +1,49 @@
+name: Generate module
+# This workflow is triggered after standalone generator is built using an external event
+on: repository_dispatch
+# you could also trigger it on pushes to the repository
+#on:
+#  push:
+#    branches-ignore:
+#      - generator-update
+# you could also just run it regularly
+#on:
+#  schedule:
+#    - cron:  '0 */12 * * *' # run every 12 hours
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources from main branch
+      uses: actions/checkout@v2
+      with:
+        ref: main
+
+    # see https://github.com/Guite/generator-action/
+    - name: Call standalone generator
+      uses: docker://guite/generator-action:latest
+      with:
+        args: Pages.mostapp Zikula/PagesModule "src/" true
+
+    - name: Set output variables
+      id: vars
+      run: |
+        echo ::set-output name=pr_title::"⬆️ generator update $(date +%d-%m-%Y)"
+        echo ::set-output name=pr_body::"This PR was auto-generated on $(date +%d-%m-%Y) \
+          with latest generator using [generator-action](https://github.com/Guite/generator-action/) :tada:"
+
+    # see https://github.com/peter-evans/create-pull-request
+    - name: Commit changes and create/update pull request
+      id: cpr
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: '⬆️ update generated code'
+        title: ${{ steps.vars.outputs.pr_title }}
+        body: ${{ steps.vars.outputs.pr_body }}
+        branch: generator-update
+
+    - name: Check outputs
+      run: |
+        echo "Pull Request Number: ${{ steps.cpr.outputs.pull-request-number }}"
+        echo "Pull Request URL: ${{ steps.cpr.outputs.pull-request-url }}"

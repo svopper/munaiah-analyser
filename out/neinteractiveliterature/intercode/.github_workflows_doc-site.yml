@@ -1,0 +1,43 @@
+name: Doc site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  publish-doc-site:
+    name: Publish doc site
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up yarn cache
+      uses: actions/cache@v2
+      id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      with:
+        path: .yarn/cache
+        key: ${{ runner.os }}-doc-site-yarn-${{ github.ref }}-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-doc-site-yarn-${{ github.ref }}-
+          ${{ runner.os }}-doc-site-yarn-
+    - name: install node v14
+      uses: actions/setup-node@v2
+      with:
+        node-version: 14
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+    - name: yarn install
+      run: yarn install
+    - name: Generate GraphQL schema
+      run: bin/rails graphql:schema:dump
+    - name: Build doc site
+      run: cd doc-site && yarn run docusaurus graphql-to-doc -f && yarn run build
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./doc-site/build
+        cname: intercode.interactiveliterature.org

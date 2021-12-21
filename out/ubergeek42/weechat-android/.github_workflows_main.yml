@@ -1,0 +1,138 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  run-tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Run tests
+        run: ./gradlew --no-daemon test
+
+  build-dev-release:
+    name: Build release apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # https://github.com/actions/checkout/issues/290
+      - name: Fetch tag annotations
+        run: git fetch --tags --force
+
+      - name: Set version code based on git commit count
+        run: |
+          versionCode=$(git rev-list HEAD --first-parent --count)
+          sed -i "s/versionCode.*/versionCode = $versionCode/" app/build.gradle.kts
+          echo Using version code: $versionCode
+
+      - name: Build dev release
+        run: ./releases/travis_build.sh
+        env:
+          JAVA_OPTS: -XX:MaxMetaspaceSize=512m
+          DEVKEYPASSWORD: ${{secrets.DEVKEYPASSWORD}}
+          DEVSTOREPASSWORD: ${{secrets.DEVSTOREPASSWORD}}
+          DEVSTOREFILE: /home/runner/work/weechat-android/weechat-android/releases/android.jks
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-outputs
+          path: app/build/outputs/
+          if-no-files-found: error
+
+  publish-to-s3:
+    name: Publish to S3
+    runs-on: ubuntu-latest
+    if: |
+      !contains(github.event.head_commit.message, 'no-publish') &&
+      contains('push workflow_dispatch', github.event_name) &&
+      github.repository == 'ubergeek42/weechat-android'
+    needs: [run-tests, build-dev-release]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-outputs
+          path: app/build/outputs/
+
+      - name: Publish build to S3
+        run: ./releases/publish_s3.sh
+        env:
+          S3_ACCESS_KEY: ${{secrets.S3_ACCESS_KEY}}
+          S3_SECRET_KEY: ${{secrets.S3_SECRET_KEY}}
+          S3_BUCKET: weechat-android.ubergeek42.com
+
+  publish-to-play-store:
+    name: Publish to Play Store
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: publish-to-s3
+    steps:
+      - name: Prepare environment
+        run: |
+          pip install --upgrade pip
+          pip install --user --upgrade google-api-python-client oauth2client httplib2 pyOpenSSL
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-outputs
+          path: app/build/outputs/
+
+      - name: Decrypt Play Store key
+        run: >-
+          openssl aes-256-cbc
+          -K ${{secrets.encrypted_6a3fa2e8cfe5_key}}
+          -iv ${{secrets.encrypted_6a3fa2e8cfe5_iv}}
+          -in releases/google-play-key.p12.enc
+          -out releases/google-play-key.p12 -d
+
+      - name: Publish to Play Store
+        run: ./releases/publish_playstore_v3.py
+        env:
+          GOOGLEPLAY_ACCT_EMAIL: ${{secrets.GOOGLEPLAY_ACCT_EMAIL}}
+
+  notify_to_irc:
+    name: Notify on IRC
+    runs-on: ubuntu-latest
+    if: ${{always() && github.repository == 'ubergeek42/weechat-android'}}
+    needs: [run-tests, build-dev-release, publish-to-s3, publish-to-play-store]
+    steps:
+      - name: Prepare strings
+        id: prepare
+        run: |
+          status="tests ${{needs.run-tests.result}}, build ${{needs.build-dev-release.result}}, "
+          status+="s3 ${{needs.publish-to-s3.result}}, play store ${{needs.publish-to-play-store.result}}"
+          status="${status//success/✔️}"
+          status="${status//failure/$'\x03'04❌$'\x0f'}"
+          status="${status//cancelled/✖️}"
+          status="${status//skipped/➖}"
+          echo ::set-output name=status::"$status"
+          echo ::set-output name=sha7::"${GITHUB_SHA::7}"
+          echo ::set-output name=short-ref::"${GITHUB_REF##*/}"
+
+      - name: Notify on IRC
+        uses: Gottox/irc-message-action@main
+        with:
+          nickname: wa-github
+          channel: '#weechat-android'
+          message: |-
+            #${{github.run_number}} (${{steps.prepare.outputs.sha7}} @ ${{steps.prepare.outputs.short-ref}} by ${{github.actor}}): ${{steps.prepare.outputs.status}}
+            Message: ${{github.event.head_commit.message}}

@@ -1,0 +1,99 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+    - '*'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  ramtest:
+    runs-on: ubuntu-latest
+    container: ghcr.io/muhkuh-sys/mbs_ubuntu_2004_x86_64:latest
+    steps:
+    - name: Checkout repository
+      # Use the old checkout v1 here. The newer v2 requires git 2.28 which is not available in the standard distribution.
+      uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: Build netX firmware
+      run: python3 mbs/mbs
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: ramtest
+        path: targets/jonchki/repository
+  ramtestcli:
+    needs: ramtest
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - # Ubuntu 16.04 x86
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_1604_x86:latest
+          distribution-id: ubuntu
+          distribution-version: "16.04"
+          cpu-architecture: x86
+        - # Ubuntu 16.04 x86_64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_1604_x86_64:latest
+          distribution-id: ubuntu
+          distribution-version: "16.04"
+          cpu-architecture: x86_64
+        - # Ubuntu 18.04 x86
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_1804_x86:latest
+          distribution-id: ubuntu
+          distribution-version: "18.04"
+          cpu-architecture: x86
+        - # Ubuntu 18.04 x86_64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_1804_x86_64:latest
+          distribution-id: ubuntu
+          distribution-version: "18.04"
+          cpu-architecture: x86_64
+        - # Ubuntu 18.04 arm64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_1804_x86_64:latest
+          distribution-id: ubuntu
+          distribution-version: "18.04"
+          cpu-architecture: arm64
+        - # Ubuntu 20.04 x86_64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_2004_x86_64:latest
+          distribution-id: ubuntu
+          distribution-version: "20.04"
+          cpu-architecture: x86_64
+        - # Ubuntu 20.04 arm64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_2004_x86_64:latest
+          distribution-id: ubuntu
+          distribution-version: "20.04"
+          cpu-architecture: arm64
+        - # Windows x86
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_2004_x86_64:latest
+          distribution-id: windows
+          distribution-version: ""
+          cpu-architecture: x86
+        - # Windows x86_64
+          image: ghcr.io/muhkuh-sys/mbs_ubuntu_2004_x86_64:latest
+          distribution-id: windows
+          distribution-version: ""
+          cpu-architecture: x86_64
+    container: ${{ matrix.platform.image }}
+    steps:
+    - name: Checkout repository
+      # Use the old checkout v1 here. The newer v2 requires git 2.28 which is not available in the standard distribution.
+      uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: Download firmware
+      # Use the old download-artifact v1 here. The newer v2 does not work with 32bit containers.
+      uses: actions/download-artifact@v1
+      with:
+        name: ramtest
+        path: targets/jonchki/repository
+    - name: Build
+      run: ./build_artifact.py ${{ matrix.platform.distribution-id }} ${{ matrix.platform.distribution-version }} ${{ matrix.platform.cpu-architecture }}
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: ramtest_cli_${{ matrix.platform.distribution-id }}_${{ matrix.platform.distribution-version }}_${{ matrix.platform.cpu-architecture }}
+        path: targets/ramtest_cli

@@ -1,0 +1,24 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-20.04]
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: install dependencies and build
+      run: |
+        source ./install-dependencies.sh
+        make
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pff-extract-${{ matrix.os }}
+        path: pff-extract
+    - name: run tests
+      run: cd tests && ./test_no_crash.sh

@@ -1,0 +1,93 @@
+name: afrika-run-backend (GCR)
+
+concurrency: my-no-concurrency-group
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-cloud-run.yml'
+      - '!**/*.md'
+
+env:
+  DOCKER_REGISTY: eu.gcr.io
+  PROJECT_ID: ${{ secrets.GCR_PROJECT_ID }}
+  RUN_REGION: europe-west1
+  CONTAINER_NAME: virtual-run-backend
+  GCR_SERVICE_NAME: afrika-run
+  MONGODB_USER: ${{ secrets.MONGODB_USER }}
+  MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+
+defaults:
+  run:
+    working-directory: ./backend
+
+jobs:
+  build:
+    name: Build - Push - Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          # version of gcloud - defaults to latest
+          # version: '290.0.0'
+          service_account_email: ${{ secrets.GOOGLE_CLOUD_RUN_SA_EMAIL }}
+          service_account_key: ${{ secrets.GOOGLE_CLOUD_RUN_SA_KEY }}
+          project_id: ${{ secrets.GCR_PROJECT_ID }}
+
+      - name: Setup gcloud docker auth
+        run: gcloud auth configure-docker $DOCKER_REGISTY
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+# TODO: re-enable
+#      - name: build and verify native with Maven
+#        run: |-
+#          ./mvnw clean package -Pnative \
+#            -Dquarkus.native.container-build=true
+
+      - name: build, create container and push to docker-registry with Maven
+        run: |-
+          ./mvnw clean package \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.push=true \
+            -Dquarkus.container-image.group=$PROJECT_ID \
+            -Dquarkus.container-image.tag=$GITHUB_SHA \
+            -Dquarkus.container-image.registry=$DOCKER_REGISTY \
+            -Dquarkus.jib.base-jvm-image=adoptopenjdk/openjdk11:jre
+
+      - name: Deploy image to Cloud Run
+        run: |-
+          gcloud run deploy "$GCR_SERVICE_NAME" \
+            --quiet \
+            --region="$RUN_REGION" \
+            --image="$DOCKER_REGISTY/$PROJECT_ID/$CONTAINER_NAME:$GITHUB_SHA" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --concurrency=20 \
+            --cpu=1000m \
+            --max-instances=1 \
+            --memory=256Mi \
+            --port=8080 \
+            --timeout=900s \
+            --no-traffic \
+            --set-env-vars="MONGODB_USER=$MONGODB_USER,MONGODB_PASSWORD=$MONGODB_PASSWORD"
+
+      - name: Cleanup Google Container Registry
+        run: ./cleanup-google-container-registry.sh "$DOCKER_REGISTY/$PROJECT_ID/$CONTAINER_NAME" 4

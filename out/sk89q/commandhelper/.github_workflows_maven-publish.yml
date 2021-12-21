@@ -1,0 +1,88 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+
+name: Maven Package
+
+on:
+  push:
+    branches: [ master ]
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 16
+      uses: actions/setup-java@v2
+      with:
+        java-version: '16'
+        distribution: 'adopt'
+    - name: Build with Maven
+      run: sudo -- sh -c "export methodscript_run_llvm_integration_tests=1 && export PATH=$JAVA_HOME/bin:\$PATH && export JAVA_HOME=$JAVA_HOME && mvn -version && mvn -B package --file pom.xml -Pfail-on-test-failures"
+  build_windows:
+    runs-on: windows-latest
+    env:
+      methodscript_run_llvm_integration_tests: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 16
+      uses: actions/setup-java@v2
+      with:
+        java-version: '16'
+        distribution: 'adopt'
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml -Pfail-on-test-failures
+  build_mac:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 16
+      uses: actions/setup-java@v2
+      env:
+        methodscript_run_llvm_integration_tests: 1
+      with:
+        java-version: '16'
+        distribution: 'adopt'
+    - name: Build with Maven
+      run: mvn -version && mvn -B package --file pom.xml -Pfail-on-test-failures
+  publish:
+    needs:
+      - build_windows # For now only windows, eventually all 3, once they're stable.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 16
+      uses: actions/setup-java@v2
+      with:
+        java-version: '16'
+        distribution: 'adopt'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+    - uses: actions/checkout@v2
+    - name: Find and Replace
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        input: "plugin.yml"
+        find: 'version: "\${project\.version}"'
+        replace: 'version: "${project.version}-${{ github.RUN_NUMBER }}"'
+    - name: Package Build
+      run: mvn package
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: Upload to Blob Store
+      uses: bacongobbler/azure-blob-storage-upload@v1.2.0
+      with:
+        source_dir: target
+        container_name: commandhelperjar
+        connection_string: ${{ secrets.BlobStoreConnectionString }}
+        extra_args: --pattern commandhelper*-full.jar --destination-path build-${{ github.RUN_NUMBER }}
+        sync: false
+    - uses: LadyCailin/azure-table-storage-upload@v1.0.0
+      with:
+        table_name: BuildInfo
+        partition_key: commandhelperjar
+        row_key: build-${{ github.RUN_NUMBER }}
+        data: "SHA=${{ github.SHA }}"
+        connection_string: ${{ secrets.BlobStoreConnectionString }}

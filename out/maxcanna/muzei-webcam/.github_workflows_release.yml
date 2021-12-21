@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Install JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Setup Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk-linux/licenses
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/android-sdk-linux/licenses/android-sdk-license
+      - name: Cache Gradle packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Get google-services.json
+        run:  echo ${{ secrets.GOOGLE_SERVICES_JSON }} | base64 -d > MuzeiWebcam/google-services.json
+      - name: Build
+        run: |
+          ./gradlew assembleRelease
+      - name: Set env vars
+        run: |
+          ./gradlew getVersionNumber
+          echo VERSION_NUMBER=$(cat MuzeiWebcam/versionNumber) >> $GITHUB_ENV
+          echo APK_NAME=$(cat MuzeiWebcam/versionNumber | cut -c 2-6) >> $GITHUB_ENV
+          echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
+          git log --reverse --no-merges --format='- %s' $(git log --merges --format='%H' -n 2)..HEAD -- >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Create release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: MuzeiWebcam/build/outputs/apk/release/MuzeiWebcam-release-unsigned.apk
+          asset_name: MuzeiWebcam.${{ env.APK_NAME }}.apk
+          release_name: ${{ env.VERSION_NUMBER }}
+          tag: ${{ env.VERSION_NUMBER }}
+          overwrite: true
+          body: ${{ env.RELEASE_NOTES }}

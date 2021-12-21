@@ -1,0 +1,20 @@
+name: Rubocop
+on: [push]
+
+jobs:
+  rubocop:
+    name: Rubocop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler: 'none'
+      - name: Install rubocop
+        run: |
+          gem install rubocop-rails rubocop-performance rubocop-packaging
+      - name: 'Run Rubocop'
+        run: |
+          rubocop --format github

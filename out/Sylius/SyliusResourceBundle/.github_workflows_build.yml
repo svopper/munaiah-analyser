@@ -1,0 +1,114 @@
+name: Build
+
+on:
+    push: ~
+    pull_request: ~
+    release:
+        types: [created]
+    schedule:
+        -
+            cron: "0 1 * * 6" # Run at 1am every Saturday
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        name: "PHP ${{ matrix.php }}${{ matrix.symfony != '' && format(', Symfony {0}', matrix.symfony) || '' }}${{ matrix.twig != '' && format(', Twig {0}', matrix.twig) || '' }}${{ matrix.winzou != '' && format(', Winzou {0}', matrix.winzou) || '' }}${{ matrix.composer-flags != '' && format(', Composer with {0}', matrix.composer-flags) || '' }}"
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -
+                        php: 7.4
+                        symfony: ^4.4
+                    -
+                        php: 7.4
+                        symfony: ^5.2
+                    -
+                        php: 8.0
+                        symfony: ^4.4
+                    -
+                        php: 8.0
+                        symfony: ^5.2
+                    -
+                        php: 7.4
+                        symfony: ^4.4
+                        twig: ^2.12
+                    -
+                        php: 7.4
+                        symfony: ^5.2
+                        twig: ^3.0
+
+        steps:
+            -
+                uses: actions/checkout@v2
+
+            -
+                name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: "${{ matrix.php }}"
+                    coverage: none
+
+            -
+                name: Restrict Symfony version
+                if: matrix.symfony != ''
+                run: |
+                    composer global require --no-progress --no-scripts --no-plugins "symfony/flex:^1.10"
+                    composer config extra.symfony.require "${{ matrix.symfony }}"
+                    (cd src/Component && composer config extra.symfony.require "${{ matrix.symfony }}")
+
+            -
+                name: Restrict twig/twig version
+                if: matrix.twig != ''
+                run: composer require "twig/twig:${{ matrix.twig }}" --no-update --no-scripts
+
+            -
+                name: Install dependencies
+                run: |
+                    composer update ${{ matrix.composer-flags }} --no-scripts
+                    (cd src/Component && composer update ${{ matrix.composer-flags }} --no-scripts)
+
+            -
+                name: Prepare test application
+                run: |
+                    (cd src/Bundle/test && bin/console doctrine:database:create)
+                    (cd src/Bundle/test && bin/console doctrine:schema:create)
+
+            -
+                name: Run analysis
+                run: |
+                    composer analyse
+                    (cd src/Component && composer validate --strict)
+
+            -
+                name: Run component tests
+                run: (cd src/Component && vendor/bin/phpspec run)
+
+            -
+                name: Run bundle tests
+                run: composer test
+
+            -
+                name: Run lint container
+                run: (cd src/Bundle/test && bin/console lint:container)
+
+            -
+                name: Run smoke tests without friendsofsymfony/rest-bundle willdurand/hateoas-bundle jms/serializer-bundle packages
+                run: |
+                    composer remove friendsofsymfony/rest-bundle willdurand/hateoas-bundle jms/serializer-bundle --no-scripts ${{ matrix.composer-flags }}
+                    (cd src/Bundle/test && bin/console cache:clear --env=test_without_fosrest)
+                    composer require friendsofsymfony/rest-bundle willdurand/hateoas-bundle jms/serializer-bundle --no-scripts ${{ matrix.composer-flags }}
+
+            -
+                name: Run smoke tests without winzou/state-machine-bundle package
+                run: |
+                    composer remove winzou/state-machine-bundle --no-scripts ${{ matrix.composer-flags }}
+                    (cd src/Bundle/test && bin/console cache:clear --env=test_without_state_machine)
+                    composer require winzou/state-machine-bundle --no-scripts ${{ matrix.composer-flags }}
+
+            -
+                name: Run smoke tests without twig/twig package
+                run: |
+                    composer remove symfony/twig-bundle --no-scripts ${{ matrix.composer-flags }}
+                    (cd src/Bundle/test && bin/console cache:clear --env=test_without_twig)
+                    composer require symfony/twig-bundle --no-scripts ${{ matrix.composer-flags }}

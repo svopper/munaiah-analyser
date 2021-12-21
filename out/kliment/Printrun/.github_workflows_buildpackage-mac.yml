@@ -1,0 +1,60 @@
+name: Build macOS app
+
+on:
+  push:
+  pull_request:
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest]
+        architecture: [x64]
+        python-version: [3.8]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        architecture: ${{ matrix.architecture }}
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip pyinstaller setuptools wheel cython cffi -r requirements.txt
+    - name: Build Cython ext
+      run: |
+        python setup.py build_ext --inplace
+    - name: Make pyinstaller spec
+      run: |
+        pyi-makespec --hidden-import="pkg_resources.py2_warn" -F --add-data images/\*:images --add-data \*.png:. --add-data \*.ico:. -w -i P-face.icns pronterface.py
+        # Edit spec file
+        export git_hash=$(git rev-parse --short "$GITHUB_SHA")
+        sed -i '' '$ s/.$//' pronterface.spec
+        cat >> pronterface.spec <<EOL
+        ,
+        info_plist={
+            'CFBundleShortVersionString': '$git_hash',
+            'NSPrincipalClass': 'NSApplication',
+            'NSAppleScriptEnabled': False,
+            'NSAppSleepDisabled': True,
+          },
+        )
+        EOL
+    - name: Make pyinstaller build
+      run: |
+        pyinstaller --clean pronterface.spec -y
+        # Zip app manually to avoid losing execute permissions for binary file in app
+        cd dist
+        zip -r -X pronterface-app.zip pronterface.app
+    - name: Upload artifacts for inspection
+      uses: actions/upload-artifact@v2
+      with:
+        name: macosapp_${{ matrix.os }}_${{ matrix.architecture }}_${{ matrix.python-version }}
+        path: dist/pronterface-app.zip

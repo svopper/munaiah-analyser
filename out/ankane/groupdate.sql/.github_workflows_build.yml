@@ -1,0 +1,44 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - postgres: 13
+          mysql: 8
+          os: ubuntu-latest
+        - postgres: 11
+          mariadb: 10.5
+          os: ubuntu-latest
+        - postgres: 9.6
+          mysql: 5.7
+          os: ubuntu-18.04
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.0
+        bundler-cache: true
+    - uses: ankane/setup-postgres@v1
+      with:
+        postgres-version: ${{ matrix.postgres }}
+        database: groupdatesql_test
+
+    - if: ${{ matrix.mysql }}
+      uses: ankane/setup-mysql@v1
+      with:
+        mysql-version: ${{ matrix.mysql }}
+        database: groupdatesql_test
+
+    - if: ${{ matrix.mariadb }}
+      uses: ankane/setup-mariadb@v1
+      with:
+        mariadb-version: ${{ matrix.mariadb }}
+        database: groupdatesql_test
+
+    - run: mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql
+    - run: bundle exec rake test

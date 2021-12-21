@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: ['2.5', '2.6', '2.7']
+        rails: ['4.2', '5.0', '5.1', '5.2', '6.0', '6.1']
+        task: [test]
+        include:
+        # run rubocop against lowest supported ruby
+        - ruby: '2.5'
+          rails: '6.1'
+          task: rubocop
+        exclude:
+        - ruby: '2.6'
+          rails: '4.2'
+          task: test
+        - ruby: '2.7'
+          rails: '4.2'
+          task: test
+    name: ruby${{ matrix.ruby }} rails${{ matrix.rails }} rake ${{ matrix.task }}
+    steps:
+    - uses: zendesk/checkout@v2
+    - uses: zendesk/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+      env:
+        BUNDLE_GEMFILE: gemfiles/rails${{ matrix.rails }}.gemfile
+    - run: bundle exec rake ${{ matrix.task }}
+      env:
+        BUNDLE_GEMFILE: gemfiles/rails${{ matrix.rails }}.gemfile

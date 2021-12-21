@@ -1,0 +1,38 @@
+name: Default
+
+on: [ push, pull_request ]
+
+jobs:
+        default:
+                runs-on: ubuntu-18.04
+                strategy:
+                        matrix:
+                                php: [ 7.4 ]
+
+                name: Default checks with php ${{ matrix.php }}
+                steps:
+                        - name: Start mysql server
+                          run: sudo systemctl start mysql.service
+                        - name: Check out repo
+                          uses: actions/checkout@v2
+                        - name: Initialize mysql database
+                          run: |
+                                mysql -uroot -proot -e "CREATE DATABASE cchits_ci DEFAULT CHARACTER SET 'utf8' DEFAULT COLLATE 'utf8_general_ci'"
+                                mysql -uroot -proot -e "CREATE USER 'cchits_ci'@'localhost' IDENTIFIED BY 'cchits_ci'"
+                                mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON cchits_ci.* TO 'cchits_ci'@'localhost'"
+                                mysql -uroot -proot -e "USE cchits_ci; SOURCE ci/sql/cchits.sql;"
+                        - name: Copy configuration file
+                          run: cp ci/conf/CI_CONFIG.php CONFIG/LOCAL_CONFIG.php
+                        - name: Install PHP
+                          uses: shivammathur/setup-php@v2
+                          with:
+                                php-version: ${{ matrix.php }}
+                        - name: Install phpunit
+                          run: sudo apt install phpunit phpunit-dbunit
+                        - name: Check PHP Version
+                          run: php -v
+                        - name: Run phpcs
+                          run: php ci/phpcs/phpcs.phar --standard=ci/phpcs CLASSES/
+                        - name: Run phpunit
+                          run: phpunit --configuration ci/conf/travis.xml --bootstrap CLASSES/autoloader.php TESTS/
+

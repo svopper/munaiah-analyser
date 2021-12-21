@@ -1,0 +1,58 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Tycho build with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up JDK 16
+      uses: actions/setup-java@v2
+      with:
+       distribution: 'adopt'
+       java-version: '16'
+    
+    - name: Cache Maven packages
+      uses: actions/cache@v2.1.4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2    
+    
+    - name: Build with Maven
+      run: mvn clean verify
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          *.zip
+          com.vogella.tasks.product/target/products/com.vogella.tasks-*.x86_64.zip
+    
+    - name: Publish p2 update site to repo located at vogellacompany/eclipse4book-updatesite 
+      env:
+        ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+      run: |
+          git clone https://user:$ACTION_TOKEN@github.com/vogellacompany/eclipse4book-updatesite # This works
+          cd eclipse4book-updatesite
+          git config user.name "Lars Vogel"
+          git config user.email "Lars.Vogel@vogella.com"
+          rm -fr *
+          cp -r ../releng-updatesite/target/repository/* .
+          git add .
+          git commit -m "New version of the update site"
+          git push -f https://vogella:$ACTIONS_TOKEN@github.com/vogellacompany/eclipse4book-updatesite HEAD:main
+

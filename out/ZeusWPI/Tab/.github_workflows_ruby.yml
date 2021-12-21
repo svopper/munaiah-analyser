@@ -1,0 +1,28 @@
+name: Ruby
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.5
+  
+    - name: Install bundler
+      run: gem install bundler -v "$(grep -A 1 BUNDLED.WITH Gemfile.lock | tail -n 1)"
+      
+    - name: Install deps
+      run: bundle install --deployment
+      
+    - run: RAILS_ENV=test bundle exec rake db:create
+    - run: RAILS_ENV=test bundle exec rake db:schema:load
+    - run: bundle exec rake

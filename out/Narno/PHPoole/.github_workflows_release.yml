@@ -1,0 +1,156 @@
+name: 'Release cecil.phar'
+
+env:
+  PHP_VERSION: '7.4'
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  test_and_build:
+    name: Build cecil.phar
+    runs-on: ubuntu-latest
+    outputs:
+      previous_release: ${{ steps.previous_release.outputs.tag }}
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Get previous release
+      id: previous_release
+      run: |
+        echo ::set-output name=tag::$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1  --max-count=1`)
+
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, intl, gettext, fileinfo
+        coverage: none
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          vendor
+          tests/fixtures/website/themes
+        key: composer-ubuntu-latest-php-${{ env.PHP_VERSION }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          composer-ubuntu-latest-php-${{ env.PHP_VERSION }}-
+
+    - name: Validate composer.json
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: composer validate
+
+    - name: Install dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: composer install --prefer-dist --no-progress
+
+    - name: Run build test
+      run: composer run-script test
+
+    - name: Write version
+      run: |
+        echo "${GITHUB_REF#refs/tags/}" > VERSION
+
+    - name: Build cecil.phar
+      run: composer run-script box
+
+    - name: Test cecil.phar
+      run: |
+        cd dist
+        mkdir skeleton
+        php cecil.phar new:site skeleton -f
+        php cecil.phar build skeleton
+        php cecil.phar show:content skeleton
+        rm -rf skeleton
+
+    - name: Test cecil.phar (debug on)
+      env:
+        CECIL_DEBUG: 'true'
+      run: |
+        cd dist
+        mkdir skeleton
+        php cecil.phar new:site skeleton -f
+        php cecil.phar build skeleton -vvv
+        php cecil.phar show:content skeleton
+
+    - name: Upload cecil.phar
+      uses: actions/upload-artifact@v2
+      with:
+        name: cecil.phar
+        path: dist/cecil.phar
+        if-no-files-found: error
+
+  deploy_to_github:
+    name: Deploy cecil.phar to GitHub
+    runs-on: ubuntu-latest
+    needs: test_and_build
+
+    steps:
+    - name: Download cecil.phar
+      uses: actions/download-artifact@v2
+      with:
+        name: cecil.phar
+
+    - name: Get release
+      id: release
+      uses: bruceadams/get-release@v1.2.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Add cecil.phar to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release.outputs.upload_url }}
+        asset_path: cecil.phar
+        asset_name: cecil.phar
+        asset_content_type: application/octet-stream
+
+    - name: Generate changelog
+      id: changelog
+      uses: jaywcjlove/changelog-generator@v1.4.2
+      with:
+        base-ref: ${{ needs.test_and_build.outputs.previous_release }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        filter: (^[U|u]pdate|Merge)
+
+    - name: Update release
+      id: update_release
+      uses: tubone24/update_release@v1.2.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        body: |
+          ${{ steps.changelog.outputs.changelog }}
+          ${{ steps.changelog.outputs.compareurl }}
+
+  deploy_to_website:
+    name: Deploy cecil.phar to website
+    runs-on: ubuntu-latest
+    needs: test_and_build
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Download cecil.phar
+      uses: actions/download-artifact@v2
+      with:
+        name: cecil.phar
+        path: dist
+
+    - name: Push files
+      run: bash ./scripts/deploy-dist.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.REPOS_TOKEN }}

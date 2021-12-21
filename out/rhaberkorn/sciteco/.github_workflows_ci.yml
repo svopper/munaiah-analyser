@@ -1,0 +1,142 @@
+name: Continuous Integration
+
+on: [push, pull_request]
+
+jobs:
+  ubuntu:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+        compiler: ['CC=gcc CXX=g++', 'CC=clang CXX=clang++']
+        interface: [ncurses, gtk]
+
+    # NOTE: The virtual environments already contain both GCC and Clang
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Update Repositories
+      run: sudo apt-get update
+    - name: Install Build Dependencies
+      run: >
+        sudo apt-get install -y
+        build-essential
+        autoconf automake libtool
+        libglib2.0-dev libncurses-dev libgtk-3-dev xvfb
+        groff doxygen
+
+    - name: Configure Build
+      run: |
+        autoreconf -i
+        ./configure --with-interface=${{ matrix.interface }} --enable-debug --enable-html-manual \
+                    ${{ matrix.compiler }}
+
+    # NOTE: xvfb-run emulates an XServer and is required when building
+    # Gtk versions (since SciTECO calls itself during the build).
+    - name: make
+      run: xvfb-run -a make
+    - name: make install
+      run: sudo xvfb-run -a make install
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: xvfb-run -a make check TESTSUITEFLAGS="--verbose"
+    - name: Build Developer Documentation
+      run: cd doc && make devdoc
+    # FIXME: Will try to perform an out-of-tree build which will not
+    # work without manual intervention due to Scintilla.
+#   - name: make distcheck
+#     run: xvfb-run -a make distcheck
+    - name: Build Source Tarball
+      run: make dist
+
+  macos:
+    runs-on: macos-latest
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    # NOTE: macOS already ships with ncurses and
+    # XCode already comes with the autotools.
+    - name: Install Build Dependencies
+      run: brew install autoconf automake libtool glib groff doxygen
+    - name: Configure Build
+      env:
+        # Make sure we don't pick up GCC by accident.
+        CC: clang
+        CXX: clang++
+      run: |
+        autoreconf -i
+        ./configure --with-interface=ncurses --enable-debug --enable-html-manual
+
+    - run: make
+    - run: make install
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: make check TESTSUITEFLAGS="--verbose"
+    - name: Build Developer Documentation
+      run: cd doc && make devdoc
+    # FIXME: Will try to perform an out-of-tree build which will not
+    # work without manual intervention due to Scintilla.
+#   - run: make distcheck
+    - name: Build Source Tarball
+      run: make dist
+
+  win32:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash.exe --login -eo pipefail "{0}"
+    env:
+      MSYSTEM: MINGW32
+      CHERE_INVOKING: 1
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Set Up Shell
+      run: echo C:\msys64\usr\bin\ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+
+    - name: Install Build Dependencies
+      run: >
+        pacman -S --noconfirm --needed
+        base-devel mingw-w64-i686-toolchain
+        mingw-w64-i686-glib2 mingw-w64-i686-pdcurses
+        groff mingw-w64-i686-doxygen
+
+    - name: Configure Build
+      env:
+        PDCURSES_CFLAGS: -I/mingw32/include/pdcurses/
+      run: |
+        autoreconf -i
+        ./configure --with-interface=pdcurses-gui --enable-debug --enable-html-manual
+
+    - run: make
+    - run: make install
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: make check TESTSUITEFLAGS="--verbose"
+    - name: Build Developer Documentation
+      run: cd doc && make devdoc
+    # FIXME: Will try to perform an out-of-tree build which will not
+    # work without manual intervention due to Scintilla.
+#   - run: make distcheck
+    - name: Build Source Tarball
+      run: make dist

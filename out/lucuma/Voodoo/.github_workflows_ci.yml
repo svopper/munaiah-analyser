@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      pytest_addopts:
+        description: Extra options for pytest; use -vv for full details; see
+          https://docs.pytest.org/en/latest/example/simple.html#how-to-change-command-line-options-defaults
+        required: false
+
+env:
+  LANG: "en_US.utf-8"
+  LC_ALL: "en_US.utf-8"
+  PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
+  POETRY_CACHE_DIR: ${{ github.workspace }}/.cache/pypoetry
+  POETRY_VIRTUALENVS_IN_PROJECT: "true"
+  PRE_COMMIT_HOME: ${{ github.workspace }}/.cache/pre-commit
+  PYTEST_ADDOPTS: ${{ github.event.inputs.pytest_addopts }}
+  PYTHONIOENCODING: "UTF-8"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # HACK https://github.com/actions/cache/issues/315
+      - name: Enable msys binaries
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          echo "C:\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          rm C:\msys64\usr\bin\bash.exe
+      - run: git config --global user.name copier-ci
+      - run: git config --global user.email copier@copier
+      - run: git config --global core.autocrlf input
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Needs all tags to compute dynamic version
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: generate cache key PY
+        shell: bash
+        run:
+          echo "PY=$((python -VV; pip freeze) | sha256sum | cut -d' ' -f1)" >>
+          $GITHUB_ENV
+      - uses: actions/cache@v2.1.6
+        with:
+          path: |
+            .cache
+            .venv
+          key:
+            cache|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('pyproject.toml') }}|${{
+            hashFiles('poetry.lock') }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install dependencies
+        run: |
+          python -m pip install poetry poetry-dynamic-versioning
+          poetry install -E docs -v
+      - name: Run pytest
+        run: poetry run poe test --cov=./ --cov-report=xml -ra .
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2.1.0
+        env:
+          OS: ${{ matrix.os }}
+          PYTHON: ${{ matrix.python-version }}
+        with:
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          file: ./coverage.xml
+          flags: unittests
+          name: copier
+
+  publish:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Needs all tags to compute dynamic version
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: generate cache key PY
+        run:
+          echo "PY=$((python -VV; pip freeze) | sha256sum | cut -d' ' -f1)" >>
+          $GITHUB_ENV
+      - uses: actions/cache@v2.1.6
+        with:
+          path: |
+            .cache
+            .venv
+          key:
+            cache|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('pyproject.toml') }}|${{
+            hashFiles('poetry.lock') }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install poetry poetry-dynamic-versioning
+      - name: Build dist
+        run: |
+          poetry build
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_token_copier }}
+          repository_url: https://test.pypi.org/legacy/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token_copier }}

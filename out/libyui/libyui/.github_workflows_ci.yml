@@ -1,0 +1,42 @@
+
+# See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  Package:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/devel/libraries/libyui/containers/libyui-devel:latest
+      options: --privileged
+
+    steps:
+
+    - name: Git Checkout
+      uses: actions/checkout@v2
+
+    # just for easier debugging...
+    - name: Inspect Installed Packages
+      run: rpm -qa | sort
+
+    - name: Packages Build And Install
+      ## uncomment this to enable cmake verbose output
+      # env:
+      #   VERBOSE: "1"
+      run:  scripts/ci-tasks
+
+  NonRoot:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/devel/libraries/libyui/containers/libyui-devel:latest
+      options: --privileged
+
+    steps:
+
+    - name: Git Checkout
+      uses: actions/checkout@v2
+
+    - name: Non-root installation
+      run:  scripts/ci-non-root

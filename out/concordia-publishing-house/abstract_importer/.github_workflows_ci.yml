@@ -1,0 +1,29 @@
+name: Tests
+on: [push]
+
+jobs:
+  ruby:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:10.11
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: abstract_importer_test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+          bundler-cache: true
+      - name: Run the Tests
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/abstract_importer_test
+        run: bundle exec rake test
+

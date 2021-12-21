@@ -1,0 +1,51 @@
+name: Publish the release package to PyPI
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+
+  publish:
+    name: Publish the release package to PyPI
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out the repository
+        uses: actions/checkout@v2.3.5
+
+      - name: Build the package
+        run: docker-compose run -T py-build
+
+      - name: Publish the package to PyPI
+        run: docker-compose run -T twine-upload
+        env:
+          TWINE_PASSWORD: ${{ secrets.twine_password }}
+          TWINE_USERNAME: ${{ secrets.twine_username }}
+
+      - name: Get file names
+        id: files
+        run: |
+          echo "::set-output name=sdist::$(cd dist && ls *.gz)"
+          echo "::set-output name=wheel::$(cd dist && ls *.whl)"
+
+      - name: Upload sdist to release
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_content_type: application/octet-stream
+          asset_path: ${{ github.workspace }}/dist/${{ steps.files.outputs.sdist }}
+          asset_name: ${{ steps.files.outputs.sdist }}
+          upload_url: ${{ github.event.release.upload_url }}
+
+      - name: Upload wheel to release
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_content_type: application/octet-stream
+          asset_path: ${{ github.workspace }}/dist/${{ steps.files.outputs.wheel }}
+          asset_name: ${{ steps.files.outputs.wheel }}
+          upload_url: ${{ github.event.release.upload_url }}

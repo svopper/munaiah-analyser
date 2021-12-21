@@ -1,0 +1,89 @@
+name: Build AppImage
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get -qq update
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -yqq --no-install-recommends \
+            audacious-dev \
+            cmake \
+            docbook2x \
+            gawk \
+            lcov \
+            libaudclient-dev \
+            libcairo2-dev \
+            libcurl4-gnutls-dev \
+            libglib2.0-dev \
+            libical-dev \
+            libimlib2-dev \
+            libircclient-dev \
+            libiw-dev \
+            liblua5.3-dev \
+            libmicrohttpd-dev \
+            libmysqlclient-dev \
+            libpulse-dev \
+            librsvg2-dev \
+            libsystemd-dev \
+            libx11-dev \
+            libxdamage-dev \
+            libxext-dev \
+            libxft-dev \
+            libxinerama-dev \
+            libxml2-dev \
+            libxmmsclient-dev \
+            libxnvctrl-dev \
+            ncurses-dev
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Import GPG Deploy Key
+        run: |
+          echo "${{ secrets.GPG_DEPLOY_KEY }}" > appimage/secret.gpg
+          gpg --import appimage/secret.gpg
+      - name: Build AppImage
+        run: ./appimage/build.sh
+      - name: Archive AppImage
+        uses: actions/upload-artifact@v2
+        with:
+          name: conky-appimage
+          path: conky*.AppImage
+      - name: Get Name of Artifact
+        run: |
+          ARTIFACT_PATHNAME=$(ls conky*.AppImage | head -n 1)
+          ARTIFACT_NAME=$(basename $ARTIFACT_PATHNAME)
+          echo "ARTIFACT_PATHNAME=${ARTIFACT_PATHNAME}" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+      - name: Print Name of Artifact
+        run: |
+          echo ARTIFACT_PATHNAME=${{ env.ARTIFACT_PATHNAME }}
+          echo ARTIFACT_NAME=${{ env.ARTIFACT_NAME }}
+      - name: Create Conky Release
+        id: create_release
+        uses: actions/create-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Conky ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Conky Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ${{ env.ARTIFACT_PATHNAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/x-executable

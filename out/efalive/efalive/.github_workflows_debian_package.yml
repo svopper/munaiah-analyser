@@ -1,0 +1,37 @@
+name: Debian package
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: 
+      image: docker://docker.pkg.github.com/${{ github.actor }}/efalive_docker/efalive-development:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.CR_PAT }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Create release
+        run: |
+          python3 -m create_release.create_release --path ./ --package efalive
+      - name: Build debian package
+        run: |
+          ./build_deb.sh
+      - name: Deploy package to registry
+        run: |
+          eval $(ssh-agent -s)
+          echo "${{secrets.SSH_PRIVATE_KEY}}" | tr -d '\r' | ssh-add -
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --batch --import
+          echo "${{ secrets.GPG_KEY }}" | gpg --batch --import
+          #gpg --list-secret-keys --keyid-format LONG
+          /usr/bin/deploy_registry.sh "${{ secrets.SSH_USER }}" "${{ secrets.SSH_HOST }}" buster efalive
+

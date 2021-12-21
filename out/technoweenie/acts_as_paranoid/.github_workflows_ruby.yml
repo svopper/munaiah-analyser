@@ -1,0 +1,69 @@
+# This workflow will download a prebuilt Ruby version, install dependencies and
+# run tests with Rake
+# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+
+name: Ruby
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.6, 2.7, "3.0", jruby-9.3]
+        gemfile: [active_record_52, active_record_60, active_record_61]
+        exclude:
+          # Rails 5.2 does not support Ruby 3.0
+          - ruby: "3.0"
+            gemfile: active_record_52
+
+    env:
+      BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Configure bundler
+        run: |
+          bundle config path vendor/bundle
+      - name: Create bundler lockfile
+        run: |
+          bundle lock
+      - uses: actions/cache@v2
+        with:
+          # NOTE: Bundler expands the path relative to the gemfile, not the
+          # current directory.
+          path: ./gemfiles/vendor/bundle
+          key: bundled-gems-${{ runner.os }}-ruby-${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ hashFiles( 'gemfiles/*.lock' ) }}
+          restore-keys: |
+            bundled-gems-${{ runner.os }}-ruby-${{ matrix.ruby }}-${{ matrix.gemfile }}-
+            bundled-gems-${{ runner.os }}-ruby-${{ matrix.ruby }}-
+      - name: Install gems
+        run: |
+          bundle install --jobs 4
+      - name: Run tests
+        run: bundle exec rake test
+
+  rubocop:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+      - name: Run RuboCop
+        run: bundle exec rubocop -P

@@ -1,0 +1,42 @@
+on:
+  push:
+    branches:
+      - 'main'
+      - 'build-*'
+    tags: '*'
+    paths:
+      - 'substrate/**'
+      - 'package/**'
+      - '.ci/build-packages.sh'
+      - '.github/workflows/build.yml'
+      - 'Vagrantfile'
+  schedule:
+    - cron: '15 1 * * *'
+  repository_dispatch:
+    types: [build]
+
+jobs:
+  build:
+    if: github.repository == 'hashicorp/vagrant-builders'
+    name: Build Vagrant Installers
+    runs-on: self-hosted
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v1
+      - name: Build and Release
+        run: ./.ci/build-packages.sh
+        env:
+          PKT_SECRET_PHRASE: ${{ secrets.ASSETS_PASSWORD }}
+          PKT_SignKeyPassword: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          PKT_VAGRANT_INSTALLER_SignKeyPassword: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          PKT_VAGRANT_INSTALLER_CODE_SIGN_PASS: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          PKT_VAGRANT_INSTALLER_NOTARIZE_USERNAME: releases@hashicorp.com
+          PKT_VAGRANT_INSTALLER_NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZE_PASSWORD }}
+          PKT_VAGRANT_INSTALLER_DISABLE_NOTARIZATION: ${{ secrets.DISABLE_NOTARIZATION }}
+          FASTLY_API_TOKEN: ${{ secrets.FASTLY_API_TOKEN }}
+          PACKET_EXEC_PREFER_FACILITIES: ewr1,iad1,iad2,dfw1,dfw2,sea1,sjc1,lax1
+          VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
+        working-directory: ${{github.workspace}}
+      - name: Clean Workspace
+        if: always()
+        run: rm -rf ${{ github.workspace }}

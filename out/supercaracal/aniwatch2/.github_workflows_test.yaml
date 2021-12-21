@@ -1,0 +1,64 @@
+---
+# @see https://help.github.com/ja/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions
+name: Test
+on:
+  push:
+    branches:
+      - "*"
+jobs:
+  test:
+    name: Test
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        go-ver: ["1.17"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-ver }}
+
+      - name: Check out Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "::set-output name=go-cache::$(go env GOCACHE)"
+          echo "::set-output name=go-mod-cache::$(go env GOMODCACHE)"
+
+      - name: Cache GOCACHE
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-cache }}
+          key: ${{ runner.os }}-go-cache-${{ hashFiles('*.go', '**/*.go') }}
+
+      - name: Cache GOMODCACHE
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod-cache }}
+          key: ${{ runner.os }}-go-mod-cache-${{ hashFiles('go.sum', '**/go.sum') }}
+
+      - name: Build
+        run: make build
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Bench
+        run: make bench
+
+      - name: Profiling (lineup)
+        run: make prof
+        env:
+          PKG: lineup
+
+      - name: Profiling (middleware)
+        run: make prof
+        env:
+          PKG: middleware

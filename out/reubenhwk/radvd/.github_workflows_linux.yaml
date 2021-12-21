@@ -1,0 +1,78 @@
+name: Linux
+on: [push, pull_request]
+
+jobs:
+  alpine:
+    strategy:
+      matrix:
+        compiler: [clang, gcc]
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          test/test_build.sh alpine
+
+  debian:
+    strategy:
+      matrix:
+        compiler: [clang, gcc]
+    runs-on: ubuntu-latest
+    container: debian:stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          test/test_build.sh debian
+
+  fedora:
+    strategy:
+      matrix:
+        compiler: [clang, gcc]
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          test/test_build.sh fedora
+
+  opensuse:
+    strategy:
+      matrix:
+        compiler: [clang, gcc]
+    runs-on: ubuntu-latest
+    container: opensuse/leap:latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1 # Action checkout@v2 triggers an error about non existing "tar" command
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          test/test_build.sh opensuse
+
+  ubuntu:
+    strategy:
+      matrix:
+        ubuntu_version: [ubuntu-18.04, ubuntu-20.04]
+        compiler: [clang, gcc]
+    runs-on: ${{ matrix.ubuntu_version }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          test/test_build.sh ubuntu

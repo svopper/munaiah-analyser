@@ -1,0 +1,14 @@
+on: issues
+name: Issue opened
+jobs:
+  addToProject:
+    name: Add issue to project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project
+        if: github.event.action == 'opened'
+        uses: alex-page/github-project-automation-plus@master
+        with:
+          project: Backlog
+          column: New issue
+          repo-token: ${{ secrets.GH_PAT }}

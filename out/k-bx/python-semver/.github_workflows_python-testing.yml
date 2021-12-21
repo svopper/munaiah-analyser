@@ -1,0 +1,66 @@
+---
+name: Python
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Output env variables
+        run: |
+           echo "Default branch=${default-branch}"
+           echo "GITHUB_WORKFLOW=${GITHUB_WORKFLOW}"
+           echo "GITHUB_ACTION=$GITHUB_ACTION"
+           echo "GITHUB_ACTIONS=$GITHUB_ACTIONS"
+           echo "GITHUB_ACTOR=$GITHUB_ACTOR"
+           echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
+           echo "GITHUB_EVENT_NAME=$GITHUB_EVENT_NAME"
+           echo "GITHUB_EVENT_PATH=$GITHUB_EVENT_PATH"
+           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+           echo "GITHUB_SHA=$GITHUB_SHA"
+           echo "GITHUB_REF=$GITHUB_REF"
+           echo "GITHUB_HEAD_REF=$GITHUB_HEAD_REF"
+           echo "GITHUB_BASE_REF=$GITHUB_BASE_REF"
+           echo "::debug::---Start content of file $GITHUB_EVENT_PATH"
+           cat $GITHUB_EVENT_PATH
+           echo "\n"
+           echo "::debug::---end"
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install tox tox-gh-actions
+      - name: Check
+        run: |
+          tox -e checks
+
+  tests:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install tox tox-gh-actions
+      - name: Test with tox
+        run: |
+          tox

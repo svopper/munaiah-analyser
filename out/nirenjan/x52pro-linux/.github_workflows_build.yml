@@ -1,0 +1,40 @@
+name: Build/Test
+
+on:
+  push:
+    branches:
+    - '*'
+    - '!gh-pages'
+    paths-ignore:
+    - 'kernel_module/**'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    if: "!(contains(github.event.head_commit.message, '[ci skip]') || contains(github.event.head_commit.message, '[skip ci]'))"
+    name: ${{ join(matrix.*, '/') }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ startsWith(matrix.os, 'macos-') }}
+    env:
+      CC: ${{ matrix.cc }}
+
+    strategy:
+      matrix:
+        os: ['ubuntu-18.04', 'ubuntu-20.04', 'macos-10.15', 'macos-11']
+        cc: ['gcc', 'clang']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install dependencies (Ubuntu)
+      run: ./.github/scripts/install-dependencies-ubuntu.sh
+      if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+
+    - name: Install dependencies (MacOS)
+      run: ./.github/scripts/install-dependencies-macos.sh
+      if: ${{ startsWith(matrix.os, 'macos-') }}
+
+    - name: Build and Test
+      run: ./.github/scripts/build-and-test.sh

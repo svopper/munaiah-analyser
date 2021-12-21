@@ -1,0 +1,61 @@
+# The GitHub Actions file
+
+name: Standard Build
+
+on:
+  push:
+  # You should use this (instead of push) for large, time and resource-consuming codebases.
+  # build.sh uses CI_SCHEDULE_PERIOD to decide if there has been changes recently that actually need
+  # a rebuild.
+  #
+  workflow_dispatch:
+    inputs:
+      # These can be set when the build is invoked manually, from GH Actions.
+      #
+      # Set BOTH when you want to trigger a new release. The build script will 
+      # switch Maven to the new release, deploy, tag git, move Maven to the new snapshot
+      #
+      NEW_RELEASE_VER:
+        description: "New Release Version"
+        required: false
+      NEW_SNAPSHOT_VER:
+        description: "New Snapshot Version"
+        required: false
+    
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Code checkout
+      uses: actions/checkout@v2
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: 11
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+  
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build
+      env:
+        SECRETS_GIST_TOKEN: ${{secrets.SECRETS_GIST_TOKEN}}
+        NEW_RELEASE_VER: ${{github.event.inputs.NEW_RELEASE_VER}}
+        NEW_SNAPSHOT_VER: ${{github.event.inputs.NEW_SNAPSHOT_VER}}
+        CI_TRIGGERING_EVENT: ${{github.event_name}}
+      
+      # We widely reuse the general CI scripts in knetminer-common, see https://github.com/Rothamsted/knetminer-common  
+      run: |
+        mkdir -p ci-build
+        export CI_DIR_URL="https://raw.githubusercontent.com/Rothamsted/knetminer-common/master/ci-build"
+        wget "$CI_DIR_URL/install.sh" -O ci-build/install.sh
+        bash ./ci-build/install.sh
+        bash ./ci-build/build.sh

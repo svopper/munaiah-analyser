@@ -1,0 +1,60 @@
+name: main
+on: [push, pull_request]
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        services:
+            mariadb:
+                image: mariadb:10.3
+                ports:
+                    - 3306:3306
+                env:
+                    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+                    MYSQL_DATABASE: mqueue
+                options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=5
+
+        steps:
+            - uses: actions/checkout@v2
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '7.2'
+                  coverage: pcov
+                  tools: cs2pr
+
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.cache/yarn
+                  key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+                  restore-keys: ${{ runner.os }}-yarn-
+
+            - name: Setup problem matchers for PHP
+              run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+
+            - name: Setup problem matchers for PHPUnit
+              run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+            # Prepare our app
+            - run: mysql --protocol=tcp --user=root --execute='SET GLOBAL sql_mode = "";'
+            - run: cp application/configs/application.sample.ini application/configs/application.ini
+            - run: composer install --ansi --classmap-authoritative
+            - run: php bin/update_database.php
+            - run: yarn install --frozen-lockfile
+            - run: ./node_modules/.bin/gulp
+
+            # Lint and tests
+            - run: ./vendor/bin/php-cs-fixer fix --format=checkstyle | cs2pr
+            - run: ./vendor/bin/phpstan analyse
+            - run: ./vendor/bin/pcov clobber
+            - run: ./vendor/bin/phpunit --coverage-clover coverage-clover.xml
+
+            - name: Upload code coverage
+              run: |
+                  curl -LO https://scrutinizer-ci.com/ocular.phar
+                  php ocular.phar code-coverage:upload --format=php-clover coverage-clover.xml

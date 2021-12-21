@@ -1,0 +1,49 @@
+name: Test
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    name: ${{ matrix.ruby-version }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version:
+          - "2.5"
+          - "2.6"
+          - "2.7"
+          - "3.0"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: "ranguba/groonga-client"
+          path: "groonga-client"
+      - name: Fix groonga-client path
+        run: |
+          mv groonga-client ../
+      - uses: actions/checkout@v2
+        with:
+          repository: "ranguba/groonga-client-model"
+          path: "groonga-client-model"
+      - name: Fix groonga-client-model path
+        run: |
+          mv groonga-client-model ../
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - uses: actions/setup-node@v2
+      - name: Install Groonga
+        run: |
+          sudo apt install -y -V software-properties-common
+          sudo add-apt-repository -y ppa:groonga/ppa
+          sudo apt update
+          sudo apt install -y groonga-bin
+      - run: |
+          bundle install
+      - run: |
+          bin/rails webpacker:install
+      - name: Test
+        run: |
+          bin/rails test

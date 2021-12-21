@@ -1,0 +1,40 @@
+name: deploy
+on:
+  push:
+    branches:
+      - master
+jobs:
+  cloudformation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: np-complete
+          template: template.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: 'CertArn=${{ secrets.AWS_CERT_ARN }},HostedZoneId=${{ secrets.AWS_ZONE_ID }}'
+  deploy:
+    runs-on: ubuntu-latest
+    needs: cloudformation
+    steps:
+      - uses: actions/checkout@v2
+      - id: node-version
+        run: echo "::set-output name=NODE_VERSION::$(cat .node-version)"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node-version.outputs.NODE_VERSION }}
+      - run: yarn install
+      - run: yarn webpack --mode production
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - run: aws s3 sync dist s3://np-complete-doj.in --acl public-read --follow-symlinks --delete
+      - run: aws cloudfront create-invalidation --distribution-id "E1PQM4ZYM01TVA"  --paths "/*"

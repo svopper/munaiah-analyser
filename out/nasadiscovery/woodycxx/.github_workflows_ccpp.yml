@@ -1,0 +1,19 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: install boost-dev
+      run: apt-get install libboost-all-dev
+    - name: make cmake build dir
+      run: pwd && ls -alht . && mkdir cmake-build-release
+    - name: cmake
+      run: cd cmake-build-release && cmake -DCMAKE_BUILD_TYPE="Release" .. && ls -alht .
+    - name: make build
+      run: cd cmake-build-release && pwd && ls -alht . && make && ls -alht .

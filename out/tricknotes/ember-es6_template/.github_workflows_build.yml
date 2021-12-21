@@ -1,0 +1,52 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version: 
+          - 2.5.8
+          - 2.6.6
+          - 2.7.2
+          - 3.0.0
+        sprockets-version:
+          - "~> 2.2.0"
+          - "~> 2.12.0"
+          - "~> 3.0.0"
+          - "~> 3.1.0"
+          - "~> 3.2.0"
+          - "~> 3.3.0"
+          - "~> 3.4.0"
+          - "~> 3.5.0"
+          - "~> 3.6.0"
+          - "~> 3.7.0"
+          - "~> 4.0.0"
+
+    container:
+      image: ruby:${{ matrix.ruby-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+      - uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: Install dependencies
+        run: |
+          gem update --system
+          gem install bundler
+          bundle config set path vendor/bundle
+          bundle install --jobs 4 --retry 3
+        env:
+          SPROCKETS_VERSION: ${{ matrix.sprockets-version }}
+      - name: Run tests
+        run: |
+          bundle exec rake test

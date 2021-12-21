@@ -1,0 +1,258 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+env:
+  BUILDCACHE_VERSION: v0.27.0
+  BUILDCACHE_ACCURACY: STRICT
+  BUILDCACHE_MAX_CACHE_SIZE: 1073741824 # 1GiB
+
+jobs:
+  build-linux-x86_64:
+    name: Build Linux (GCC x86_64)
+    runs-on: ubuntu-20.04
+
+    env:
+      BUILDCACHE_DIR: ${{github.workspace}}/.buildcache
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install cmake ninja-build llvm-11-dev libclang-11-dev clang-11 zlib1g-dev
+
+          # setup buildcache
+          curl -LSfs https://github.com/mbitsnbites/buildcache/releases/download/$BUILDCACHE_VERSION/buildcache-linux.tar.gz | tar xz -C "$RUNNER_WORKSPACE"
+          echo "$RUNNER_WORKSPACE"/buildcache/bin >> $GITHUB_PATH
+
+      - name: Restore buildcache
+        uses: actions/cache@v2
+        with:
+          path: ${{env.BUILDCACHE_DIR}}
+          key: buildcache-ubuntu-20.04-x86_64
+
+      - name: Configure CMake
+        run: |
+          cmake -B build . -GNinja \
+            -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+            -DATDNA_DYNAMIC_LLVM=OFF \
+            -DClang_DIR:PATH=/usr/lib/cmake/clang-11 \
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=buildcache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=buildcache
+
+      - name: Build
+        run: cmake --build build --target package --verbose
+
+      - name: Print buildcache stats
+        run: buildcache -s
+
+      - name: Test
+        working-directory: build
+        run: ./atdna-test
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: atdna-linux-x86_64
+          path: |
+            build/athena-*.tar.gz
+
+  build-linux-aarch64:
+    name: Build Linux (GCC aarch64)
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: uraimo/run-on-arch-action@v2.0.9
+        name: Build & test
+        with:
+          arch: aarch64
+          distro: ubuntu20.04
+          githubToken: ${{github.token}}
+          dockerRunArgs: |
+            --volume "${PWD}:/workspace"
+          install: |
+            apt-get -y update
+            apt-get -y install build-essential cmake ninja-build llvm-11-dev libclang-11-dev clang-11 zlib1g-dev
+          run: |
+            cmake -B build . -GNinja \
+              -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+              -DATDNA_DYNAMIC_LLVM:BOOL=OFF \
+              -DClang_DIR:PATH=/usr/lib/cmake/clang-11
+            cmake --build build --target package --verbose
+            build/atdna-test
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: atdna-linux-aarch64
+          path: |
+            build/athena-*.tar.gz
+
+  build-macos-universal:
+    name: Build macOS (AppleClang universal)
+    runs-on: macos-10.15
+
+    env:
+      BUILDCACHE_DIR: ${{github.workspace}}/.buildcache
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install ninja
+
+          # universal clang+llvm from macports
+          curl -LSfs https://axiodl.com/files/clang-11-11.1.0_1.mpkg -o /tmp/clang-11-11.1.0_1.mpkg
+          sudo installer -pkg /tmp/clang-11-11.1.0_1.mpkg -target /
+
+          # setup buildcache
+          curl -LSfs https://github.com/mbitsnbites/buildcache/releases/download/$BUILDCACHE_VERSION/buildcache-macos.zip -o /tmp/buildcache-macos.zip
+          unzip /tmp/buildcache-macos.zip -d "$RUNNER_WORKSPACE"
+          echo "$RUNNER_WORKSPACE"/buildcache/bin >> $GITHUB_PATH
+
+      - name: Restore buildcache
+        uses: actions/cache@v2
+        with:
+          path: ${{env.BUILDCACHE_DIR}}
+          key: buildcache-macos-10.15
+
+      - name: Configure CMake
+        run: |
+          cmake -B build . -GNinja \
+            -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+            -DCMAKE_OSX_ARCHITECTURES:STRING="x86_64;arm64" \
+            -DLLVM_ROOT_DIR:PATH=/opt/local/libexec/llvm-11 \
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=buildcache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=buildcache
+
+      - name: Build
+        run: cmake --build build --target package --verbose
+
+      - name: Print buildcache stats
+        run: buildcache -s
+
+      - name: Test
+        working-directory: build
+        run: ./atdna-test
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: athena-macos-universal
+          path: |
+            build/athena-*.tar.gz
+
+  build-win32-amd64:
+    name: Build Windows (MSVC AMD64)
+    runs-on: windows-2019
+
+    env:
+      LLVM_VERSION: 11.1.0
+      BUILDCACHE_DIR: C:\buildcache
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install LLVM
+        run: |
+          $TempDir = "C:\temp" # C: has more space
+          $Filename = "vcpkg-llvm-$env:LLVM_VERSION-full.7z"
+          New-Item -Path "$TempDir" -ItemType Directory -ea 0
+          (New-Object Net.WebClient).DownloadFile("https://axiodl.com/files/$Filename", "$TempDir\$Filename")
+          7z x "-o$TempDir" -aos "$TempDir\$Filename"
+
+      - name: Install dependencies
+        run: |
+          choco install ninja
+
+          # set up buildcache
+          $TempDir = "$env:RUNNER_WORKSPACE\temp"
+          New-Item -Path "$TempDir" -ItemType Directory -ea 0
+          (New-Object Net.WebClient).DownloadFile("https://github.com/mbitsnbites/buildcache/releases/download/$env:BUILDCACHE_VERSION/buildcache-windows.zip", "$TempDir\buildcache.zip")
+          Expand-Archive -LiteralPath "$TempDir\buildcache.zip" -DestinationPath "$TempDir"
+          echo "$TempDir\buildcache\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Restore buildcache
+        uses: actions/cache@v2
+        with:
+          path: ${{env.BUILDCACHE_DIR}}
+          key: buildcache-windows-2019-msvc-amd64
+
+      - name: Enable Visual Studio environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure CMake
+        run: |
+          cmake -B build . -GNinja `
+            -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded `
+            -DCMAKE_TOOLCHAIN_FILE:PATH="C:\temp\vcpkg-llvm-$env:LLVM_VERSION\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET:STRING=x64-windows-static
+
+      - name: Build
+        run: cmake --build build --target package --verbose
+
+      - name: Print buildcache stats
+        run: buildcache -s
+
+      - name: Test
+        working-directory: build
+        run: ./atdna-test.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: athena-win32-amd64
+          path: |
+            build/athena-*.7z
+
+  release:
+    name: Release
+    runs-on: ubuntu-20.04
+
+    if:
+      contains('
+        refs/heads/master
+        refs/heads/test
+      ', github.ref)
+    needs:
+      - build-linux-x86_64
+      - build-linux-aarch64
+      - build-macos-universal
+      - build-win32-amd64
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{github.token}}
+          automatic_release_tag: latest
+          prerelease: true
+          title: Development build
+          files: |
+            artifacts/*/*

@@ -1,0 +1,28 @@
+name: Lint
+
+on: [push,pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Lint C++
+      uses: InsightSoftwareConsortium/ITKClangFormatLinterAction@master
+
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+
+    - name: Lint Python
+      uses: github/super-linter@v3
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        VALIDATE_PYTHON_BLACK: true
+        VALIDATE_YAML: true
+        FILTER_REGEX_EXCLUDE: .github/labeler.yml
+        DEFAULT_BRANCH: master
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

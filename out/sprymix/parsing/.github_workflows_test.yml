@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - ci
+      - "releases/*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, 3.10.0-rc.1]
+        build: ["mypyc", "pure-python"]
+
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check if release PR.
+        uses: edgedb/action-release/validate-pr@master
+        id: release
+        with:
+          github_token: ${{ secrets.RELEASE_BOT_GITHUB_TOKEN }}
+          missing_version_ok: yes
+          version_file: parsing/_version.py
+          version_line_pattern: |
+            __version__\s*=\s*(?:['"])([[:PEP440:]])(?:['"])
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        if: steps.release.outputs.version == 0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test
+        if: steps.release.outputs.version == 0
+        env:
+          PARSING_USE_MYPYC: "${{ matrix.build == 'mypyc' && '1' || '0' }}"
+        run: |
+          python -m pip install -v -e .[test]
+          python -m unittest -v parsing.tests.suite
+
+  # This job exists solely to act as the test job aggregate to be
+  # targeted by branch policies.
+  regression-tests:
+    name: "Regression Tests"
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo OK

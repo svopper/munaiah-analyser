@@ -1,0 +1,38 @@
+name: Build
+
+on: push
+
+jobs:
+  build:
+    name: "Run build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Use cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: "${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}"
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Configure Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: "Run Maven"
+        shell: bash
+        run: mvn clean install --batch-mode
+      - name: "Deploy"
+        if: github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          OSSRH_JIRA_USERNAME: ${{ secrets.OSSRH_JIRA_USERNAME }}
+          OSSRH_JIRA_PASSWORD: ${{ secrets.OSSRH_JIRA_PASSWORD }}
+        run: |
+          export GPG_TTY=$(tty)
+          echo -e "$GPG_KEY" | gpg --import --passphrase $GPG_PASSPHRASE --batch --yes
+          mvn --settings settings-github.xml -B deploy -Prelease -DskipTests

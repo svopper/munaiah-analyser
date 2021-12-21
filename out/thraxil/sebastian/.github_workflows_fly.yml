@@ -1,0 +1,22 @@
+name: Fly Deploy
+on:
+  push:
+    branches: master
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+jobs:
+  deploy:
+      name: Deploy app
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - uses: superfly/flyctl-actions@1.1
+          with:
+            args: "deploy"
+        - name: sentry release
+          uses: juankaram/sentry-release@master
+          env:
+            ENVIRONMENT: production
+            SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_ORG: thraxil
+            SENTRY_PROJECT: sebastian

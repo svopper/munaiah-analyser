@@ -1,0 +1,35 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches:
+      - main
+      - '*-SNAPSHOT'
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches:
+      - main
+      - '*-SNAPSHOT'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '12', '16' ]
+    name: JDK ${{ matrix.Java }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK ${{ matrix.Java }}
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: ${{ matrix.java }}
+    - name: Build Maven project
+      run: ./mvnw --batch-mode verify --file pom.xml
+    - name: Build Maven site
+      run: ./mvnw --batch-mode site --file pom.xml

@@ -1,0 +1,130 @@
+name: Deployment
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deployment:
+    name: Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 15.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Install build and test requirements
+        run: |
+          sudo curl https://github.com/mvdan/sh/releases/download/v3.4.0/shfmt_v3.4.0_linux_amd64 -Lo /usr/local/bin/shfmt
+          sudo chmod +x /usr/local/bin/shfmt
+          sudo apt install shellcheck -y
+          npm install yarn
+          make yarn-install-locked
+          pip install tox
+          tox -e py39-requirements
+
+      - name: Run tests
+        run: make test
+
+      - name: Install codecov requirements
+        run: pip install coverage
+
+      - name: Run codecov
+        uses: codecov/codecov-action@v1
+
+      - name: Login to GitHub registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
+      - name: Run yarn build
+        run: make yarn-build
+
+      - name: Collect static files
+        run: |
+          source .tox/py39/bin/activate
+          export SECRET_KEY=key
+          export COLLECT_STATIC=True
+          src/manage.py collectstatic --no-input
+
+      - name: Install s3cmd
+        run: |
+          pip install s3cmd==2.1.0
+          cp .github/workflows/.s3cfg ~/.s3cfg
+          sed "s/\[access_key\]/${{ secrets.SPACES_ACCESS_KEY }}/g" ~/.s3cfg -i
+          SPACES_SECRET_KEY=$(echo ${{ secrets.SPACES_SECRET_KEY }} | sed 's;/;\\/;g')
+          sed "s/\[secret_key\]/$SPACES_SECRET_KEY/g" ~/.s3cfg -i
+
+      - name: Upload static files
+        run: |
+          s3cmd put static/* s3://movies.cdn.samarchyan.me/ -r -P --no-mime-magic --guess-mime-type
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Flush CDN cache
+        run: |
+          CDN_ID=$(doctl compute cdn list | grep movies.cdn.samarchyan.me | awk '{print $1}')
+          doctl compute cdn flush $CDN_ID
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v1
+
+      - name: Configure kubectl
+        run: |
+          mkdir ~/.kube
+          echo $KUBECONFIG > ~/.kube/config
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      - name: Deploy
+        run: |
+          kubectl apply -f deployment/configmap.yaml
+          kubectl create secret generic movies --from-literal=DB_PASSWORD=$DB_PASSWORD \
+            --from-literal=SECRET_KEY=$SECRET_KEY \
+            --from-literal=SOCIAL_AUTH_VK_APP_KEY=${{ secrets.SOCIAL_AUTH_VK_APP_KEY }} \
+            --from-literal=SOCIAL_AUTH_VK_APP_SECRET=${{ secrets.SOCIAL_AUTH_VK_APP_SECRET }} \
+            --from-literal=SOCIAL_AUTH_VK_OAUTH2_KEY=${{ secrets.SOCIAL_AUTH_VK_OAUTH2_KEY }} \
+            --from-literal=SOCIAL_AUTH_VK_OAUTH2_SECRET=${{ secrets.SOCIAL_AUTH_VK_OAUTH2_SECRET }} \
+            --from-literal=SOCIAL_AUTH_FACEBOOK_KEY=${{ secrets.SOCIAL_AUTH_FACEBOOK_KEY }} \
+            --from-literal=SOCIAL_AUTH_FACEBOOK_SECRET=${{ secrets.SOCIAL_AUTH_FACEBOOK_SECRET }} \
+            --from-literal=TMDB_KEY=${{ secrets.TMDB_KEY }} \
+            --from-literal=OMDB_KEY=${{ secrets.OMDB_KEY }} \
+            --from-literal=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+            --from-literal=EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f deployment/deployment.yaml
+          kubectl apply -f deployment/ingress.yaml
+          kubectl apply -f deployment/service.yaml
+          kubectl rollout restart deployment/movies
+          kubectl rollout status deployment/movies
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+      - name: Run db migration
+        run: make prod-manage migrate

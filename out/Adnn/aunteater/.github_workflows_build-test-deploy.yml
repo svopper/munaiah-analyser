@@ -1,0 +1,114 @@
+name: build-test-deploy
+on: [push]
+env:
+  # Control Conan behaviour
+  # Apparently glfw/3.3.4 is not compatible with Conan v2
+  #CONAN_V2_MODE: 1
+  CONAN_SCM_TO_CONANDATA: 1
+  # Required at least for opengl/system on Linux runner, which must use the package manager.
+  CONAN_SYSREQUIRES_MODE: enabled
+  # see: https://docs.conan.io/en/latest/reference/env_vars.html#conan-user-home-short
+  # Disable short paths on Windows, which otherwise ruins the cache@v2 actions.
+  CONAN_USER_HOME_SHORT: None
+  # Custom variables used by the workflow
+  CONAN_DEV_USER_CHANNEL: adnn/develop
+#on:
+#  push:
+#    branches:
+#      - develop
+jobs:
+  build_test_deploy:
+    name: Build, test, deploy
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - cppstd: 17
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Otherwise recipes uploaded from Windows vs. Linux/macos
+      # are considered different (the hash changes with line endings)
+      # see: https://github.com/conan-io/conan-package-tools/issues/192
+      # see: https://docs.conan.io/en/latest/faq/using.html?highlight=crlf#packages-got-outdated-when-uploading-an-unchanged-recipe-from-a-different-machine
+      - run: git config --global core.autocrlf input
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Prepare recipe info
+        id: recipe
+        run: |
+          # That is not the accurate recipe name, this is just by convention.
+          # see: https://github.com/conan-io/conan/issues/9264
+          recipe_name=${GITHUB_REPOSITORY#*/}
+          echo "::set-output name=name::${recipe_name}"
+          echo "::set-output name=reference::${recipe_name}/$(echo ${GITHUB_SHA} | cut -c1-10)"
+        shell: bash
+
+      - name: Get Conan
+        uses: turtlebrowser/get-conan@v1.0
+
+      - name: Configure Conan
+        # Remotes, profiles, and settings
+        run: conan config install https://${{ secrets.SHREDROBOT_GITHUB_TOKEN }}@github.com/ShredEagle/conan-config.git
+
+      - name: Cache Conan local data
+        uses: actions/cache@v2
+        env:
+          # The secret is used as a variable, to allow invalidating all caches at once.
+          cache-name: conan-${{ secrets.ACTION_CACHENAME }}
+        with:
+          # Exclude opengl/system because its build is responsible to install opengl system-wide.
+          # (required on current Linux runner)
+          # Exclude all */system following the same reasoning.
+          #
+          # There is a bug with the exclude pattern.
+          # see workaround: https://github.com/actions/toolkit/issues/713#issuecomment-850321461
+          path: |
+            ~/.conan/data/*/*
+            !~/.conan/data/*/system
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('conan/conanfile.py') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.cache-name }}
+
+      - run: >
+          conan create
+          --build=missing
+          -o ${{ steps.recipe.outputs.name }}:build_tests=True
+          -pr game
+          -s compiler.cppstd=${{ matrix.cppstd }}
+          conan/ ${{ steps.recipe.outputs.reference }}@
+
+      - name: Prepare virtual run env
+        run: >
+          conan install -g virtualrunenv
+          -o ${{ steps.recipe.outputs.name }}:build_tests=True
+          -s compiler.cppstd=${{ matrix.cppstd }}
+          ${{ steps.recipe.outputs.reference }}@
+
+      - name: Run tests (bash)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          source activate_run.sh
+          ${{ steps.recipe.outputs.name }}_tests
+          source deactivate_run.sh
+
+      - name: Run tests (cmd)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          ./activate_run.bat
+          ${{ steps.recipe.outputs.name }}_tests
+          ./deactivate_run.bat
+        # Powershell does not stop on first error
+        # see: https://github.community/t/multiline-commands-on-windows-do-not-fail-if-individual-commands-fail/16753
+        shell: cmd
+
+      - name: Deploy recipe (develop)
+        if: ${{ success() && contains('refs/heads/develop', github.ref) }}
+        run: |
+          conan user -p ${{ secrets.CONAN_USER_PASSWORD }} -r adnn ${{ secrets.CONAN_USER_NAME }}
+          conan copy --all ${{ steps.recipe.outputs.reference }} ${CONAN_DEV_USER_CHANNEL}
+          conan upload -r adnn --confirm ${{ steps.recipe.outputs.reference }}@${CONAN_DEV_USER_CHANNEL}
+        shell: bash

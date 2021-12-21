@@ -1,0 +1,50 @@
+name: MinGW
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        target: ["i686-w64-mingw32", "x86_64-w64-mingw32"]
+
+    runs-on: ubuntu-20.04
+    container:
+      image: amd64/ubuntu:20.04
+      options: --privileged
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Update packages
+        run: apt update
+
+      - name: Install packages
+        run: DEBIAN_FRONTEND=noninteractive apt install -y
+          build-essential
+          cmake
+          g++-mingw-w64
+          gcc-mingw-w64
+          git
+          mingw-w64-tools
+          wget
+
+      - name: Set up MinGW environment
+        run: |
+          update-alternatives --set ${{ matrix.target }}-gcc /usr/bin/${{ matrix.target }}-gcc-posix
+          update-alternatives --set ${{ matrix.target }}-g++ /usr/bin/${{ matrix.target }}-g++-posix
+          wget https://github.com/garglk/assets/raw/master/mingw.tar.xz
+          tar xfv mingw.tar.xz -C /
+
+      - name: Configure
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/${{ matrix.target }} -DCMAKE_TOOLCHAIN_FILE=../Toolchain-${{ matrix.target }}.cmake -DMINGW_TRIPLE=${{ matrix.target }}
+
+      - name: Build
+        run: |
+          cd build
+          make -j`nproc`

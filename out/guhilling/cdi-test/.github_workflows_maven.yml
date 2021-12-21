@@ -1,0 +1,42 @@
+name: Build CDI Test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '8', '11', '17' ]
+        include:
+          - java: 8
+            extraargs: -Dmaven.javadoc.skip=true
+          - java: 17
+            extratestargs: >
+              jacoco:report
+              sonar:sonar
+              -Dsonar.host.url=https://sonarcloud.io
+              -Dsonar.organization=guhilling-github
+              -Dsonar.projectKey=de.hilling.junit.cdi:cdi-test
+    name: Maven Build JDK ${{ matrix.java }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up JDK 
+      uses: actions/setup-java@v2
+      with:
+        distribution: adopt
+        java-version: ${{ matrix.java }}
+        cache: maven
+    - name: Maven Build JDK ${{ matrix.java }}
+      run: mvn -B package --file pom.xml -DskipTests ${{ matrix.extraargs }}
+    - name: Maven Test JDK ${{ matrix.java }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: mvn -B test --file pom.xml ${{ matrix.extraargs }}  ${{ matrix.extratestargs}}

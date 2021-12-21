@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+
+    - name: Cache Composer and Yarn packages
+      id: composer-cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          bin
+          composer-src
+          node_modules
+          vendor
+          /tmp/phpstan
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', 'yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Install dependencies
+      run: |
+        sudo systemctl start mysql.service
+        # composer install has to run even if the packages are cached
+        composer install --prefer-dist --no-progress
+        yarn install
+        # Download composer source to allow PHPStan to run
+        if [ ! -a composer-src ]; then mkdir composer-src; cd composer-src; wget -qO- https://github.com/composer/composer/archive/1.10.17.tar.gz | tar xz; fi
+
+    - name: Run PHPStan
+      run: |
+        echo '[includes: [phpstan.neon.dist], parameters: [scanDirectories: [composer-src/composer-1.10.17/src/Composer]]]' > phpstan.neon
+        bin/phpstan analyze
+        rm -rf composer-src
+
+    - name: Run PHPUnit with coverage
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        MYSQL_TEST_URL: mysql://root:root@localhost/camdram_test
+
+      run: |
+        rm -rf app/cache/test
+
+        yarn build
+
+        if [ "$GITHUB_EVENT_NAME" == push -a "$GITHUB_REF" == refs/heads/master ]; then
+            XDEBUG_MODE=coverage ./runtests --coverage-clover=coverage.xml
+            CODECOV_OUT=$(mktemp)
+            bash <(curl -s https://codecov.io/bash) &> $CODECOV_OUT &
+            trap "cat $CODECOV_OUT" EXIT
+        else
+            ./runtests
+        fi
+        ./check_dev_setup

@@ -1,0 +1,41 @@
+name: QA
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  qa:
+    name: Quality Assurance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          coverage: none
+          tools: "composer:2,cs2pr"
+
+      - name: Add NewRelic APT source
+        run: echo 'deb http://apt.newrelic.com/debian/ newrelic non-free' | sudo tee /etc/apt/sources.list.d/newrelic.list
+      - name: Add NewRelic APT key
+        run: wget -O- https://download.newrelic.com/548C16BF.gpg | sudo apt-key add -
+      - name: Update APT
+        run: sudo apt-get update
+      - name: Install NewRelic PHP extension
+        run: sudo apt-get -y install newrelic-php5
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - run: composer update --no-progress --prefer-dist --prefer-stable
+      - run: make cs
+      - run: make phpstan

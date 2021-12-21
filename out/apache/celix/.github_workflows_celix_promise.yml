@@ -1,0 +1,33 @@
+name: Standalone Celix Promise Weekly
+
+on:
+  schedule:
+    - cron:  '0 0 * * 0'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+        compiler: [gcc]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yq --no-install-recommends \
+            build-essential \
+            cmake
+      - name: Build
+        env:
+          CC: ${{ matrix.compiler }}
+          CXX: ${{ matrix.cxx_compiler }}
+        run: |
+          mkdir build install
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=../install ../libs/promises
+          make -j $(nproc) && make install

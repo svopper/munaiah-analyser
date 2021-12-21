@@ -1,0 +1,56 @@
+name: "Lint"
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ develop ]
+  schedule:
+    - cron: '55 22 14 * *'
+
+jobs:
+  flake8:
+    name: flake8
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install flake8
+        run: |
+          python -m pip install --upgrade pip wheel
+          python -m pip install flake8
+
+      - name: Run flake8
+        run: flake8 src tests docs setup.py
+
+  bandit:
+    name: bandit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install bandit
+      run: |
+        python -m pip install --upgrade pip wheel
+        python -m pip install bandit
+
+    - name: Run bandit
+      # "B101:assert_used" is allowed in tests.
+      run: |
+        bandit -r src docs ./setup.py
+        bandit -r tests --skip B101

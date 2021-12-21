@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - 'l10n_**' # Push events to translation service branches (that begin with "l10n_")
+      - 'translation_integration' # Separate branch for translation-service-formatted files
+      - 'gh-pages'
+  pull_request:
+    # Match all pull requests
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        version: [0.71.1]
+        image: [ext-alpine, ext-ubuntu]
+    name: 'Test Hugo Build [${{ matrix.version }}-${{ matrix.image }}]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Build with Hugo docker image
+        env:
+          HUGO_VERSION: ${{ matrix.version }}
+          HUGO_IMAGE: ${{ matrix.image }}
+        run: |
+          # Prepare docker image label
+          label=""
+          if [[ ! -z "${HUGO_VERSION}" ]]; then
+            label="${HUGO_VERSION}-"
+          fi
+          label="${label}${HUGO_IMAGE}"
+          echo "Using klakegg/hugo:${label}"
+          # Set up output directory
+          OUTPUT_DIR="${HOME}/output/public"
+          echo "OUTPUT_DIR=${OUTPUT_DIR}"
+          echo "OUTPUT_DIR=${OUTPUT_DIR}" >> $GITHUB_ENV
+          mkdir -p "${OUTPUT_DIR}"
+          # Run Hugo build
+          docker run --rm -t \
+            -v $(pwd):/src \
+            -v ${OUTPUT_DIR}:/target \
+            klakegg/hugo:${label} \
+            --minify --i18n-warnings --gc --path-warnings --verbose
+  deploy:
+    concurrency: serialize-pages-deploy
+    name: 'Deploy to GitHub Pages'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+          path: master
+          persist-credentials: false
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: false
+      - name: Clean gh-pages branch
+        working-directory: "${{ github.workspace }}/gh-pages"
+        run: |
+          BACKUP_GH_PAGES_FILES="${GITHUB_WORKSPACE}/temp/backup_gh_pages_files"
+          mkdir -p "${BACKUP_GH_PAGES_FILES}"
+          # Copy CNAME file, if it exists, temporarily elsewhere
+          if [ -f "CNAME" ]; then
+            cp "CNAME" "${BACKUP_GH_PAGES_FILES}/CNAME"
+          fi
+          # Clean the gh-pages branch
+          git rm --ignore-unmatch -rf .
+          git clean -fxd
+          # Restore saved files
+          rsync -r "${BACKUP_GH_PAGES_FILES}/" .
+      - name: Build with Hugo docker image
+        env:
+          HUGO_VERSION: 0.71.1
+          HUGO_IMAGE: ext-ubuntu
+        run: |
+          # Prepare docker image label
+          label=""
+          if [[ ! -z "${HUGO_VERSION}" ]]; then
+            label="${HUGO_VERSION}-"
+          fi
+          label="${label}${HUGO_IMAGE}"
+          echo "Using klakegg/hugo:${label}"
+          # Set up input / output directories
+          SOURCE_DIR="${GITHUB_WORKSPACE}/master"
+          OUTPUT_DIR="${GITHUB_WORKSPACE}/gh-pages"
+          # Run Hugo build
+          docker run --rm -t \
+            -e "HUGO_ENV=production" \
+            -v ${SOURCE_DIR}:/src \
+            -v ${OUTPUT_DIR}:/target \
+            klakegg/hugo:${label} \
+            --minify --i18n-warnings --gc --path-warnings --verbose --baseURL="https://wz2100.net/" --destination="/target"
+      - name: Publish gh-pages
+        id: publishpages
+        env:
+          GITHUB_ACTOR: ${{ secrets.WZ2100_PUSH_USERNAME }}
+          PUSH_PAT: ${{ secrets.WZ2100_PUSH_SECRET_TOKEN }} # use a PAT so that subsequent workflows are triggered on push
+        working-directory: "${{ github.workspace }}/gh-pages"
+        run: |
+          git config user.name "wzdev-ci"
+          git config user.email "61424532+wzdev-ci@users.noreply.github.com"
+          git add -A
+          short_sha="$(echo ${GITHUB_SHA} | cut -c1-8)"
+          git commit -m "Deploy master branch: ${short_sha}" || { echo "::set-output name=PROCESS_DEPLOYMENT::false" && exit 0; }
+          # Get the new commit's SHA
+          NEW_COMMIT_SHA=$(git rev-parse --verify HEAD)
+          echo "NEW_COMMIT_SHA=${NEW_COMMIT_SHA}"
+          # Push the new commit to the gh-pages branch
+          git push "https://${PUSH_PAT}@github.com/Warzone2100/wz2100.net.git" gh-pages:gh-pages
+          echo "::set-output name=PROCESS_DEPLOYMENT::true"
+          echo "::set-output name=GH_PAGES_BRANCH_COMMIT_SHA::${NEW_COMMIT_SHA}"
+          echo "Done."
+          exit 0
+      - name: 'Wait for Deployment'
+        id: deployments
+        if: success() && (steps.publishpages.outputs.PROCESS_DEPLOYMENT == 'true')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PAGES_BRANCH_COMMIT_SHA: ${{ steps.publishpages.outputs.GH_PAGES_BRANCH_COMMIT_SHA }}
+        shell: bash --noprofile --norc {0}
+        run: |
+          echo "Searching for deployment matching commit: ${GH_PAGES_BRANCH_COMMIT_SHA} ..."
+          # Poll until we find a deployment with a sha == the push's commit's SHA
+          status=1
+          POLL_ATTEMPTS=0
+          while [ $POLL_ATTEMPTS -le 15 ]
+          do
+            sleep_interval=$(( POLL_ATTEMPTS * POLL_ATTEMPTS ))
+            if [ $sleep_interval -ne 0 ]; then
+              echo "Sleeping ${sleep_interval} seconds..."
+              sleep ${sleep_interval}
+              echo "Finished sleep"
+            fi
+            curl -H "Authorization: token ${GITHUB_TOKEN}" -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/deployments" | jq --exit-status --arg desired_sha "${GH_PAGES_BRANCH_COMMIT_SHA}" '.[] | select(.sha == $desired_sha and .environment == "github-pages")' > "deployment.json"
+            status=$?
+            if [ $status -eq 0 ]; then
+              break
+            fi
+            echo "Not found yet ..."
+            (( POLL_ATTEMPTS++ ))
+          done
+          if [ $status -ne 0 ]; then
+            # Did not find matching deployment
+            echo "::error ::Failed to find matching deployment for: ${GITHUB_SHA}"
+            exit 1
+          fi
+          DEPLOYMENT_ID=$(cat "deployment.json" | jq --raw-output '.id')
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "::error ::Missing expected '.id' field"
+            exit 1
+          fi
+          echo "Found deployment ID: ${DEPLOYMENT_ID}"
+          echo "::set-output name=DEPLOYMENT_ID::${DEPLOYMENT_ID}"
+      - name: 'Wait for Deployment Success'
+        if: success() && (steps.publishpages.outputs.PROCESS_DEPLOYMENT == 'true')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOYMENT_ID: ${{ steps.deployments.outputs.DEPLOYMENT_ID }}
+        shell: bash --noprofile --norc {0}
+        run: |
+          echo "Waiting for deployment ${DEPLOYMENT_ID} to finish ..."
+          # Poll deployment statuses until we find a status with:
+          # "state": "success"
+          # "environment": "github-pages"
+          DEPLOYMENT_STATE=""
+          POLL_ATTEMPTS=0
+          while [ $POLL_ATTEMPTS -le 12 ]
+          do
+            sleep_interval=$(( POLL_ATTEMPTS * POLL_ATTEMPTS ))
+            if [ $sleep_interval -ne 0 ]; then
+              echo "Sleeping ${sleep_interval} seconds..."
+              sleep ${sleep_interval}
+              echo "Finished sleep"
+            fi
+            DEPLOYMENT_STATE=$(curl -H "Authorization: token ${GITHUB_TOKEN}" -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses" | jq --raw-output --exit-status --argjson end_states '["success","error","failure"]' '.[] | select( (.state as $state | $end_states | index($state) != null ) and (.environment == "github-pages") ) | .state')
+            status=$?
+            (( POLL_ATTEMPTS++ ))
+            if [ $status -eq 0 ]; then
+              break
+            fi
+          done
+          if [ $status -ne 0 ]; then
+            # Did not find matching deployment
+            echo "::error ::Deployment did not finish before timeout"
+            exit 1
+          fi
+          echo "Found deployment state: ${DEPLOYMENT_STATE}"
+          if [ "$DEPLOYMENT_STATE" != "success" ]; then
+            echo "::error ::Deployment did not appear to succeed? (state: ${DEPLOYMENT_STATE})"
+            exit 1
+          fi
+          # Sleep for 10 seconds
+          sleep 10
+          echo "Done."
+      - name: 'Purge Cloudflare Cache'
+        if: success() && (steps.publishpages.outputs.PROCESS_DEPLOYMENT == 'true')
+        env:
+          CLOUDFLARE_ZONE: ${{ secrets.CLOUDFLARE_WZ2100_ZONE }}
+          CLOUDFLARE_CACHEPURGE_TOKEN: ${{ secrets.CLOUDFLARE_WZ2100_CACHEPURGE_TOKEN }}
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE}/purge_cache" \
+               -H "Authorization: Bearer ${CLOUDFLARE_CACHEPURGE_TOKEN}" \
+               -H "Content-Type: application/json" \
+               --data '{"purge_everything":true}'

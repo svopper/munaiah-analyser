@@ -1,0 +1,50 @@
+name: Quality assurance
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  phpstan:
+    name: PHPStan
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.2
+          coverage: none
+          tools: cs2pr, phpstan, composer:v2
+
+      - name: Install Composer dependencies (highest)
+        uses: 'ramsey/composer-install@v1'
+        with:
+          dependency-versions: 'highest'
+          composer-options: '--prefer-dist --prefer-stable'
+
+      - name: PHPStan
+        run: phpstan analyse --error-format=checkstyle | cs2pr
+
+  php-cs-fixer:
+    name: PHP CS Fixer
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.2
+          coverage: none
+          tools: cs2pr, php-cs-fixer
+
+      - name: Run PHP-CS-Fixer
+        run: php-cs-fixer fix --verbose --dry-run --format=checkstyle | cs2pr

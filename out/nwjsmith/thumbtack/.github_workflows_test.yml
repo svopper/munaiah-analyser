@@ -1,0 +1,46 @@
+name: Test
+on:
+  - push
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - 2.5.8
+          - 2.6.6
+          - 2.7.2
+          - 3.0.0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: COVERAGE=1 bundle exec rake test:unit
+      - uses: codecov/codecov-action@v1
+        with:
+          files: ./coverage/codecov-result.json
+  documentation:
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0.0
+          bundler-cache: true
+      - run: |
+          git fetch origin gh-pages
+          bin/yard
+          git checkout gh-pages
+          git clean --force --exclude doc
+          git ls-files | xargs git rm
+          find doc -mindepth 1 -maxdepth 1 -exec mv -t . -- {} +
+          git add .
+          git config user.email "nate.smith@hey.com"
+          git config user.name "Nate Smith"
+          git commit --message "Update documentation"
+          git push origin gh-pages

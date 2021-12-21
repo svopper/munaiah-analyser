@@ -1,0 +1,70 @@
+# this file is managed by rom-rb/devtools project
+
+name: release
+
+on:
+  repository_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'release'
+    env:
+      GITHUB_LOGIN: rom-bot
+      GITHUB_TOKEN: ${{secrets.GH_PAT}}
+      GEM_HOST_API_KEY: ${{secrets.GEM_HOST_API_KEY}}
+      RELEASE_CREATOR: ${{github.event.client_payload.tag_creator}}
+      RELEASE_TAG: ${{github.event.client_payload.tag}}
+      RELEASE_REPO: ${{github.event.client_payload.repo}}
+      RELEASE_REPO_NAME: ${{github.event.client_payload.repo_name}}
+      RELEASE_SHA: ${{github.event.client_payload.sha}}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: ${{github.event.client_payload.repo}}
+          ref: refs/tags/${{github.event.client_payload.tag}}
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - name: Check version
+        run: |
+          repo_name=`echo ${{github.event.client_payload.repo}} | cut -d / -f 2`
+          lib_name=`echo $repo_name | cut -d - -f 2`
+          expected=`echo "${{github.event.client_payload.tag}}" | cut -c 2-`
+          actual=`grep VERSION lib/dry/$lib_name/version.rb | ruby -e 'eval(STDIN.read); puts VERSION'`
+
+          if [[ ! $expected = $actual ]]; then
+            echo "Version $actual in version.rb doesn't match expected $expected"
+            exit 1
+          fi
+      - name: Set up gem credentials
+        run: |
+          mkdir -p ~/.gem
+          echo ":rubygems_api_key: $GEM_HOST_API_KEY" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+      - name: Install dependencies
+        run: gem install gem-release ossy --no-document
+      - name: Publish ${{github.event.client_payload.repo}} ${{github.event.client_payload.tag}} to Rubygems
+        run: |
+          name=$(ossy gh t $RELEASE_REPO $RELEASE_TAG)
+          login=$(ossy gh om "$name" rom-rb)
+
+          if [[ $login == $RELEASE_CREATOR ]]; then
+            ossy gh m $login rom-rb core --verify=true && gem release
+          else
+            echo "Tagger is different than release creator: $login != $RELEASE_CREATOR"
+          fi
+      - name: Generate release file
+        run: ossy r g changelog.yml release.md .devtools/templates/release.erb --data-path project.yml
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GH_PAT}}
+        with:
+          repo: ${{env.RELEASE_REPO_NAME}}
+          tag_name: ${{env.RELEASE_TAG}}
+          commitish: ${{env.RELEASE_SHA}}
+          release_name: ${{env.RELEASE_TAG}}
+          body_path: release.md

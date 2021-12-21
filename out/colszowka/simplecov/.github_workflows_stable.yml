@@ -1,0 +1,38 @@
+name: stable
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.5.8, 2.6.6, 2.7.2, 3.0.0, jruby-9.2.14.0]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Get sqlite for Rails test projects
+        run: sudo apt-get install libsqlite3-dev
+
+      - name: Install bundler
+        run: gem i bundler
+
+      - name: Install dependencies
+        run: |
+          bundle config set --local without benchmark
+          bundle install --jobs=3
+
+      - name: Run tests (MRI)
+        run: bundle exec rake
+        if: "!startsWith(matrix.ruby, 'jruby')"
+
+      - name: Run tests (JRuby)
+        run: JRUBY_OPTS=--debug bundle exec rake
+        if: startsWith(matrix.ruby, 'jruby')

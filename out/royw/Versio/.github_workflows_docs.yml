@@ -1,0 +1,61 @@
+name: "Update Documentation"
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'docs/**'
+      - '**.py'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'docs/**'
+      - '**.py'
+  workflow_dispatch:
+    branches: [ master ]
+
+concurrency: gh-pages
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+#    - name: make /tmp directory
+#      run: mkdir -p /tmp
+#
+#    - name: Build API documentation
+#      uses: ammaraskar/sphinx-action@master
+#      with:
+#        docs-folder: docs/
+#        build-command: "sphinx-apidoc --separate -d 6 -o _src --force ../versio"
+
+    - name: Build project documentation
+      uses: ammaraskar/sphinx-action@master
+      with:
+        docs-folder: docs/
+        build-command: "sphinx-build -b html . _build"
+
+    - name: Upload documentation
+      uses: actions/upload-artifact@v1
+      with:
+        name: DocumentationHTML
+        path: docs/_build/
+
+    - name: Publish built docs to gh-pages
+      # https://github.com/peaceiris/actions-gh-pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+        # If you want GitHub Pages to process your site with the static site generator Jekyll,
+        # set enable_jekyll to true.
+        enable_jekyll: true
+
+        # A source directory to deploy to GitHub Pages. The default is public.
+        # publish_dir: ./public
+        publish_dir: docs/_build
+
+        # A destination subdirectory on a publishing branch. The default is empty.
+        # destination_dir: subdir
+        destination_dir: docs

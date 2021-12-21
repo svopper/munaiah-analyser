@@ -1,0 +1,30 @@
+# see also https://github.com/whitequark/parser/blob/master/.github/workflows/test.yml
+name: Rake
+
+#on: [push, pull_request]
+on: [push]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+#        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
+        # Due to https://github.com/actions/runner/issues/849, we have to use quotes for '3.0'
+#        ruby: [2.5, 2.6, 2.7, '3.0', head, jruby, jruby-head, truffleruby, truffleruby-head]
+        ruby: ["2.7.2", "2.7.3", "3.0.1"]
+        test_command: ["bundle exec rake test"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Bundle install
+      run: |
+        bundle config path /home/runner/bundle
+        bundle install
+        bundle update
+    - run: ${{ matrix.test_command }}

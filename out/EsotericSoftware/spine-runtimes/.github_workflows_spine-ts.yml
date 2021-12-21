@@ -1,0 +1,21 @@
+name: Build spine-ts
+
+on:
+  push:
+    paths:
+      - 'spine-ts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup TypeScript
+      uses: actions/setup-node@v1
+      with:
+        node-version: '16.6.2'    
+    - name: Build spine-ts
+      working-directory: spine-ts
+      env:
+        TS_UPDATE_URL: ${{secrets.TS_UPDATE_URL}}
+      run: ./build.sh

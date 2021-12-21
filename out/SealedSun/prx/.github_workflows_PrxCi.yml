@@ -1,0 +1,61 @@
+name: Prexonite CI
+
+on: 
+  push:
+    branches:
+      - main
+      - master
+    tags-ignore:  
+      - '**'
+    paths-ignore:
+      - PxCoco/**
+      - .github/workflows/PxCoco*
+      - .github/workflows/PrxRelease*
+  pull_request:
+    paths-ignore:
+      - PxCoco/**
+      - .github/workflows/PxCoco*
+      - .github/workflows/PrxRelease*
+
+jobs:
+  build:
+    strategy:
+      matrix: 
+        os: 
+          - windows
+          - linux
+        include: 
+          - os: windows
+            build_platform: windows-2019
+          - os: linux
+            build_platform: ubuntu-20.04
+    name: Build & Test Prexonite on ${{ matrix.os }}
+    runs-on: ${{ matrix.build_platform }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v1.7.2
+        env:
+          NUGET_AUTH_TOKEN: '${{secrets.GITHUB_TOKEN}}'
+        with:
+          dotnet-version: '5.0.x'
+          source-url: 'https://nuget.pkg.github.com/chklauser/index.json'
+      - uses: actions/cache@v2
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
+      - name: Install dependencies
+        run: dotnet restore --lock-file-path=./packages.lock.json --verbosity=normal
+      - name: Install tools
+        run: dotnet tool restore --verbosity=normal 
+      - name: Build
+        run: dotnet build --no-restore --verbosity=normal
+      - name: Test
+        run: dotnet test --no-restore --no-build --verbosity=normal
+      - name: Pack
+        run: dotnet pack --no-restore --no-build --verbosity=normal
+

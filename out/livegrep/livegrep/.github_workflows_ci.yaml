@@ -1,0 +1,55 @@
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+  schedule:
+    # Run in cron every night to keep the cache warm.
+    # Github prunes caches every 7 days, and I don't push often
+    # enough to keep our cache from being evicted without this.
+    - cron: '7 6 * * *'
+
+name: Continuous integration
+
+jobs:
+  ci:
+    runs-on: ubuntu-20.04
+    container: us.gcr.io/livegrep/ci:11
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/bazel
+          key: ${{runner.os}}-${{hashFiles('WORKSPACE')}}
+          restore-keys: |
+            ${{runner.os}}-
+      - name: setup bazel
+        run: |
+          cat .bazelrc.ci >> .bazelrc
+      - name: bazel fetch
+        run: |
+          bazel fetch //cmd/...
+      - name: gofmt
+        run: |
+          gofmt=$(bazel info output_base)/external/go_sdk/bin/gofmt
+          format_errors=$(find . -name '*.go' -print0 | xargs -0 "$gofmt" -l -e)
+          if [ "$format_errors" ]; then
+              echo "=== misformatted files (run gofmt) ==="
+              echo "$format_errors"
+              exit 1
+          fi
+      - name: bazel test
+        run: |
+          bazel test --test_arg=-test.v //...
+          bazel build //...
+      - name: upload to google cloud
+        env:
+          GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+        run: |
+          if [ "$GCLOUD_SERVICE_KEY" ]; then
+            echo "$GCLOUD_SERVICE_KEY" | openssl enc -a -A -d > "$HOME/gcloud-service-key.json"
+            /usr/local/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file "${HOME}/gcloud-service-key.json"
+            /usr/local/google-cloud-sdk/bin/gcloud config set project livegrep
+            ./package.sh
+            /usr/local/google-cloud-sdk/bin/gsutil cp -n -a public-read -r builds/ gs://livegrep.appspot.com/
+          fi

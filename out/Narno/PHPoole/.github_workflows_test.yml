@@ -1,0 +1,132 @@
+name: 'Tests suite'
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+
+jobs:
+  test:
+    name: 'PHP ${{ matrix.php }} on ${{ matrix.os }} (c=${{ matrix.coverage }}, e=${{ matrix.experimental }})'
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    env:
+      extensions: mbstring, intl, gettext, fileinfo
+      ext-cache-key: cache-ext-v1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        php: ['7.1', '7.2', '7.3', '7.4', '8.0']
+        coverage: [false]
+        experimental: [false]
+        exclude:
+        - os: 'ubuntu-latest'
+          php: '7.4'
+          coverage: false
+          experimental: false
+        include:
+        - os: 'ubuntu-latest'
+          php: '7.4'
+          coverage: true
+          experimental: false
+        #- os: 'ubuntu-latest'
+        #  php: '8.1'
+        #  coverage: false
+        #  experimental: true
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+
+    - name: Setup cache extensions
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.ext-cache-key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
+
+    - name: Install PHP
+      if: ${{ !matrix.coverage && !matrix.experimental }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        coverage: none
+
+    - name: Install PHP (coverage)
+      if: ${{ matrix.coverage && !matrix.experimental }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        coverage: xdebug
+
+    - name: Install PHP (JIT)
+      if: ${{ !matrix.coverage && matrix.experimental }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        ini-values: opcache.enable_cli=1, opcache.jit=tracing, opcache.jit_buffer_size=64M
+        coverage: none
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          vendor
+          tests/fixtures/website/themes
+        key: composer-${{ runner.os }}-php-${{ matrix.php }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: composer-${{ runner.os }}-php-${{ matrix.php }}-
+
+    - name: Validate composer.json
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: |
+        composer validate
+
+    - name: Install dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: |
+        composer install --prefer-dist --no-progress
+
+    - name: Run analyse
+      run: |
+        composer run-script code:analyse
+
+    - name: Run build test
+      if: ${{ !matrix.coverage }}
+      run: |
+        composer run-script test
+        composer run-script test:phar
+
+    - name: Run build test (coverage)
+      if: ${{ matrix.coverage && !matrix.experimental }}
+      run: |
+        composer run-script test:coverage
+
+    - name: Upload coverage results to Coveralls
+      if: ${{ matrix.coverage && !matrix.experimental }}
+      continue-on-error: true
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        composer run-script test:coverage:install
+        composer run-script test:coverage:upload

@@ -1,0 +1,85 @@
+name: Code QA - Valgrind
+
+
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'configure.scan'
+      - 'contrib/**'
+      - 'dev-tools/**'
+      - '!dev-tools/libexec/get-release-*.sh'
+      - 'doc/**'
+      - 'etc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'configure.scan'
+      - 'contrib/**'
+      - 'dev-tools/**'
+      - '!dev-tools/libexec/get-release-*.sh'
+      - 'doc/**'
+      - 'etc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+
+
+jobs:
+  code-qa-valgrind:
+
+    name: Check for memory and fd leaks
+    runs-on: ubuntu-20.04
+    container: ciready/ubuntu:20.04-ci-c
+
+    steps:
+
+
+
+      ### Fetch the code
+      #
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+
+      ### Install build environment tools + valgrind
+      #
+      - run: ./dev-tools/install-dev-software.sh
+      - run: DEBIAN_FRONTEND=noninteractive apt-get install -y valgrind
+
+
+
+      ### Build
+      #
+      - run: ./bootstrap.sh
+      - run: ./configure --enable-everything
+      - run: make
+
+
+      ### Run the valgrind verification
+      #
+      - run: make valgrind

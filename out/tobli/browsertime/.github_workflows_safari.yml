@@ -1,0 +1,51 @@
+name: OSX Safari
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14.x'
+    - name: Install browsertime
+      run: npm ci
+    - name: Install dependencies
+      run: |
+        sudo safaridriver --enable
+        sudo rm '/usr/local/bin/2to3'
+        brew update
+        brew install ffmpeg imagemagick
+        python -m pip install --upgrade --user pip
+        python -m pip install --upgrade --user setuptools
+        python -m pip install --user pyssim
+        python -m pip --version
+        python -m pip show Pillow
+        python -m pip show pyssim
+        system_profiler SPDisplaysDataType |grep Resolution
+        ffmpeg -version
+    - name: Check Visual Metrics dependencies
+      run: ./browsertime/visualmetrics.py --check
+    - name: List all simulators
+      run: xcrun xctrace list devices
+    - name: Boot iPhone 12
+      run: |
+        IPHONE12=$(xcrun xctrace list devices  2>&1  | grep -m 1 "iPhone 12 Pro" | awk -F'[()]' '{print $4}')
+        xcrun simctl boot $IPHONE12
+    - name: Test Safari without video 
+      run: ./bin/browsertime.js -b safari -n 1 https://www.sitespeed.io/
+    #- name: Test Safari iOS simulator 
+    #  run: |
+    #    IPHONE12=$(xcrun xctrace list devices  2>&1  | grep -m 1 "iPhone 12 Pro" | awk -F'[()]' '{print $4}')
+    #
+    #   ./bin/browsertime.js -b safari -n 1 --safari.useSimulator --video --visualMetrics --safari.deviceUDID $IPHONE12 https://www.sitespeed.io/
+    - name: Test Safari with video and Visual Metrics
+      run: ./bin/browsertime.js -b safari -n 1 --viewPort 800x600  --video --visualMetrics https://www.example.org

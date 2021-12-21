@@ -1,0 +1,49 @@
+name: Android Docker Image CI
+
+# -- disabled for now, as the resulting image is HUGE and causes our
+#    Android builds to fail
+#on:
+#  push:
+#    paths:
+#    - scripts/docker/android-build-container/Dockerfile
+#    - .github/workflows/android-docker*
+
+# this is here to prevent errors about not having an on: clause
+on:
+  repository_dispatch:
+    types:
+    - unused
+
+jobs:
+  android-build-container:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ '5.13.10' }} # the version numbers here is based on the Qt version, the third digit is the rev of the docker image
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Get our pre-reqs
+      run: |
+          cd scripts/docker/android-build-container
+          bash download.sh
+          sed -ie 's/^sudo/#sudo/' setup-docker.sh
+          bash setup-docker.sh
+
+    - name: set env
+      run: |
+        v=${{ env.VERSION }}
+        b=${{ github.ref }} # -BRANCH suffix, unless the branch is master
+        b=${b/refs\/heads\//}
+        b=${b,,} # the name needs to be all lower case
+        if [ $b = "master" ] ; then b="" ; else b="-$b" ; fi
+        echo "::set-env name=NAME::subsurface/android-build-container${b}:${v}"
+
+    - name: Build and Publish Linux Docker image to Dockerhub
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name:       ${{ env.NAME }}
+        username:   ${{ secrets.DOCKER_USERNAME }}
+        password:   ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: 'Dockerfile'
+        workdir:    './scripts/docker/android-build-container/'

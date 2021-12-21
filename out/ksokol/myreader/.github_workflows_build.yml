@@ -1,0 +1,55 @@
+name: build
+
+on: [push]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
+
+      - name: Set up build environment
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Cache Gradle Directory
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle
+          key: gradle
+
+      - name: Cache Node Modules Directory
+        uses: actions/cache@v1
+        with:
+          path: myreader-frontend/node_modules
+          key: node
+
+      - name: Sonar Cache Directory
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: sonar
+
+      - name: Check Project
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./gradlew --console=plain --no-daemon check jacocoTestReport sonarqube
+
+      - name: Build Project
+        if: contains(github.ref, 'master')
+        run: ./gradlew --console=plain --no-daemon -x check -x test build
+
+      - name: Release Project
+        if: contains(github.ref, 'master')
+        uses: ksokol/github-release-action@v2
+        with:
+          tag_name: ${{ github.ref }}-${{ github.sha }}
+          release_name: ${{ github.sha }}
+          asset_glob: build/myreader.jar

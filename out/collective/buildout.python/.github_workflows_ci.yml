@@ -1,0 +1,81 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  buildout-test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, macos-latest]
+        target:
+          - python24
+          - python25
+          - python26
+          - python27
+          - python32
+          - python33
+          - python34
+          - python35
+          - python36
+          - python37
+          - python38
+          - python39
+          - python310
+          - pypy
+          - pypy3
+
+    runs-on: ${{ matrix.os }}
+    env:
+      BUILDOUT_TARGET: ${{ matrix.target }}
+    steps:
+      - name: Install OSX dependencies
+        if: startsWith(matrix.os, 'macos-')
+        run: brew install libffi ncurses openssl
+
+      - name: Install openssl@1.0 on OSX
+        if: |
+          startsWith(matrix.os, 'macos-') && contains(
+            fromJSON(
+              '["python24","python25","python32","python33"]'
+            ),
+            matrix.target
+          )
+        run: brew install mjpieters/tap/openssl@1.0
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          # from https://github.com/actions/virtual-environments/issues/987#issuecomment-637791840
+          # to work around flakiness of the opensuse.com download site; we
+          # don't need this repo.
+          sudo rm -rf /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libbz2-dev libsqlite3-dev
+          sudo apt-get remove -y python-setuptools
+
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: Run buildout
+        run: make -f .github/workflows/make-tests buildout_target=$BUILDOUT_TARGET
+
+      - name: Run executable
+        shell: bash
+        run: |
+          if [[ "$BUILDOUT_TARGET" == python* ]]; then
+              # map pythonxy to python-x.y/bin/python
+              PYVERSION="${BUILDOUT_TARGET:6:1}.${BUILDOUT_TARGET:7}"
+              EXECUTABLE="python-${PYVERSION}/bin/python"
+          else
+              # run pypy
+              PYVERSION="$BUILDOUT_TARGET"
+              EXECUTABLE="$BUILDOUT_TARGET/bin/python"
+          fi
+          $EXECUTABLE -V
+          bin/virtualenv-${PYVERSION} --version

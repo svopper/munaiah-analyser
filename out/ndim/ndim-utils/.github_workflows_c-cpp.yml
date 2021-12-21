@@ -1,0 +1,43 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: install-software-linux
+      if: runner.os == 'Linux'
+      run: sudo apt install autopoint gettext
+    - name: install-software-macos
+      if: runner.os == 'macOS'
+      run: brew install automake autoconf gettext libtool
+    - name: install-software-windows
+      if: runner.os == 'Windows'
+      run: choco install gettext
+    - name: env-info
+      run: ./.github/scripts/env-info.sh
+      shell: sh
+    - name: autoreconf
+      run: autoreconf -vis .
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make distcheck
+      run: make distcheck

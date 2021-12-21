@@ -1,0 +1,155 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - .github/workflows/libfolia.yml
+
+  pull_request:
+    branches: [master]
+
+jobs:
+  notification:
+    runs-on: ubuntu-latest
+    name: Notify start to gitlama
+    steps:
+      - name: IRC notification
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GitHub
+          message: |-
+            ${{ github.actor }} started a build of ${{ github.event.repository.name }}
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [g++, clang++]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Build Environment
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install pkg-config autoconf-archive
+             else
+                brew upgrade;
+                brew install pkg-config;
+                brew install autoconf-archive;
+                brew install autoconf;
+                brew install automake;
+             fi
+      - name: Install Dependencies
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install libicu-dev libxml2-dev libbz2-dev;
+                sudo apt-get install zlib1g-dev libtar-dev cppcheck
+             else
+                brew install libxml2;
+                brew install bzip2;
+                brew install zlib;
+                brew install libtar;
+                brew install cppcheck
+             fi
+      - name: install TiccUtils
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/ticcutils;
+          cd ticcutils;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: bootstrap
+        run: sh bootstrap.sh
+      - name: configure
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: ./configure
+      - name: Static Code-check
+        run: cppcheck --enable=all --quiet --error-exitcode=0 .
+      - name: make
+        run: make
+      - name: install
+        run: sudo make install
+      - id: compiler
+        run: |
+          id=$(echo ${{matrix.compiler}} | cut -d\+ -f1)
+          echo "::set-output name=id::$id"
+      - run: echo "${{steps.compiler.outputs.id}}"
+      - name: make check
+        id: check
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib make check
+        continue-on-error: true
+      - name: Notify IRC of failure
+        if: ${{ steps.check.outcome != 'success' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            Building Make check with ${{ matrix.compiler }} by ${{ github.actor }} on ${{ matrix.os }}: FAILED
+
+      - name: install foliatest
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone --depth=1 https://github.com/LanguageMachines/foliatest.git
+          cd foliatest;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install FoliaPY
+        run: |
+          git clone https://github.com/proycon/foliapy;
+          cd foliapy;
+          # get folia-repo with examples
+          git submodule init && git submodule update;
+          cd ..
+
+      - name: run foliatests
+        env:
+          FOLIAPATH: ../foliapy/folia-repo
+          EXPECT: 0
+          LD_LIBRARY_PATH: $LD_LIBRARY_PATH:/usr/local/lib
+        run: |
+          cd foliatest;
+          ./src/testaction.sh;
+          TEST_STAT=$(cat status.tmp)
+          echo "test_status=$TEST_STAT" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Notify IRC of failure
+        if: ${{ env.test_status != '0' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            ${{ github.event.repository.name }} with ${{ matrix.compiler }} build by ${{ github.actor }} on ${{ matrix.os }}: FAILED
+
+      - name: Notify IRC of succes
+        if: ${{ env.test_status == '0' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            ${{ github.event.repository.name }} with ${{ matrix.compiler }} build by ${{ github.actor }} on ${{ matrix.os }}: SUCCESS

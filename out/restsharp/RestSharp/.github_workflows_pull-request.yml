@@ -1,0 +1,27 @@
+name: Build and test PRs
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - uses: actions/setup-dotnet@v1.8.1
+        with:
+          dotnet-version: '5.0'
+          
+      - name: Run tests
+        run: dotnet test -c Release
+        
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+
+      - name: Vuepress
+        run: |
+          yarn install
+          yarn docs:build

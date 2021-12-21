@@ -1,0 +1,64 @@
+name: Run Tests
+on:
+  # Trigger on push to master
+  push:
+    branches:
+      - master
+  # Trigger the workflow on pull request events
+  # but only for the master branch
+  pull_request:
+    branches: [ master ]
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: ['7.2', '7.3', '7.4', '8.0']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: php-cs-fixer
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist
+
+      - name: Install Node packages
+        run: sudo npm install -g eslint
+
+      - name: Run JS linter (eslint)
+        run: eslint web/js
+
+      - name: Run PHP linter (php-cs-fixer)
+        run: PHP_CS_FIXER_IGNORE_ENV=1 vendor/bin/php-cs-fixer --diff --dry-run -v fix
+
+      - name: Atoum tests
+        run: |
+          cp app/config/config.ini-ghactions app/config/config.ini
+          vendor/atoum/atoum/bin/atoum -d tests/units/ --use-light-report
+      - name: Functional tests (API, pages)
+        run: |
+          php tests/functional/api.php
+          php tests/functional/pages.php

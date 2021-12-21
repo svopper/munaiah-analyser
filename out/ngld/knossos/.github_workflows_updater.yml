@@ -1,0 +1,144 @@
+name: Publish Updater
+
+on:
+  push:
+    tags:
+      - 'updater-v*'
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      updater_version: ${{ steps.version.outputs.version }}
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
+      go_version: ${{ steps.read.outputs.go_version }}
+      msys2_packages: ${{ steps.read.outputs.msys2_packages }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Generate short SHA
+        id: sha
+        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
+
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "::set-output name=timestamp::$(date +'%Y%m%d%H%M')"
+
+      - name: Generate updater version
+        id: version
+        run: echo "::set-output name=version::$(echo "${{ github.ref }}" | cut -d - -f 2)"
+
+      - name: Read build settings from repository
+        id: read
+        run: |
+          go_version=$(< .go-version)
+          echo "Go version: ${go_version}"
+          echo "::set-output name=go_version::${go_version}"
+          msys2_packages=$(tr -s '\n' ' ' < msys2-packages.txt)
+          echo "MSYS2 packages: ${msys2_packages}"
+          echo "::set-output name=msys2_packages::${msys2_packages}"
+
+  updater:
+    name: Updater / ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Windows, macOS, Ubuntu]
+        include:
+          - os: Windows
+            runner: windows-2019
+            script: .\task.ps1
+          - os: macOS
+            runner: macos-10.15
+            script: ./task.sh
+          - os: Ubuntu
+            runner: ubuntu-20.04
+            script: ./task.sh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.setup.outputs.go_version }}
+
+      - name: Setup MSYS2 toolchain (Windows)
+        uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          update: true
+          install: ${{ needs.setup.outputs.msys2_packages }}
+
+      - name: Locate MSYS2 installation (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          path=$(cygpath -w /)
+          echo "MSYS2 is installed at ${path}"
+          echo "extra_options=\"msys2_path=${path}\"" >> "$GITHUB_ENV"
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v2
+        with:
+          key: golang-${{ github.job }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: golang-${{ github.job }}-${{ runner.os }}-
+          path: |
+            ~/go/pkg
+            ~/.cache/go-build
+
+      - name: Cache managed dependencies
+        uses: actions/cache@v2
+        with:
+          key: third_party-${{ runner.os }}-${{ hashFiles('packages/build-tools/DEPS.yml') }}
+          restore-keys: third_party-${{ runner.os }}-
+          path: |
+            packages/build-tools/DEPS.stamps
+            third_party
+
+      - name: Fetch system dependencies (*nix)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "$RUNNER_OS" = 'macOS' ]; then
+            brew install xz
+          elif [ "$RUNNER_OS" = 'Linux' ]; then
+            sudo apt-get install -y liblzma-dev libzstd-dev zlib1g-dev libsdl2-2.0-0 libasound2
+          fi
+
+      - name: Configure build
+        run: ${{ matrix.script }} configure build=Release ${{ env.extra_options }}
+
+      - name: Fetch managed dependencies
+        run: ${{ matrix.script }} fetch-deps
+
+      - name: Install build tools
+        run: ${{ matrix.script }} install-tools
+
+      - name: Build libarchive
+        run: ${{ matrix.script }} libarchive-build
+
+      - name: Build updater
+        run: ${{ matrix.script }} updater-build
+
+      - name: Package updater (Windows)
+        if: runner.os == 'Windows'
+        run: cd build && tar -caf updater-${{ needs.setup.outputs.updater_version }}.zip updater
+
+      - name: Package updater (*nix)
+        if: runner.os != 'Windows'
+        run: cd build && tar -czf updater-${{ needs.setup.outputs.updater_version }}-${{ matrix.os }}.tar.gz updater
+
+      - name: Upload updater
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/updater-*
+          name: Updater ${{ needs.setup.outputs.timestamp }}+${{ needs.setup.outputs.short_sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

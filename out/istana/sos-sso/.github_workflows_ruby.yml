@@ -1,0 +1,34 @@
+name: github-actions-rails-mysql
+
+on:
+  pull_request:
+    branches: ['*']
+  push:
+    branches: [master]
+jobs:
+  test:
+    runs-on: ubuntu-latest      
+    steps:
+      - name: Start MariaDB
+        uses: getong/mariadb-action@v1.1
+        with:
+          character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
+          collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
+          mysql database: 'sos-sso-test' # Optional, default value is "test". The specified database which will be create
+          mysql root password: "" # Required if "mysql user" is empty, default is empty. The root superuser password
+      - uses: actions/checkout@v2
+      - name: Setup Ruby 2.7
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler: default
+          bundler-cache: true
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+          DATABASE_PORT: 3306
+        run: |
+          bin/rails db:create
+          bin/rails db:schema:load
+          bin/rails zeitwerk:check
+          bin/rails test

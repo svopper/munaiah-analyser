@@ -1,0 +1,30 @@
+name: Publish to Maven Central
+
+on:
+  release:
+    types: [ published ]
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      - name: Setup Maven settings
+        uses: s4u/maven-settings-action@v2.4.0
+        with:
+          servers: '[{"id": "ossrh", "username": "${{ secrets.SONATYPE_USERNAME }}", "password": "${{ secrets.SONATYPE_PASSWORD }}"}]'
+      - name: Publish to Maven Central
+        env:
+          SIGN_KEY: ${{ secrets.SIGN_KEY }}
+          SIGN_KEY_PASS: ${{ secrets.SIGN_KEY_PASS }}
+        run: mvn clean package -Dmaven.test.skip=true sign:sign nexus-staging:deploy -B

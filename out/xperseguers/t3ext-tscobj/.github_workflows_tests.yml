@@ -1,0 +1,69 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    # Inspired by https://github.com/TYPO3-Console/TYPO3-Console/blob/latest/.github/workflows/Test.yml
+    # Inspired by https://github.com/b13/container/blob/master/.github/workflows/ci.yml
+    name: 'T3 ${{ matrix.typo3 }} - PHP ${{ matrix.php }} - ${{ matrix.dependency-version }}'
+
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      matrix:
+        typo3: [ '^11.4' ]
+        php: [ '7.4', '8.0' ]
+        dependency-version: [ stable ]
+        experimental: [ false ]
+        include:
+          # Info: ALL variables MUST be listed here, there is no fallback to the default values above!
+          - typo3: 'dev-master'
+            php: '7.4'
+            dependency-version: stable
+            experimental: true
+
+    continue-on-error: ${{ matrix.experimental }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.composer/cache/files
+          key: dependencies-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
+
+      - name: Set up PHP Version ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: intl, mbstring
+          coverage: none
+
+      - name: Environment Check
+        run: |
+          php --version
+          composer --version
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
+
+      - name: Install dependencies
+        run: |
+          composer require --no-update \
+            typo3/cms-backend:"${{ matrix.typo3 }}" \
+            typo3/cms-core:"${{ matrix.typo3 }}" \
+            typo3/cms-extbase="${{ matrix.typo3 }}" \
+            typo3/cms-frontend="${{ matrix.typo3 }}" \
+            typo3/cms-recordlist="${{ matrix.typo3 }}"
+          composer update --prefer-${{ matrix.dependency-version }} --prefer-dist --no-interaction
+          git checkout composer.json
+
+      - name: Check PHP syntax errors
+        run: find . -name \*.php ! -path "./.Build/*" -print0 | xargs -0 -n1 -P4 php -d display_errors=stderr -n -l > /dev/null
+
+      - name: Run TypoScript linter
+        run: .Build/bin/typoscript-lint -c .typoscript-lint.yml --fail-on-warnings

@@ -1,0 +1,25 @@
+name: .NET Core
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:5.0
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Tests
+      run: dotnet test src/SoundFingerprinting.Tests/SoundFingerprinting.Tests.csproj -c Release -v n
+    - name: Slack Notification
+      if: failure()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_COLOR: '#3278BD'
+        SLACK_MESSAGE: 'SoundFingerprinting core library build failed'
+        SLACK_USERNAME: rtCamp
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}  

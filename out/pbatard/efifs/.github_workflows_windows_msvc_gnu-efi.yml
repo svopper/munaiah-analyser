@@ -1,0 +1,57 @@
+name: Windows, MSVC, gnu-efi
+
+on: 
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - '.gitattributes'
+      - '**.cmd'
+      - '!set_grub_cpu.cmd'
+      - '**.md'
+      - '**.sh'
+      - '!set_grub_cpu.sh'
+      - '**.txt'
+      - '**.vbs'
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - '.gitattributes'
+      - '**.cmd'
+      - '!set_grub_cpu.cmd'
+      - '**.md'
+      - '**.sh'
+      - '!set_grub_cpu.sh'
+      - '**.txt'
+      - '**.vbs'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        arch: [x64, ia32, aa64, arm]
+
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: recursive
+    - name: Patch GRUB
+      run: |
+        cd grub
+        git apply ..\0001-GRUB-fixes.patch
+        cd ..
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1
+    - name: Build drivers
+      run: |
+        msbuild efifs.sln /m /p:Configuration=Debug,Platform=${{ matrix.arch }}
+        msbuild efifs.sln /m /p:Configuration=Release,Platform=${{ matrix.arch }}
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      if: ${{ github.event_name == 'push' }}
+      with:
+        name: msvc_gnu-efi
+        path: ${{ matrix.arch }}/Release/*.efi

@@ -1,0 +1,34 @@
+name: dev-check-repository
+
+on: [push, pull_request]
+
+jobs:
+  build-node-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: opendigitaleducation/node
+      options: --user root -v ${{ github.workspace }}:/home/node/:rw
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run npm install
+        run: npm install
+      - name: Run build node with Gulp
+        run: node_modules/gulp/bin/gulp.js build
+      - name: Run test
+        run: npm test
+
+  build-gradle-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: gradle:4.5-alpine
+      options: --user root -v ${{ github.workspace }}:/home/gradle/:rw
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run build gradle
+        run: gradle assemble -g gradle-user-home
+      - name: Run gradle test
+        run: gradle test  -g gradle-user-home --no-build-cache --rerun-tasks

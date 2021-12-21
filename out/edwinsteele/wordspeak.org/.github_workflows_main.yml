@@ -1,0 +1,58 @@
+name: CI
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        sudo npm install webpagetest -g
+    - name: Build site
+      run: ./wordspeak_tool.py build
+    - name: Deploy to staging
+      uses: reggionick/s3-deploy@v3
+      with:
+        folder: output
+        bucket: ${{ secrets.STAGING_S3_BUCKET }}
+        bucket-region: ${{ secrets.S3_BUCKET_REGION }}
+        dist-id: ${{ secrets.STAGING_CLOUDFRONT_DISTRIBUTION_ID }}
+        delete-removed: true
+        no-cache: true
+        private: true
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.DEPLOY_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEPLOY_AWS_SECRET_ACCESS_KEY }}
+    # Our wpt elements include the favicon and the pre-loading of the next page, because we're not
+    #  testing with --onload. We choose not to use --onload because it'll show us if we accidentally
+    #  introduce something that runs after document complete.
+    - name: Run tests  (XXX need to inject staging deploy)
+      run: |
+        ./wordspeak_tool.py spellchecker
+        ./wordspeak_tool.py w3c_checks
+        echo $PATH
+        /usr/local/bin/webpagetest test https://staging.wordspeak.org/posts/write-because-you-want-to.html --key=$WEBPAGETEST_API_KEY --location=azure-australia-southeast:Chrome --clearcerts --first --poll --timeout 570 --specs ci/wpt_frontpage_testspecs.json --reporter spec
+      env:
+        WEBPAGETEST_API_KEY: ${{ secrets.WEBPAGETEST_API_KEY }}
+    - name: Deploy to prod (master only)
+      uses: reggionick/s3-deploy@v3
+      with:
+        folder: output
+        bucket: ${{ secrets.PROD_S3_BUCKET }}
+        bucket-region: ${{ secrets.S3_BUCKET_REGION }}
+        dist-id: ${{ secrets.PROD_CLOUDFRONT_DISTRIBUTION_ID }}
+        delete-removed: true
+        no-cache: true
+        private: true
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.DEPLOY_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEPLOY_AWS_SECRET_ACCESS_KEY }}
+      if: github.ref == 'refs/heads/master'

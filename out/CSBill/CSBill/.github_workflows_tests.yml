@@ -1,0 +1,207 @@
+name: Tests
+
+on: [ push, pull_request ]
+
+jobs:
+  unit:
+    name: Unit ( PHP ${{ matrix.php }}, MySQL ${{ matrix.mysql }} )
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: [ '7.3', '7.4', '8.0' ]
+        mysql: [ '5.6', '5.7' ]
+        coverage: [ false ]
+        include:
+          - php: '7.3'
+            mysql: '5.6'
+            coverage: true
+          - php: '7.3'
+            mysql: '8.0'
+            mysql-entrypoint: >-
+              --entrypoint sh mysql:8.0 -c "exec docker-entrypoint.sh mysqld --default-authentication-plugin=mysql_native_password"
+            coverage: false
+          - php: '8.0'
+            mysql: '8.0'
+            mysql-entrypoint: >-
+              --entrypoint sh mysql:8.0 -c "exec docker-entrypoint.sh mysqld --default-authentication-plugin=mysql_native_password"
+            coverage: false
+      fail-fast: false
+
+    env:
+      SOLIDINVOICE_ENV: test
+      SOLIDINVOICE_DEBUG: 1
+      SKIP_FUNCTIONAL_BOOTSTRAP: 1
+      COVERAGE: 0
+
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+          -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
+          ${{ matrix.mysql-entrypoint }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: haya14busa/action-cond@v1
+        id: coverage_driver
+        with:
+          cond: ${{ matrix.coverage }}
+          if_true: pcov
+          if_false: none
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: date.timezone=Africa/Johannesburg, opcache.enable=1, opcache.enable_cli=1, opcache.memory_consumption=256, opcache.max_accelerated_files=32531, opcache.interned_strings_buffer=8, opcache.validate_timestamps=0, opcache.save_comments=1, opcache.fast_shutdown=0
+          extensions: intl, gd, opcache, mysql, pdo_mysql, soap, zip, :xdebug
+          tools: symfony
+          coverage: ${{ steps.coverage_driver.outputs.value }}
+
+      - name: Get composer cache directory
+        id: composercache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composercache.outputs.dir }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json composer.lock') }}
+          restore-keys: ${{ runner.os }}-php-${{ matrix.php }}-composer-
+
+      - name: Install dependencies
+        run: composer install --ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Prepare application database
+        run: |
+          bin/console doctrine:database:create -n -vvv
+          bin/console doctrine:migrations:migrate -n -vvv
+
+      - name: Enable code coverage
+        if: matrix.coverage
+        run: echo "COVERAGE=1" >> $GITHUB_ENV
+
+      - name: Update Deprecations Helper
+        if: (startsWith(matrix.php, '8.0'))
+        run: echo "SYMFONY_DEPRECATIONS_HELPER=999999" >> $GITHUB_ENV
+
+      - name: Run test suite
+        run: |
+          mkdir -p build/logs
+          if [ "$COVERAGE" = '1' ]; then
+            bin/simple-phpunit --exclude-group installation,functional --coverage-clover build/logs/clover.xml
+          else
+            bin/simple-phpunit --exclude-group installation,functional
+          fi
+
+      - name: Upload coverage results to Coveralls
+        if: matrix.coverage
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          composer global require --prefer-dist --no-interaction --no-progress --ansi php-coveralls/php-coveralls
+          export PATH="$PATH:$HOME/.composer/vendor/bin"
+          php-coveralls --coverage_clover=build/logs/clover.xml -v
+
+  functional:
+    name: Functional ( PHP ${{ matrix.php }}, MySQL ${{ matrix.mysql }} )
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: [ '7.3', '7.4', '8.0' ]
+        mysql: [ '5.6', '5.7' ]
+        include:
+          - php: '7.3'
+            mysql: '8.0'
+            mysql-entrypoint: >-
+              --entrypoint sh mysql:8.0 -c "exec docker-entrypoint.sh mysqld --default-authentication-plugin=mysql_native_password"
+          - php: '8.0'
+            mysql: '8.0'
+            mysql-entrypoint: >-
+              --entrypoint sh mysql:8.0 -c "exec docker-entrypoint.sh mysqld --default-authentication-plugin=mysql_native_password"
+      fail-fast: false
+
+    env:
+      SOLIDINVOICE_ENV: test
+      SOLIDINVOICE_DEBUG: 1
+      SKIP_FUNCTIONAL_BOOTSTRAP: 1
+      PANTHER_CHROME_DRIVER_BINARY: /usr/local/bin/chromedriver
+      PANTHER_EXTERNAL_BASE_URI: 'http://127.0.0.1:8000'
+      PANTHER_NO_HEADLESS: 0
+      PANTHER_APP_ENV: test
+      PANTHER_NO_SANDBOX: 1
+      PANTHER_CHROME_ARGUMENTS: --disable-dev-shm-usage
+
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+          -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
+          ${{ matrix.mysql-entrypoint }}
+
+    steps:
+      - name: Disable local MySQL server
+        run: sudo service mysql stop
+
+      - uses: nanasess/setup-chromedriver@master
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: date.timezone=Africa/Johannesburg, opcache.enable=1, opcache.enable_cli=1, opcache.memory_consumption=256, opcache.max_accelerated_files=32531, opcache.interned_strings_buffer=8, opcache.validate_timestamps=0, opcache.save_comments=1, opcache.fast_shutdown=0
+          extensions: intl, gd, opcache, mysql, pdo_mysql, soap, zip, :xdebug
+          tools: symfony
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composercache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composercache.outputs.dir }}
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json composer.lock') }}
+          restore-keys: ${{ runner.os }}-php-${{ matrix.php }}-composer-
+
+      - name: Install dependencies
+        run: composer install --ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - uses: actions/setup-node@v2-beta
+        with:
+          node-version: 12
+
+      - run: yarn install
+
+      - run: yarn build
+
+      - name: Run local web server
+        run: symfony local:server:start --daemon --no-tls --allow-http
+
+      - name: Run Installation test suite
+        run: bin/simple-phpunit --group installation
+
+      - name: Run functional test suite
+        run: bin/simple-phpunit --group functional

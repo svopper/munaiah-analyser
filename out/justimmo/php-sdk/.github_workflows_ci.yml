@@ -1,0 +1,49 @@
+name: CI
+
+on: [ push ]
+
+jobs:
+    build-test:
+        runs-on: ubuntu-latest
+
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: php-actions/composer@v6
+                with:
+                    args: --ignore-platform-reqs
+
+            -   name: PHP 7.0
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 6
+                    php_version: 7.0
+
+            -   name: PHP 7.1
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 7
+                    php_version: 7.1
+
+            -   name: PHP 7.2
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 8
+                    php_version: 7.2
+
+            -   name: PHP 7.3
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 8
+                    php_version: 7.3
+
+            -   name: PHP 7.4
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 8
+                    php_version: 7.4
+
+            -   name: PHP 8.0
+                uses: php-actions/phpunit@v3
+                with:
+                    version: 8
+                    php_version: 8.0

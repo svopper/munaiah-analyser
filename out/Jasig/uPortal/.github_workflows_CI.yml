@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    name: '${{ matrix.platform }} with Java ${{ matrix.java-distribution }} version ${{ matrix.java-version }}'
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        java-distribution:
+          - adopt-hotspot
+          - temurin
+          - zulu
+        java-version:
+          - 8
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: ${{ matrix.java-distribution }}
+          java-version: ${{ matrix.java-version }}
+      - name: Build and Test
+        run: ./gradlew -S --no-daemon --no-parallel build jacocoAggregateReport coveralls
+      - name: Lint JavaScript
+        run: ./gradlew -S --no-daemon --no-parallel :npm_run_lint-js

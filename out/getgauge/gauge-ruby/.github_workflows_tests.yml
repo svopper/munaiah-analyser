@@ -1,0 +1,170 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    name: Run test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+
+      - uses: actions/checkout@v1
+
+      - name: debug
+        run: |
+          node -e "console.log(JSON.stringify(process.env, null, '  '))"
+
+      - name: Set up Ruby 2.6.x
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+
+      - name: Install bundler
+        run: |
+          gem install bundler:2.0.2
+
+      - name: Run tests
+        run: |
+          bundle install
+          bundle exec rake spec
+
+  fts:
+    name: Run FTs on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: tests
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup env
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $COMMIT_HASH = node -e "console.log((process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF).replace(/refs\/heads\//,''))"
+          $ruby_plugin_path = (pwd).Path
+          echo "RUBY_PLUGIN_BRANCH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "LOCAL_RUBY_PLUGIN_PATH=$ruby_plugin_path" >> $GITHUB_ENV
+
+      - name: Setup env
+        if: matrix.os != 'windows-latest'
+        run: |
+          export COMMIT_HASH=`node -e "console.log((process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF).replace(/refs\/heads\//,''))"`
+          echo "RUBY_PLUGIN_BRANCH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "LOCAL_RUBY_PLUGIN_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Set up Ruby 2.6.x
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+
+      - name: Setup go 1.13.1
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.1
+
+      - name: Setup java 12.x.x
+        uses: actions/setup-java@v1
+        with:
+          java-version: 12.x.x    
+
+      - uses: getgauge/setup-gauge@master
+        with:
+          gauge-version: master
+
+      - name: Install bundler
+        run: |
+          gem install bundler:2.0.2
+
+      - name: Install gauge ruby
+        run: |
+          go run ./make.go
+          go run ./make.go --install
+
+      - name: Run tests
+        run: |
+          git clone --depth=1 https://github.com/getgauge/gauge-tests
+          cd gauge-tests
+          gauge install
+          gauge -v
+          ./gradlew clean rubyFT
+
+      - uses: actions/upload-artifact@master
+        if: failure()
+        with:
+          name: fts-logs-${{ matrix.os }}
+          path: gauge-tests/logs
+
+  lsp-tests:
+    name: Run lsp on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup env
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $COMMIT_HASH = node -e "console.log((process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF).replace(/refs\/heads\//,''))"
+          $ruby_plugin_path = (pwd).Path
+          echo "RUBY_PLUGIN_BRANCH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "LOCAL_RUBY_PLUGIN_PATH=$ruby_plugin_path" >> $GITHUB_ENV
+
+      - name: Setup env
+        if: matrix.os != 'windows-latest'
+        run: |
+          export COMMIT_HASH=`node -e "console.log((process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF).replace(/refs\/heads\//,''))"`
+          echo "RUBY_PLUGIN_BRANCH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "LOCAL_RUBY_PLUGIN_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Set up Ruby 2.6.x
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+
+      - name: Setup go 1.13.1
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.1
+
+      - uses: getgauge/setup-gauge@master
+        with:
+          gauge-version: master
+
+      - name: Install bundler
+        run: |
+          gem install bundler:2.0.2
+
+      - name: Install gauge ruby
+        run: |
+          go run ./make.go
+          go run ./make.go --install
+
+      - name: Prepare lsp tests
+        run: |
+          git clone --depth=1 https://github.com/getgauge/gauge-lsp-tests
+          cd gauge-lsp-tests
+          npm install
+          gauge install
+
+      - name: Run lsp tests
+        run: |
+          cd gauge-lsp-tests
+          gauge -v
+          gauge run  --tags='!knownIssue & (actions_on_project_load | actions_on_file_edit)' --env=ruby-wd
+
+      - uses: actions/upload-artifact@master
+        if: failure()
+        with:
+          name: lsp-logs-${{ matrix.os }}
+          path: gauge-lsp-tests/logs

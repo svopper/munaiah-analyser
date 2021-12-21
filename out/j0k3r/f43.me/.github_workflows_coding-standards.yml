@@ -1,0 +1,48 @@
+name: "CS"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  coding-standards:
+    name: "CS Fixer & PHPStan"
+    runs-on: "ubuntu-20.04"
+
+    strategy:
+      matrix:
+        php:
+          - "7.3"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2"
+
+      - name: "Install PHP"
+        uses: "shivammathur/setup-php@v2"
+        with:
+          coverage: "none"
+          php-version: "${{ matrix.php }}"
+          tools: pecl, composer:v2
+          ini-values: "date.timezone=Europe/Paris"
+        env:
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Install dependencies with Composer"
+        uses: "ramsey/composer-install@v1"
+
+      - name: "Run PHP CS Fixer"
+        run: "bin/php-cs-fixer fix --verbose --dry-run"
+
+      - name: "Generate test cache for PHPStan"
+        run: "php bin/console cache:clear --env=test"
+
+      - name: "Install PHPUnit for PHPStan"
+        run: "php bin/simple-phpunit install"
+
+      - name: "Run PHPStan"
+        run: "php bin/phpstan analyse --no-progress"

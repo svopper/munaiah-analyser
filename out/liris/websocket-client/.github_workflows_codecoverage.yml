@@ -1,0 +1,44 @@
+name: Code Coverage
+
+on: [push, pull_request]
+
+jobs:
+  code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }} environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Run local websockets echo server on port ${{ env.LOCAL_WS_SERVER_PORT }}
+        run: |
+          pip3 install -U websockets asyncio
+          python3 websocket/tests/echo-server.py &
+      - name: Run test cases without internet or option dependencies to verify no offline test failures and verify optional dependencies are optional
+        run: |
+          pip3 install coverage pytest pytest-cov setuptools
+          python3 -c "import setuptools; print('Setup tools version'); print(setuptools.__version__)"
+          python3 setup.py install
+          pytest -vrP --cov=websocket websocket/tests --cov-config=.coveragerc
+          coverage report
+      - name: Install wsaccel and python-socks, then run all test cases for coverage collection
+        run: |
+          pip3 install wsaccel python-socks
+          pytest -vrP --cov=websocket websocket/tests --cov-config=.coveragerc --cov-append
+          coverage report
+        env:
+          TEST_WITH_INTERNET: 1
+          LOCAL_WS_SERVER_PORT: 8765
+      - name: Run SSL test with extra environment variable and create report
+        run: |
+          python3 -c "import ssl; print(ssl.get_default_verify_paths().capath)"
+          pytest -vrP --cov=websocket websocket/tests --cov-config=.coveragerc --cov-append -k "testSSLopt"
+          coverage xml
+        env:
+          TEST_WITH_INTERNET: 1
+          LOCAL_WS_SERVER_PORT: 8765
+          WEBSOCKET_CLIENT_CA_BUNDLE: "/usr/lib/ssl/certs"
+      - name: Submit code coverage report to Codecov.io
+        uses: codecov/codecov-action@v2

@@ -1,0 +1,25 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: build freetype
+      run: /usr/local/lib/android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH=./android/freetype
+    - name: build expat
+      run: /usr/local/lib/android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH=./android/expat
+    - name: build
+      run: /usr/local/lib/android/sdk/ndk-bundle/ndk-build NDK_PROJECT_PATH=./android/

@@ -1,0 +1,49 @@
+name: main
+
+on:
+  push:
+    paths:
+      - '**'
+      - '!.github/workflows/cross.yml'
+      - '!tools/*'
+  pull_request:
+    paths:
+      - '**'
+      - '!.github/workflows/cross.yml'
+      - '!tools/*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: setup
+        run: 'sudo apt install bison flex texinfo libncurses5-dev libelf-dev'
+
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: cache
+        id: cache
+        uses: actions/cache@v1
+        with:
+          path: cross
+          key: cross-${{ hashFiles('tools/*') }}-${{ runner.os }}
+
+      - name: prepare
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: 'mkdir -p cross'
+
+      - name: cross
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/build.sh
+
+      - name: build
+        run: ./build.sh auto
+
+      - name: upload
+        uses: actions/upload-artifact@v1
+        with:
+          name: fd1440.bin
+          path: image/fd1440.bin

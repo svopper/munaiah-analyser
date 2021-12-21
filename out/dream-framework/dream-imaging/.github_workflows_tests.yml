@@ -1,0 +1,19 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  build:
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - uses: kurocha/setup-cpp@master
+    - name: Install teapot
+      run: gem install teapot
+    - name: Fetch packages
+      run: teapot fetch
+    - name: Run tests
+      run: teapot Test/Images

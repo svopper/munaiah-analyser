@@ -1,0 +1,92 @@
+name: Build and Test
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '18 3 * * *'
+jobs:
+  ubuntu:
+    strategy:
+      matrix:
+        version: ["PHP-8.0", "master"]
+        opcache: ["opcache.enable_cli=0", "opcache.enable_cli=1"]
+        debug: ["enable-debug", "disable-debug"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Ubuntu
+        run: sudo apt-get install lcov re2c bison
+      - name: Install PHP
+        run: |
+          sudo mkdir /opt/src
+          sudo chmod 777 /opt/src
+          cd /opt/src
+          git clone --depth=1 --branch ${{matrix.version}} https://github.com/php/php-src
+          cd php-src
+          ./buildconf --force
+          ./configure --disable-all \
+          			  --enable-gcov \
+          			  --enable-opcache \
+          			  --disable-opcache-jit \
+          			  --prefix=/opt \
+          			  --with-config-file-path=/opt/etc \
+          			  --${{matrix.debug}}
+          make -j$(nproc)
+          sudo make install
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Generate Build Files
+        run: /opt/bin/phpize
+      - name: Configure Build
+        run: ./configure --enable-uopz --with-php-config=/opt/bin/php-config
+      - name: Build
+        run: EXTRA_CFLAGS="-fprofile-arcs -ftest-coverage" make
+      - name: Install
+        run: sudo make install
+      - name: Configure Installation
+        run: |
+          sudo mkdir /opt/etc
+          sudo chmod 777 /opt/etc
+          echo "zend_extension=opcache.so" >  /opt/etc/php.ini
+          echo ${{matrix.opcache}}         >> /opt/etc/php.ini
+      - name: Run Tests
+        run: /opt/bin/php run-tests.php -q -g FAIL,XFAIL,XLEAK,SKIP,BORK,WARN -P --show-diff
+      - name: Generate Test Coverage
+        run: lcov -c --directory ./src/.libs --exclude *Zend* --exclude */usr/include* --output-file coverage.info
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.info
+  windows:
+    defaults:
+      run:
+        shell: cmd
+    strategy:
+      matrix:
+          version: ["8.0", "8.1"]
+          arch: [x64, x86]
+          ts: [nts, ts]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout uopz
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        id: setup-php
+        uses: cmb69/setup-php-sdk@v0.2
+        with:
+          version: ${{matrix.version}}
+          arch: ${{matrix.arch}}
+          ts: ${{matrix.ts}}
+      - name: Enable Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{matrix.arch}}
+          toolset: ${{steps.setup-php.outputs.toolset}}
+      - name: Generate Build Files
+        run: phpize
+      - name: Configure Build
+        run: configure --enable-uopz --with-prefix=${{steps.setup-php.outputs.prefix}}
+      - name: Build
+        run: nmake
+      - name: Run Tests
+        run: nmake test TESTS=tests

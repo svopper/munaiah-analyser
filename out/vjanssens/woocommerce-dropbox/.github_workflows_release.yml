@@ -1,0 +1,19 @@
+name: Release new tagged version to WordPress
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  tag:
+    name: "Deploy to WordPress"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: WordPress Plugin Deploy
+      uses: 10up/action-wordpress-plugin-deploy@1.4.1
+      env:
+        SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        SLUG: woocommerce-dropbox

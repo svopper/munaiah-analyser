@@ -1,0 +1,45 @@
+name: CI
+on: push
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - name: Install deploy key
+        uses: shimataro/ssh-key-action@aa7b7211f80a584d3180fd08c5aef7f9e0cd7a6c
+        with:
+          known-hosts: ${{ secrets.STABLE_KNOWN_HOSTS }}
+          private-key: ${{ secrets.STABLE_PRIVATE_DEPLOY_KEY }}
+          public-key: ${{ secrets.STABLE_PUBLIC_DEPLOY_KEY }}
+
+      - name: Set up Go 1.15
+        uses: actions/setup-go@v2
+        id: go
+        with:
+          go-version: '^1.15.0'
+
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Build
+        run: |
+          $env:Path = "$env:WIX\bin;$env:Path"
+          go run make.go
+
+      - name: Prepare artifacts
+        run: |
+          mkdir artifacts
+          cp just-install.exe artifacts
+          cp just-install.msi artifacts
+
+      - name: Upload just-install.exe
+        uses: actions/upload-artifact@v2
+        with:
+          name: just-install.exe
+          path: artifacts/just-install.exe
+
+      - name: Upload just-install.msi
+        uses: actions/upload-artifact@v2
+        with:
+          name: just-install.msi
+          path: artifacts/just-install.msi

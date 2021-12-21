@@ -1,0 +1,51 @@
+name: Python CI
+
+on: push
+
+jobs:
+  test:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install pipenv
+      run: |
+        pip install -U pipenv
+    - id: cache-pipenv
+      uses: actions/cache@v2
+      with:
+        path: ~/.local/share/virtualenvs
+        key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+    - name: Install system dependencies
+      run: |
+        sudo apt-get install -y curl ca-certificates gnupg
+        sudo curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+        sudo echo 'deb http://apt.postgresql.org/pub/repos/apt focal-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+        sudo apt-get update
+        sudo apt purge postgresql-client-13 postgresql-server-dev-all
+        sudo apt-get install libhdf5-serial-dev libnetcdf-dev libspatialite-dev postgresql-12-postgis-3
+    - name: Install dependencies from lockfile for python 3.8
+      if: steps.cache-pipenv.output.cache-hit != 'true' && ${{ matrix.python-version == '3.8' }}
+      run: |
+        pipenv install --dev
+    - name: Install dependencies for python != 3.8
+      if: ${{ matrix.python-version != '3.8' }}
+      run: |
+        mv Pipfile.lock do-not-use
+        pipenv install --python ${{ matrix.python-version }} --dev
+    - name: Test with pytest (full)
+      if: github.ref == 'refs/heads/master'
+      run: |
+        pipenv run py.test -m "not online" -v --tb=short tests
+    - name: Test with pytest (fast)
+      if: github.ref != 'refs/heads/master'
+      run: |
+        pipenv run py.test -m "not online and not slow" -v --tb=short tests

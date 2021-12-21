@@ -1,0 +1,35 @@
+name: Build the repository
+
+on: 
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest 
+    strategy:
+      matrix:
+        java-version: [ 8 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: temurin
+          cache: maven
+      - name: Set up Yarn cache
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-yarn-${{ hashFiles('graylog2-web-interface/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+          path: ~/.cache/yarn
+      - name: License check
+        run: mvn -B --fail-fast license:check
+      - name: Build with Maven
+        run: mvn -B --fail-fast -Pedantic -Dspotbugs.skip -Dit.es verify javadoc:javadoc
+        env:
+          JAVA_OPTS: -Xmx6G
+          TIMEOUT_MULTIPLIER: 2.0
+
+

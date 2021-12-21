@@ -1,0 +1,25 @@
+name: integration test
+
+on:
+  schedule:
+    - cron:  '0 6 * * 6'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Java 11
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: '11'
+    - name: Build with Gradle
+      env:
+        BILLOMAT_ID: ${{ secrets.BILLOMAT_ID }}
+        BILLOMAT_API_KEY: ${{ secrets.BILLOMAT_API_KEY }}
+        BILLOMAT_APP_ID: ${{ secrets.BILLOMAT_APP_ID }}
+        BILLOMAT_APP_SECRET: ${{ secrets.BILLOMAT_APP_SECRET }}
+      run: ./gradlew integrationTest

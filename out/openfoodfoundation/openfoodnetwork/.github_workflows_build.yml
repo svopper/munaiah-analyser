@@ -1,0 +1,125 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+env:
+  DISABLE_KNAPSACK: true
+  TIMEZONE: UTC
+  COVERAGE: true
+  RSPEC_RETRY_RETRY_COUNT: 3
+  RAILS_ENV: test
+
+jobs:
+  rspec:
+    runs-on: ubuntu-18.04
+    services:
+      postgres:
+        image: postgres:10
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_DB: open_food_network_test
+          POSTGRES_USER: ofn
+          POSTGRES_PASSWORD: f00d
+    strategy:
+      matrix:
+        specs:
+          - "spec/controllers"
+          - "spec/models"
+          - "spec/features/admin/[a-o0-9]*_spec.rb"
+          - "spec/features/admin/[p-z]*_spec.rb"
+          - "spec/features/consumer"
+          - "spec/lib"
+          - "spec/migrations"
+          - "spec/serializers"
+          - "spec/system"
+          - "engines/*/spec"
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14.15.5'
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Set up application.yml
+        run: cp config/application.yml.example config/application.yml
+
+      - name: Set up database
+        run: |
+          bundle exec rake db:create
+          bundle exec rake db:schema:load
+
+      - name: Run controller tests
+        run: bundle exec rspec --profile -- ${{ matrix.specs }}
+
+      - name: Archive failed tests screenshots
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: failed-tests-screenshots
+          path: tmp/capybara/screenshots/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  test-the-rest:
+    runs-on: ubuntu-18.04
+    services:
+      postgres:
+        image: postgres:10
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_DB: open_food_network_test
+          POSTGRES_USER: ofn
+          POSTGRES_PASSWORD: f00d
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14.15.5'
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Set up application.yml
+        run: cp config/application.yml.example config/application.yml
+
+      - name: Set up database
+        run: |
+          bundle exec rake db:create
+          bundle exec rake db:schema:load
+
+      - name: Run JS tests
+        run: bundle exec rake karma:run
+
+      - name: Run jest tests
+        run: yarn jest
+
+      - name: Run all other tests
+        run: bundle exec rake ofn:specs:run:excluding_folders["models,controllers,serializers,features,lib,migrations,system"]

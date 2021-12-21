@@ -1,0 +1,32 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: [ '2.5', '2.6', '2.7', '3.0' ]
+        minimal: [ false, true ]
+    name: Ruby ${{ matrix.ruby }} tests, minimal=${{ matrix.minimal }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-${{ matrix.ruby }}-gems-${{ hashFiles('Gemfile', 'frozen_record.gemspec') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.ruby }}-gems-
+      - name: Bundle install
+        run: |
+          gem install bundler
+          bundle install --jobs 4 --retry 3 --path=vendor/bundle
+      - name: Run tests
+        env:
+          MINIMAL: ${{ matrix.minimal }}
+        run: bundle exec rake

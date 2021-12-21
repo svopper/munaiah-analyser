@@ -1,0 +1,336 @@
+name: CI
+
+on:
+  push:
+    # Don't run this workflow when a tag is pushed.
+    branches:
+      - '*'
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Publish to Artifactory as a separate job that runs after the build jobs
+  # because we must first clean out any existing artifacts for this Git ref,
+  # and we don't want to do that as a pre-build step in case the build fails
+  # and we're left with no artifacts published.
+  publish-to-artifactory:
+    runs-on: ubuntu-18.04
+    needs: [linux, windows]
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Clean up artifacts on Artifactory
+        run: |
+          curl -sfSLO 'https://raw.githubusercontent.com/Ortham/ci-scripts/2.2.0/remove_old_artifactory_files.py'
+
+          python3 remove_old_artifactory_files.py \
+            --artifactory-host loot.jfrog.io \
+            --artifactory-api-key ${{ secrets.ARTIFACTORY_API_KEY }} \
+            --artifactory-repository loot \
+            --current-branch "${GITHUB_REF#refs/*/}" \
+            --github-repository loot/loot \
+            --github-token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create empty directory for artifacts
+        run: |
+          rm -rf downloaded_artifacts
+          mkdir downloaded_artifacts
+
+      - name: Download all artifacts for this workflow from GitHub Actions
+        uses: actions/download-artifact@v2
+        with:
+          path: downloaded_artifacts
+
+      - name: Publish artifacts to Artifactory
+        shell: bash
+        run: |
+          curl -sfSLO 'https://raw.githubusercontent.com/Ortham/ci-scripts/2.2.0/percent_encode.py'
+
+          PERCENT_ENCODED_GIT_REF_NAME=$(python3 percent_encode.py "${GITHUB_REF#refs/*/}")
+
+          for ARTIFACT_DIRECTORY in downloaded_artifacts/*
+          do
+            ARTIFACT_NAME="${ARTIFACT_DIRECTORY#downloaded_artifacts/}"
+            PERCENT_ENCODED_ARTIFACT_NAME=$(python3 percent_encode.py "$ARTIFACT_NAME")
+
+            curl -sSfL \
+              -X PUT \
+              -T "$ARTIFACT_DIRECTORY/$ARTIFACT_NAME" \
+              -H "X-JFrog-Art-Api: ${{ secrets.ARTIFACTORY_API_KEY }}" \
+              "https://loot.jfrog.io/artifactory/loot/${PERCENT_ENCODED_GIT_REF_NAME}/$PERCENT_ENCODED_ARTIFACT_NAME"
+          done
+
+  linux:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Yarn cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Get Boost metadata
+        id: boost-metadata
+        run: |
+          echo "::set-output name=root::~/boost_1_72_0"
+          echo "::set-output name=librarydir::~/boost_1_72_0/stage/64/lib"
+
+      - name: Boost cache
+        id: boost-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.boost-metadata.outputs.root }}/boost
+            ${{ steps.boost-metadata.outputs.root }}/stage
+          key: ${{ runner.os }}-Boost-1.72.0
+
+      - name: Install JS dependencies
+        run: yarn install
+
+      - name: Lint JS code
+        run: yarn lint
+
+      - name: Test JS code
+        run: yarn test
+
+      - name: Install C++ dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-upgrade \
+            libbz2-dev \
+            libhttp-parser-dev \
+            libssh2-1-dev \
+            libssl-dev \
+            libx11-dev \
+            libgtk2.0-dev \
+            libnss3-dev \
+            libgconf2-dev \
+            libxss-dev \
+            libasound2-dev \
+            libxtst-dev \
+            libicu-dev \
+            g++-8
+
+      - name: Download & build Boost
+        run: |
+          wget https://raw.githubusercontent.com/Ortham/ci-scripts/2.1.2/install_boost.py
+          python install_boost.py --directory ~ --boost-version 1.72.0 -a 64 -t gcc-8 locale system
+        if: steps.boost-cache.outputs.cache-hit != 'true'
+
+      - name: Run CMake
+        run: |
+          mkdir build
+          cd build
+          export CXX="g++-8" CC="gcc-8"
+          cmake .. -DBOOST_ROOT=${{ steps.boost-metadata.outputs.root }} -DBOOST_LIBRARYDIR=${{ steps.boost-metadata.outputs.librarydir }}
+          make all
+
+      - name: Run C++ tests
+        run: |
+          cd build
+          git config --global user.email "github@github-actions"
+          git config --global user.name "GitHub"
+          ./loot_gui_tests
+
+      - name: Install packages for building docs
+        run: |
+          python -m pip install -r docs/requirements.txt
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build docs
+        run: sphinx-build -b html docs build/docs/html
+
+      - name: Build translation message object files
+        run: node scripts/potomo.js
+
+      - name: Get descriptive LOOT version
+        id: get-loot-version
+        shell: bash
+        run: |
+          GIT_DESCRIBE=$(git describe --tags --long --abbrev=7)
+          GIT_REF=${{ github.ref }}
+          GIT_REF_SUFFIX=${GIT_REF#refs/*/}
+          LOOT_DESC_REF=${GIT_DESCRIBE}_${GIT_REF_SUFFIX}
+          LOOT_SAFE_DESC_REF=${LOOT_DESC_REF//[\/<>\"|]/_}
+          SAFE_GIT_REF_SUFFIX=${GIT_REF_SUFFIX//[\/<>\"|]/_}
+          echo "::set-output name=version::$LOOT_SAFE_DESC_REF"
+          echo "::set-output name=ref::$SAFE_GIT_REF_SUFFIX"
+
+      - name: Build archive
+        id: build-archive
+        shell: bash
+        run: |
+          VERSION="${{ steps.get-loot-version.outputs.version }}"
+          FILENAME="loot_${VERSION}-Linux.tar.xz"
+
+          node scripts/archive.js . "${{ steps.get-loot-version.outputs.ref }}"
+          mv "build/loot_${{ steps.get-loot-version.outputs.version }}.tar.xz" "build/$FILENAME"
+
+          echo "::set-output name=filename::$FILENAME"
+
+  windows:
+    runs-on: windows-2016
+
+    strategy:
+      matrix:
+        platform: [Win32, x64]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get pip cache dir
+        id: pip-cache-dir-path
+        run: echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Yarn cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Get Boost metadata
+        id: boost-metadata
+        run: |
+          if ("${{ matrix.platform }}" -eq "Win32") {
+            $addressModel = 32
+          } else {
+            $addressModel = 64
+          }
+
+          echo "::set-output name=address-model::$addressModel"
+          echo "::set-output name=root::${{ github.workspace }}/boost_1_72_0"
+          echo "::set-output name=librarydir::${{ github.workspace }}/boost_1_72_0/stage/$addressModel/lib"
+
+      - name: Boost cache
+        id: boost-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.boost-metadata.outputs.root }}/boost
+            ${{ steps.boost-metadata.outputs.root }}/stage
+          key: ${{ runner.os }}-${{ matrix.platform }}-Boost-1.72.0
+
+      - name: Install JS dependencies
+        run: yarn install
+
+      - name: Lint JS code
+        run: yarn lint
+
+      - name: Test JS code
+        run: yarn test
+
+      - name: Download and extract svg_to_ico
+        run: |
+          curl -sfSLO 'https://github.com/Ortham/svg_to_ico/releases/download/1.1.0/svg_to_ico.7z'
+          7z e -y svg_to_ico.7z
+
+      - name: Generate ICO file
+        run: .\svg_to_ico.exe -i resources\icon.svg -o build\icon\icon.ico
+
+      - name: Download & build Boost
+        run: |
+          curl -sSfLO https://raw.githubusercontent.com/Ortham/ci-scripts/2.1.2/install_boost.py
+          python install_boost.py --directory ${{ github.workspace }} --boost-version 1.72.0 -a ${{ steps.boost-metadata.outputs.address-model }} locale system
+        if: steps.boost-cache.outputs.cache-hit != 'true'
+
+      - name: Run CMake
+        run: |
+          cd build
+          cmake .. -G "Visual Studio 15 2017" -A ${{ matrix.platform }} -DBOOST_ROOT="${{ steps.boost-metadata.outputs.root }}" -DBOOST_LIBRARYDIR="${{ steps.boost-metadata.outputs.librarydir }}" -DMSVC_STATIC_RUNTIME=ON
+          cmake --build . --config Release
+
+      - name: Run C++ tests
+        run: |
+          cd build/Release
+          git config --global user.email "github@github-actions"
+          git config --global user.name "GitHub"
+          .\loot_gui_tests.exe
+
+      - name: Install packages for building docs
+        run: |
+          python -m pip install -r docs/requirements.txt
+
+      - name: Build docs
+        run: sphinx-build -b html docs build\docs\html
+
+      - name: Build translation message object files
+        run: node scripts\potomo.js
+
+      - name: Get descriptive LOOT version
+        id: get-loot-version
+        shell: bash
+        run: |
+          GIT_DESCRIBE=$(git describe --tags --long --abbrev=7)
+          GIT_REF=${{ github.ref }}
+          GIT_REF_SUFFIX=${GIT_REF#refs/*/}
+          LOOT_DESC_REF=${GIT_DESCRIBE}_${GIT_REF_SUFFIX}
+          LOOT_SAFE_DESC_REF=${LOOT_DESC_REF//[\/<>\"|]/_}
+          SAFE_GIT_REF_SUFFIX=${GIT_REF_SUFFIX//[\/<>\"|]/_}
+          echo "::set-output name=version::$LOOT_SAFE_DESC_REF"
+          echo "::set-output name=ref::$SAFE_GIT_REF_SUFFIX"
+
+      - name: Get LOOT artifact basename
+        id: get-artifact-basename
+        shell: bash
+        run: |
+          VERSION="${{ steps.get-loot-version.outputs.version }}"
+          if [[ "${{ matrix.platform }}" == "Win32" ]]
+          then
+            PLATFORM=win32
+          else
+            PLATFORM=win64
+          fi
+          echo "::set-output name=basename::loot_${VERSION}-${PLATFORM}"
+
+      - name: Build archive
+        run: |
+          node scripts\archive.js . "${{ steps.get-loot-version.outputs.ref }}"
+          mv "build\loot_${{ steps.get-loot-version.outputs.version }}.7z" "build\${{ steps.get-artifact-basename.outputs.basename }}.7z"
+
+      - name: Build installer
+        run: |
+          scripts\build_installer.ps1
+          mv "build\LOOT Installer.exe" "build\${{ steps.get-artifact-basename.outputs.basename }}.exe"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.get-artifact-basename.outputs.basename }}.7z
+          path: build/${{ steps.get-artifact-basename.outputs.basename }}.7z
+        if: github.event_name == 'push' && matrix.platform == 'Win32'
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.get-artifact-basename.outputs.basename }}.exe
+          path: build/${{ steps.get-artifact-basename.outputs.basename }}.exe
+        if: github.event_name == 'push' && matrix.platform == 'Win32'

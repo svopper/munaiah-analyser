@@ -1,0 +1,15 @@
+name: Verify Gem Version Change
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: simplybusiness/version-forget-me-not@v2
+      env:
+        ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION_FILE_PATH: "lib/has_breadcrumb/version.rb"

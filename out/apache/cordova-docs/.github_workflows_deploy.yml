@@ -1,0 +1,40 @@
+name: deploy site
+
+on:
+  workflow_dispatch:
+    inputs:
+      dispatchReason:
+        description: 'Reason of Manual Deploy'
+        required: true
+        default: 'Re-run failed deployment'
+
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+
+      - name: Run npm install
+        run: npm install
+
+      - name: Run npm test
+        run: npm test
+
+      - name: Run build
+        run: npm run build:prod
+
+      - name: Run deploy
+        uses: JamesIves/github-pages-deploy-action@5dc1d5a192aeb5ab5b7d5a77b7d36aea4a7f5c92
+        with:
+          branch: asf-site
+          folder: build-prod
+          clean-exclude: |
+            archive

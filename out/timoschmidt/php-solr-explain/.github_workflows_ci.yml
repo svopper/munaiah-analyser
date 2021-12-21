@@ -1,0 +1,89 @@
+name: BUILD
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - "**"
+  pull_request:
+    branches: [ master ]
+
+env:
+  PHP_CS_FIXER_VERSION: '^3.0.2'
+  CI_BUILD_DIRECTORY: '/ramfs/data-build'
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PHP: [ '7.2', '7.3', '7.4', '8.0' ]
+
+    name: On PHP ${{ matrix.PHP }}
+    steps:
+      # Workaround for issue with actions/checkout@v2 wrong PR commit checkout: See https://github.com/actions/checkout/issues/299#issuecomment-677674415
+      - name: Checkout current state of Pull Request
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout current state of Branch
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
+
+      - name: Mount RAMFS
+        run: |
+          id
+          sudo mkdir /ramfs
+          sudo mount -t tmpfs -o size=2048m none /ramfs
+          sudo mkdir -p /ramfs/data-build && sudo chown $USER /ramfs/data-*
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.PHP }}
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: CI-Bootstrap
+        run: |
+          echo "CI_BUILD_DIRECTORY=$CI_BUILD_DIRECTORY/"
+          cp -r ../php-solr-explain $CI_BUILD_DIRECTORY/.
+          cd $CI_BUILD_DIRECTORY/php-solr-explain
+          ./Build/Test/bootstrap.sh
+          echo "Current Size of php-solr-explain build Artefacts: " && du -sh $CI_BUILD_DIRECTORY/php-solr-explain
+
+      - name: CI-Build
+        run: |
+          cd $CI_BUILD_DIRECTORY/php-solr-explain
+          ./Build/Test/cibuild.sh
+          echo "Current Size of php-solr-explain build Artefacts: " && du -sh $CI_BUILD_DIRECTORY/ && du -sh $CI_BUILD_DIRECTORY/php-solr-explain/.Build/*
+
+#      - name: Upload code coverage to Scrutinizer
+#        run: |
+#          cd $CI_BUILD_DIRECTORY/php-solr-explain
+#          mkdir -p $GITHUB_WORKSPACE/bin
+#          wget https://scrutinizer-ci.com/ocular.phar -O $GITHUB_WORKSPACE/bin/ocular && chmod +x $GITHUB_WORKSPACE/bin/ocular
+#          php $GITHUB_WORKSPACE/bin/ocular code-coverage:upload --format=php-clover coverage.unit.clover
+
+  publish:
+    name: Publish PHAR file on Release
+    needs: tests
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Build PHAR
+      - name: Build PHAR
+        run: |
+          ./Build/phar.sh
+
+      - name: Upload PHAR on release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ../php-solr-explain.phar

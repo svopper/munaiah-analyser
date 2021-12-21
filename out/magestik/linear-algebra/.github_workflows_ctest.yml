@@ -1,0 +1,79 @@
+name: CTest
+
+on: [push]
+
+jobs:
+  Linux:
+    runs-on: ubuntu-latest
+
+    strategy:    
+      matrix:
+        cxx: [g++, clang++]
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install Google Test
+      shell: bash
+      run: |
+        git clone --single-branch --branch v1.8.x https://github.com/google/googletest.git
+        cd googletest
+        mkdir build
+        cd build
+        cmake -DBUILD_GMOCK=FALSE -DCMAKE_INSTALL_PREFIX=$HOME/googletest ..
+        cmake --build .
+        cmake --build . --target install
+        echo "::set-env name=GTest_ROOT::$HOME/googletest"
+
+    - name: Build & Test
+      shell: bash
+      run: ctest -S ci/github.cmake
+
+      env:
+        CXX: ${{ matrix.cxx }}
+
+  MacOS:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install Google Test
+      shell: bash
+      run: |
+        git clone --single-branch --branch v1.8.x https://github.com/google/googletest.git
+        cd googletest
+        mkdir build
+        cd build
+        cmake -DBUILD_GMOCK=FALSE -DCMAKE_INSTALL_PREFIX=$HOME/googletest ..
+        cmake --build .
+        cmake --build . --target install
+        echo "::set-env name=GTest_ROOT::$HOME/googletest"
+
+    - name: Build & Test
+      shell: bash
+      run: ctest -S ci/github.cmake
+
+  Windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install Google Test
+      shell: bash
+      run: |
+        git clone --single-branch --branch v1.8.x https://github.com/google/googletest.git
+        cd googletest
+        mkdir build
+        cd build
+        cmake -DBUILD_GMOCK=FALSE -DCMAKE_INSTALL_PREFIX=$HOME/googletest -Dgtest_force_shared_crt=ON ..
+        cmake --build . --config Debug
+        cmake --build . --config Debug --target install
+        cmake --build . --config Release
+        cmake --build . --config Release --target install
+        echo "::set-env name=GTest_ROOT::$HOME/googletest"
+
+    - name: Build & Test
+      shell: bash
+      run: ctest -S ci/github.cmake

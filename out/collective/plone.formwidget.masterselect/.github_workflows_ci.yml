@@ -1,0 +1,57 @@
+name: plone.formwidget.masterselect CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.7]
+        plone-version: [5.2]
+
+    steps:
+      # git checkout
+      - uses: actions/checkout@v2
+
+      # python setup
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # python cache
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Firefox
+      - uses: browser-actions/setup-firefox@latest
+        with:
+          firefox-version: '89.0'
+      - run: firefox --version
+
+      # python install
+      - run: pip install virtualenv
+      - run: pip install wheel
+      - name: pip install
+        run: pip install -r requirements.txt
+
+      # Xvfb
+      - run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      # buildout
+      - name: buildout
+        run: buildout -t 10 -c plone-${{ matrix.plone-version }}.x.cfg code-analysis:return-status-codes=True
+
+      # code analysis
+      - name: code analysis
+        run: bin/code-analysis
+
+      # test
+      - name: test
+        env:
+          DISPLAY: :99
+        run: bin/test

@@ -1,0 +1,67 @@
+name: Install QA - README.md
+
+
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+    paths:
+      - 'README.md'
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'README.md'
+
+
+
+jobs:
+  install-qa-test-readme-steps:
+
+    name: Test install steps from README.md
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+
+
+
+    ###
+    ### Steps to run
+    ###
+    steps:
+
+
+
+      ### Fetch the code
+      #
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+
+      ### Install tools required to download and run the script
+      #
+      - run: |
+          DEBIAN_FRONTEND=noninteractive apt-get update -y
+          DEBIAN_FRONTEND=noninteractive apt-get install -y wget
+
+
+
+      ### Install
+      #
+      - run: ./dev-tools/libexec/extract-and-run-install-steps-from-readme.sh
+
+
+
+      ### Verify Snoopy operation
+      #
+      - name: Verify Snoopy operation
+        run: |
+          touch /var/log/snoopy.log
+          echo "output = file:/var/log/snoopy.log" >> /etc/snoopy.ini
+          /bin/echo "Snoopy is alive and well"
+          cat /var/log/snoopy.log | grep -v ': grep' | grep "Snoopy is alive and well"

@@ -1,0 +1,196 @@
+name: Build and test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+
+  build-test-ubuntu:
+
+    runs-on: ubuntu-latest
+    container:
+        image: ubuntu:18.04
+
+    steps:
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get -y install build-essential libtool autoconf git cmake python3 libgmp-dev dpkg-dev
+
+    - name: Checkout repository
+      uses: actions/checkout@v1
+
+    - name: Checkout submodules
+      run: |
+        git submodule update --init --recursive
+
+    - name: Build ISL
+      run: |
+        cd extra/isl
+        mkdir build
+        ./autogen.sh
+        ./configure --prefix=$(pwd)/build
+        make install
+
+    - name: Build Arrp compiler
+      run: |
+        mkdir build
+        cd build
+        cmake -D CMAKE_INSTALL_PREFIX=$(pwd)/test-install ..
+        make install
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Build Debian package
+      run: |
+        mkdir build-pkg
+        cd build-pkg
+        ../make-deb.sh ..
+        mkdir release
+        cp *.deb release/
+
+    - name: Upload package as artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: debian-package
+        path: 'build-pkg/release'
+
+
+  test-debian-package:
+
+    needs: build-test-ubuntu
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Download package as artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: debian-package
+        path: debian-package
+
+    - name: Test package
+      run: |
+          sudo dpkg -i debian-package/*.deb
+
+          echo "import math; input x : [~]int; output y = math.add(x,1);" > test.arrp
+          arrp test.arrp --interface stdio --output test
+          c++ -std=c++17 test-stdio-main.cpp -I. -o test
+
+          echo 1 3 5 | ./test > output.txt
+          echo "Output:"
+          cat output.txt
+          echo -en "2\n4\n6\n" > expected.txt
+          diff output.txt expected.txt
+          if [[ $? -eq 0 ]]; then
+            echo "OK"
+          else
+            echo "Error"
+            exit 1
+          fi
+
+
+  build-test-macos:
+
+    runs-on: macOS-latest
+
+    env:
+      CC: gcc
+      CXX: g++
+
+    steps:
+
+    - uses: actions/checkout@v1
+
+    - name: Checkout submodules
+      run: |
+        git submodule update --init --recursive
+
+    - name: Install dependencies
+      run: |
+        brew install automake autoconf libtool gmp
+
+    - name: Build ISL
+      run: |
+        cd extra/isl
+        mkdir build
+        ./autogen.sh
+        ./configure --prefix=$(pwd)/build
+        make install
+
+    - name: Build Arrp compiler
+      run: |
+        mkdir build
+        cd build
+        cmake -D CMAKE_INSTALL_PREFIX=$(pwd)/test-install ..
+        make install
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Make package
+      run: |
+        mkdir build-pkg
+        cd build-pkg
+        ../make-zip.sh .. macos
+        mkdir release
+        cp *.zip release/
+
+    - name: Upload package as artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: macos-package
+        path: 'build-pkg/release'
+
+
+  test-macos-package:
+
+    needs: build-test-macos
+
+    runs-on: macOS-latest
+
+    steps:
+
+    - name: Download package as artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: macos-package
+        path: macos-package
+
+    - name: Test package
+      run: |
+          unzip macos-package/*.zip
+
+          arrp_prefix=$(echo $(pwd)/arrp_*_macos)
+          echo "Arrp prefix: ${arrp_prefix}"
+
+          mkdir test
+          cd test
+          echo "import math; input x : [~]int; output y = math.add(x,1);" > test.arrp
+          ${arrp_prefix}/bin/arrp test.arrp --interface stdio --output test
+          g++ -std=c++17 test-stdio-main.cpp -I. -I${arrp_prefix}/include -o test
+
+          echo 1 3 5 | ./test > output.txt
+          echo "Output:"
+          cat output.txt
+          echo -en "2\n4\n6\n" > expected.txt
+          diff output.txt expected.txt
+          if [[ $? -eq 0 ]]; then
+            echo "OK"
+          else
+            echo "Error"
+            exit 1
+          fi

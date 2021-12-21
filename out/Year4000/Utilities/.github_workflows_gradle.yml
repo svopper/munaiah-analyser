@@ -1,0 +1,47 @@
+name: Java CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Build with Gradle
+      run: ./gradlew clean assemble
+    - name: Upload core artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-core
+        path: core/build/libs/
+    - name: Upload core-ducktape artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-core-ducktape
+        path: core-ducktape/build/libs/
+    - name: Upload core-redis artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-core-redis
+        path: core-redis/build/libs/
+    - name: Upload core-router artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-core-router
+        path: core-router/build/libs/
+    - name: Upload spigot artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-spigot
+        path: spigot/build/libs/
+    - name: Upload sponge artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: utilities-sponge
+        path: sponge/build/libs/

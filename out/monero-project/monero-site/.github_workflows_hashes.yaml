@@ -1,0 +1,74 @@
+---
+name: Validate Hashes
+on:
+  push:
+    paths:
+      - 'downloads/hashes.txt'
+      - '_data/downloads.yml'
+  pull_request:
+    paths:
+      - 'downloads/hashes.txt'
+      - '_data/downloads.yml'
+jobs:
+  validate-hashes:
+    name: Validate Hashes
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y --no-install-recommends curl gpg jq python-pip
+          sudo pip install yq
+      - name: Verify hashes.txt signature
+        run: |
+          curl -sL https://raw.githubusercontent.com/monero-project/monero/master/utils/gpg_keys/binaryfate.asc |
+            gpg --import
+          gpg --verify downloads/hashes.txt
+      - name: Download releases
+        run: |
+          for file in $(awk '/monero-/ {print $2}' downloads/hashes.txt); do
+              [ -f $file ] && continue
+              echo Downloading $file...
+              dir=cli
+              if [[ $file =~ gui ]]; then
+                  dir=gui
+              fi
+              url=https://dlsrc.getmonero.org/${dir}/${file}
+              curl -sLO $url
+          done
+      - name: Verify hashes.txt hashes
+        run: |
+          grep monero- downloads/hashes.txt | sha256sum -c
+      - name: Verify downloads.yml hashes
+        run: |
+          yq -r '.[] | .[0].downloads[] | "\(.link)|\(.hash)"' _data/downloads.yml | grep -v github |
+              while read line; do
+                  [ -z "$line" ] && continue
+                  url=$(echo $line | cut -d'|' -f1)
+                  hash=$(echo $line | cut -d'|' -f2)
+                  filename=
+                  case $url in
+                      *gui/win64install) filename=monero-gui-install-win-x64 ;;
+                      *gui/win64) filename=monero-gui-win-x64 ;;
+                      *gui/mac64) filename=monero-gui-mac-x64 ;;
+                      *gui/linux64) filename=monero-gui-linux-x64 ;;
+                      *gui/source) filename=monero-gui-source ;;
+                      *cli/win64) filename=monero-win-x64 ;;
+                      *cli/win32) filename=monero-win-x86 ;;
+                      *cli/mac64) filename=monero-mac-x64 ;;
+                      *cli/linux64) filename=monero-linux-x64 ;;
+                      *cli/linux32) filename=monero-linux-x86 ;;
+                      *cli/linuxarm8) filename=monero-linux-armv8 ;;
+                      *cli/linuxarm7) filename=monero-linux-armv7 ;;
+                      *cli/androidarm8) filename=monero-android-armv8 ;;
+                      *cli/androidarm7) filename=monero-android-armv7 ;;
+                      *cli/freebsd64) filename=monero-freebsd-x64 ;;
+                      *cli/source) filename=monero-source ;;
+                      *)
+                          echo "Unknown url $url" >&2
+                          exit 1
+                      ;;
+                  esac
+                  filename=$(awk "/${filename}/ {print \$2}" downloads/hashes.txt)
+                  echo "$hash  $filename" | sha256sum -c
+              done

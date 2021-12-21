@@ -1,0 +1,98 @@
+name: Build & Lint & Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements.txt
+
+      - name: Check that code is formatted with Black (1/2)
+        uses: lgeiger/black-action@master
+        with:
+          args: ./BasementRenovator.py --check
+
+      - name: Check that code is formatted with Black (2/2)
+        uses: lgeiger/black-action@master
+        with:
+          args: ./src/*.py --check
+
+      #- name: Run PyLint (TODO)
+      #  run: bash lint.sh
+
+  discord:
+    name: Discord Failure Notification
+    needs: [build_lint]
+    # "always()" is needed to always run this job, even if the other jobs fail
+    # Furthermore, we don't want to spam the Discord channel when people have failing pull requests
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # The "workflow-conclusion-action" creates a "WORKFLOW_CONCLUSION" environment variable
+      - uses: technote-space/workflow-conclusion-action@v2
+      - if: env.WORKFLOW_CONCLUSION != 'success' && env.WORKFLOW_CONCLUSION != 'cancelled'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ env.WORKFLOW_CONCLUSION }}
+          title: ""
+
+  pyinstaller_trigger:
+    name: Build a Windows executable
+    needs: [build_lint]
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements.txt
+          pip install pyinstaller
+
+      - name: Build a Windows executable
+        run: |
+         python win_build.py
+
+      - name: Determine next build number
+        uses: MCKanpolat/auto-semver-action@1.0.5
+        id: versioning
+        with:
+          releaseType: patch
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a release archive
+        run: |
+          powershell Compress-Archive dist/* BasementRenovator.zip
+
+      - name: Upload release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "BasementRenovator.zip"
+          tag: ${{steps.versioning.outputs.version}}
+          token: ${{ secrets.GITHUB_TOKEN }}

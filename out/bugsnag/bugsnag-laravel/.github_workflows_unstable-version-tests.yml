@@ -1,0 +1,61 @@
+name: Unstable version tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: [8.0]
+        laravel-version: ['8.x-dev as 8']
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        coverage: none
+
+    - run: composer validate
+
+    - name: require Laravel
+      run: composer require "laravel/framework:${{ matrix.laravel-version }}" --no-update
+
+    - name: install dependencies
+      run: composer update --prefer-dist --no-progress --no-suggest --no-interaction ${{ matrix.composer-flags }}
+
+    - run: composer test
+
+  maze-runner:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: [8.0]
+        laravel-fixture: [laravel-latest]
+        laravel-version: ['8.x-dev as 8'] #, 'dev-master as 8'] # disabled pending package updates in Laravel's skeleton app (PLAT-7040)
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install libcurl4-openssl-dev and net-tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install libcurl4-openssl-dev
+        sudo apt-get install net-tools
+
+    - name: install Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7
+        bundler-cache: true
+
+    - run: ./.ci/setup-laravel-dev-fixture.sh ${{ matrix.laravel-version }}
+
+    - run: PHP_VERSION=${{ matrix.php-version }} LARAVEL_FIXTURE=${{ matrix.laravel-fixture }} bundle exec bugsnag-maze-runner

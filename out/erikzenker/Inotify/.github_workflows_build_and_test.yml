@@ -1,0 +1,40 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Dependencies
+      run: sudo apt install cmake libboost-all-dev libboost-test-dev gcc
+    - name: Print System Information
+      run: |
+        cmake --version
+        g++ --version
+        cat /usr/include/boost/version.hpp
+    - name: Build
+      env:
+        CXX: g++
+        CC: gcc
+      run: |
+        mkdir build && cd build
+        cmake .. -DINOTIFY_GCC_COVERAGE=1
+        cmake --build .
+    - name: Test
+      run: |
+        cd build
+        ctest -VV
+    - name: Generate Coverage Report
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        cd build
+        bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'

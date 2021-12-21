@@ -1,0 +1,203 @@
+name: Continuous Integration
+
+on: [push]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        shared: [On, Off]
+        float: [On, Off]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install System Tools
+      if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt install -y valgrind
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=${{ matrix.shared }} -DTINYSPLINE_FLOAT_PRECISION=${{ matrix.float }}
+
+    - name: Configure Installation
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+            cmake -DCMAKE_INSTALL_PREFIX=~/tinyspline -DTINYSPLINE_INSTALL_LIBRARY_DIR=lib .
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+            cmake -DCMAKE_INSTALL_PREFIX=C:/tinyspline -DTINYSPLINE_INSTALL_LIBRARY_DIR=lib .
+        else
+            cmake -DCMAKE_INSTALL_PREFIX=~/tinyspline .
+        fi
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C $BUILD_TYPE
+
+    - name: Memory Check
+      if: runner.os == 'Linux'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --target memcheck --config $BUILD_TYPE
+
+    - name: Install
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --target install --config $BUILD_TYPE
+
+    - name: Test CMake Installation
+      shell: bash
+      run: |
+        mkdir $GITHUB_WORKSPACE/test/pkg/build
+        cd $GITHUB_WORKSPACE/test/pkg/build
+        if [ "$RUNNER_OS" == "Windows" ]; then
+            cmake -DCMAKE_PREFIX_PATH=C:/tinyspline ..
+        else
+            cmake -DCMAKE_PREFIX_PATH=~/tinyspline ..
+        fi
+        cmake --build . --config $BUILD_TYPE
+        ctest -C $BUILD_TYPE
+
+    - name: Test Pkg-config Installation
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/test/pkg
+        if [ "$RUNNER_OS" == "Linux" ]; then
+            PKG_CONFIG_PATH=~/tinyspline/lib/pkgconfig make test
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+            PKG_CONFIG_PATH=~/tinyspline/lib64/pkgconfig make test
+        fi
+
+  python:
+    needs: build
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python: ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        choco install swig
+        python -m pip install -U pip setuptools
+        python -m pip install wheel
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -A x64 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DTINYSPLINE_ENABLE_PYTHON=True -DPYTHON_INCLUDE_DIR="$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())")" -DPYTHON_LIBRARY="$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())")/../libs/python$(echo ${{ matrix.python }} | cut  -d'.' -f1-2 | tr -d '.').lib"
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: python setup.py bdist_wheel
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-${{ matrix.python }}-win_amd64
+        path: ${{runner.workspace}}/build/dist/*.whl
+        if-no-files-found: error
+
+  uwp:
+    needs: build
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [ARM, ARM64, x64]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        choco install swig
+        choco install nuget.commandline
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -A ${{ matrix.arch }} -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION="10.0" -DTINYSPLINE_ENABLE_CSHARP=True
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        cmake --build . --config $BUILD_TYPE
+        dotnet pack *.csproj
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: uwp_${{ matrix.arch }}
+        path: ${{runner.workspace}}/build/*.nupkg
+        if-no-files-found: error
+
+  package:
+    needs: [python, uwp]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build Packages
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/tools/ci
+        ./build.sh
+        
+    - name: Download Packages
+      uses: actions/download-artifact@v2
+      with:
+        path: tools/ci/build/actions
+
+    - name: Prepare Downloaded Packages
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/tools/ci/build
+        find actions -name '*.whl' -exec cp {} windows64 \;
+
+    - name: Create Releases
+      shell: bash
+      run: |
+        sudo apt-get install luarocks
+        cd $GITHUB_WORKSPACE/tools/ci
+        ./package.sh
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: tinyspline
+        path: ${{runner.workspace}}/${{github.event.repository.name}}/tools/ci/tinyspline/
+        if-no-files-found: error

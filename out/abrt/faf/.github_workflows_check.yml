@@ -1,0 +1,43 @@
+name: Run checks
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+jobs:
+  check:
+    container:
+      image: fedora:latest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v2
+
+      - name: Install build environment
+        run: dnf --assumeyes install @c-development @development-tools dnf-plugins-core python3-pylint
+
+      - name: Generate build files
+        run: |
+          useradd --no-create-home runner
+          # Doing this would be largely unnecessary had non-srcdir builds worked.
+          chown -R runner. .
+          sudo -u runner ./autogen.sh
+
+      - name: Install build dependencies
+        run: dnf builddep --assumeyes --spec faf.spec
+
+      - name: Build
+        run: sudo -u runner make
+
+      - name: Run tests
+        run: sudo -u runner make check
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: testsuite.log
+          path: tests/**/test-suite.log
+        if: ${{ failure() }}
+
+      - name: Run pylint
+        run: sudo -u runner python3 -m pylint $(find src -name '*.py') src/webfaf/hub.wsgi src/bin/faf-migrate-db src/bin/faf

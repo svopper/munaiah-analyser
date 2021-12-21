@@ -1,0 +1,34 @@
+name: Windows
+on: [push]
+jobs:
+  msvc:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Configure
+      shell: cmd
+      run: cmake -Bbuild -DBOOST_ROOT=%BOOST_ROOT_1_72_0%
+    - name: Build (Debug)
+      run: cmake --build build --config Debug
+    - name: Build (Release)
+      run: cmake --build build --config Release
+    - name: Configure (UWP)
+      shell: cmd
+      run: cmake -Bbuild-uwp -DBOOST_ROOT=%BOOST_ROOT_1_72_0% -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0
+    - name: Build (UWP, Debug)
+      run: cmake --build build-uwp --config Debug
+    - name: Build (UWP, Release)
+      run: cmake --build build-uwp --config Release
+
+  mingw-sdl:
+    runs-on: [ubuntu-latest]
+    container:
+      image: registry.fedoraproject.org/fedora-minimal:32
+    steps:
+    - name: Install dependencies
+      run: microdnf install cmake ninja-build mingw64-pkg-config mingw64-libvorbis mingw64-SDL2 mingw64-fontconfig mingw64-libwebp mingw64-boost mingw64-dlfcn mingw64-libepoxy mingw64-openal-soft mingw32-nsis tar
+    - uses: actions/checkout@v2
+    - name: Build with CMake and GCC
+      run: |
+        mingw64-cmake -Bbuild-windows -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=0 -DJNGL_SDL2=1
+        ninja -Cbuild-windows

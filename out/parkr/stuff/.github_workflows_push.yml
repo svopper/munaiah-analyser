@@ -1,0 +1,10 @@
+on: push
+name: cibuild on push
+jobs:
+  build:
+    name: script/cibuild-stuff-docker
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: script/cibuild-stuff-docker
+      run: script/cibuild-stuff-docker

@@ -1,0 +1,77 @@
+name: Run Bibliograph tests
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "doc/*"
+      - "**.md"
+      - "**.js"
+
+jobs:
+
+  # see https://github.com/marketplace/actions/skip-duplicate-actions
+  pre_job:
+    name: Checks
+    # continue-on-error: true # Uncomment once integration is finished
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths_ignore: '["**.md"]'
+
+  run_tests:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true' && !(github.event.head_commit && contains(github.event.head_commit.message, 'skip ci'))
+    name: Run tests
+    runs-on: ubuntu-latest
+    services:
+      mysql_server:
+        image: mariadb:latest
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_USER: bibliograph
+          MYSQL_PASSWORD: bibliograph
+          MYSQL_DATABASE: tests
+          MYSQL_ROOT_PASSWORD: bibliograph
+        options: --name=mysql_server --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+      http_server:
+        image: cboulanger/docker-phpfarm
+        ports:
+          - 8072:8072
+          - 8073:8073
+          - 8074:8074
+          - 8080:8080
+        options: --name=http_server
+        volumes:
+          - /home/runner/work/bibliograph:/github/workspace
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+      - name: Configure httpd container
+        run: |
+          rm test/.env && cp test/.env.github test/.env
+          docker exec http_server ln -s /github/workspace/bibliograph/{compiled,dist,src,test} /var/www
+      - name: Select PHP version
+        run: tool/env/select-php-version 8.0
+      - name: Check Services
+        run: tool/env/services-test
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+      - name: Install Prerequisites
+        run: tool/env/install
+      - name: Configure composer
+        run: tool/bin/composer config -g github-oauth.github.com ${{ secrets.COMPOSER_TOKEN }}
+      - name: Run Tests
+        if: "!(github.event.head_commit && contains(github.event.head_commit.message, 'skip tests'))"
+        run: |
+          cp test/.env.github test/.env
+          tool/test/codeception

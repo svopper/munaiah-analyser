@@ -1,0 +1,34 @@
+name: py:test
+
+on:
+  push:
+    branches-ignore: '*/*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 2.7, 3.6, 3.7, 3.8, 3.9 ]
+
+    steps:
+    - name: Checkout commit
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |-
+        pip install -r ./build_requirements.txt
+        pip install --upgrade -r ./requirements.txt
+        pip install pylint --upgrade
+    - name: Execute linter for static code analysis
+      run: |-
+        pylint -E --rcfile _developer/pylint_strict.ini ./src/pas_rfc_basics/
+    - name: Execute tests
+      run: python setup.py test
+    - name: Execute permissive linter
+      continue-on-error: true
+      run: |-
+        pylint --rcfile _developer/pylint.ini ./src/pas_rfc_basics/

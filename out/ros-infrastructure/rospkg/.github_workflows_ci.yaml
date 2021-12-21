@@ -1,0 +1,39 @@
+name: rospkg-ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: ['*']
+
+jobs:
+    build:
+      strategy:
+        matrix:
+          os: [ubuntu-18.04, ubuntu-20.04, macos-latest]
+          python: [2.7, 3.7, 3.8, 3.9]
+          exclude:
+          - os: ubuntu-20.04
+            python: 2.7
+          - os: ubuntu-20.04
+            python: 3.7
+      name: rospkg tests
+      runs-on: ${{matrix.os}}
+
+      steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{matrix.python}}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{matrix.python}}
+      - name: Install dependencies
+        run: |
+          if test ${{matrix.python}} = 2.7; then
+            python -m pip install pyparsing==2.4.7 'PyYAML<6.0'
+          fi
+          python -m pip install --upgrade pip setuptools
+          python -m pip install nose coverage mock
+          python setup.py build develop
+      - name: Run tests
+        run: |
+          python -m nose --with-coverage --cover-package=rospkg --with-xunit test

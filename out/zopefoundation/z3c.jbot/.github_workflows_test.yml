@@ -1,0 +1,42 @@
+name: Test
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        python-version:
+        - "2.7"
+        - "3.6"
+        - "3.7"
+        - "3.8"
+        os:
+        - ubuntu-latest
+        - windows-latest
+        # - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache packages
+        uses: actions/cache@v1
+        id: cache
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/pip
+            ${{ github.workspace }}/eggs
+          key: ${{ runner.os }}-test-${{ hashFiles('requirements.txt', 'constraints.txt', 'buildout.cfg', 'setup.*') }}
+          restore-keys: |
+            ${{ runner.os }}-test
+      - name: Install dependencies
+        run: |
+          pip install --user -U pip
+          pip install -r requirements.txt -c constraints.txt
+          buildout
+      - name: Run Tests
+        run: |
+          ./bin/test

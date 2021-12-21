@@ -1,0 +1,165 @@
+name: Build and upload release assets
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-ubuntu:
+
+    runs-on: ubuntu-latest
+    container:
+        image: ubuntu:18.04
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: srt32/git-actions@v0.0.3
+      with:
+        args: "git submodule update --init --recursive"
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get -y install build-essential libtool autoconf git cmake python3 libgmp-dev dpkg-dev
+
+    - name: Build ISL
+      run: |
+        cd extra/isl
+        mkdir build
+        ./autogen.sh
+        ./configure --prefix=$(pwd)/build
+        make install
+
+    - name: Build Arrp compiler package
+      run: |
+        mkdir build
+        cd build
+        ../make-deb.sh ..
+        mkdir release
+        cp *.deb release/
+
+    - name: Upload package as artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: debian-package
+        path: 'build/release'
+
+
+  build-macos:
+
+    runs-on: macOS-latest
+
+    steps:
+
+    - uses: actions/checkout@v1
+
+    - name: Checkout submodules
+      run: |
+        git submodule update --init --recursive
+
+    - name: Install dependencies
+      run: |
+        brew install automake autoconf libtool gmp
+
+    - name: Build ISL
+      run: |
+        cd extra/isl
+        mkdir build
+        ./autogen.sh
+        ./configure --prefix=$(pwd)/build
+        make install
+
+    - name: Build Arrp compiler and make ZIP
+      run: |
+        mkdir build
+        cd build
+        ../make-zip.sh .. macos
+        mkdir release
+        cp *.zip release/
+
+    - name: Upload package as artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-package
+        path: 'build/release'
+
+
+  test-ubuntu:
+
+    needs: build-ubuntu
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Download package as artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: debian-package
+
+    - name: Test package
+      run: |
+          sudo dpkg -i *.deb
+          mkdir package-test
+          cd package-test
+          cmake ../.github/test
+          make arrp-test
+          echo 1 3 5 | ./arrp-test > output.txt
+          echo "Output:"
+          cat output.txt
+          diff output.txt ../.github/test/expected-output.txt
+          if [[ $? -eq 0 ]]; then
+            echo "OK"
+          else
+            echo "Error"
+            exit 1
+          fi
+
+    - name: Upload package as release asset
+      uses: AButler/upload-release-assets@v1.0
+      with:
+        files: '*.deb'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+
+  test-macos:
+
+    needs: build-macos
+
+    runs-on: macOS-latest
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Download package as artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: macos-package
+
+    - name: Test package
+      run: |
+          unzip arrp_*_macos.zip
+          mv arrp_*_macos package
+          mkdir package-test
+          cd package-test
+          cmake -D CMAKE_PREFIX_PATH="$(pwd)/../package" ../.github/test
+          make arrp-test
+          echo 1 3 5 | ./arrp-test > output.txt
+          echo "Output:"
+          cat output.txt
+          diff output.txt ../.github/test/expected-output.txt
+          if [[ $? -eq 0 ]]; then
+            echo "OK"
+          else
+            echo "Error"
+            exit 1
+          fi
+
+    - name: Upload package as release asset
+      uses: AButler/upload-release-assets@v1.0
+      with:
+        files: 'arrp_*_macos.zip'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}

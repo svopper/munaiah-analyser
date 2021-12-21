@@ -1,0 +1,98 @@
+name: Prepare new release as PR
+
+on:
+  repository_dispatch:
+    types: [release]
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    container: ubuntu:bionic
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: install packages
+      run: |
+        apt-get update && apt-get install -y software-properties-common
+        add-apt-repository ppa:git-core/ppa
+        apt-get update && apt-get install -y git jq curl
+        # Need a new pandoc for markdown rendering below
+        curl -L https://github.com/jgm/pandoc/releases/download/2.11.1.1/pandoc-2.11.1.1-1-amd64.deb > pandoc-2.11.1.1-1-amd64.deb
+        apt-get install -y ./pandoc-2.11.1.1-1-amd64.deb
+    - uses: actions/checkout@v2
+    - uses: tibdex/github-app-token@v1
+      id: generate-token
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+    - name: get git ready
+      run: |
+        git config user.name "egibot"
+        git config user.email "egibot@egi.eu"
+    - name: Extract changelog
+      id: changelog
+      run: |
+        # this uses GNU sed -z!
+        version=$(grep "^## \[[0-9].*\]" CHANGELOG | head -1 | sed -e "s/^.*\[\(.*\)\]/\1/")
+        changes=$(sed -e "/^## \[$version\]\$/,/^##/!d;//d;/^\$/d" CHANGELOG | \
+                  sed -e "s/\%/%25/g" | sed -e "s/\r/%0D/" | sed -z -e "s/\n/%0A/g")
+        echo "::set-output name=changes::$changes"
+        echo "::set-output name=version::$version"
+    - name: bump versions
+      run: |
+        {
+           echo -n "* $(date '+%a %b %d %Y') "
+           echo -n "$(git config user.name) <$(git config user.email)> "
+           echo "${{ steps.changelog.outputs.version }}"
+           echo "${{ steps.changelog.outputs.changes }}" | sed '/^[[:space:]]*$/d'
+        } > rpm-changes
+
+        for spec in rpm/*.spec; do
+            sed -i -e "s/^\(Version.\).*/\\1 ${{ steps.changelog.outputs.version }}/" "$spec"
+            sed -i -e "/%changelog/r rpm-changes" "$spec"
+        done
+
+        rm -f rpm-changes
+
+        for deb in debian/ debs/cloud-info-provider-opennebula/debian/ debs/cloud-info-provider-openstack/debian/ ; do
+            pkg=$(head -1 "$deb/changelog" | cut -f1 -d" ")
+            {
+                echo "$pkg (${{ steps.changelog.outputs.version }}-1) xenial; urgency=medium"
+                echo ""
+                echo "${{ steps.changelog.outputs.changes }}" | \
+                    sed -e "s/^-/*/" | sed -e "s/^/ /" | sed '/^[[:space:]]*$/d'
+                echo ""
+                echo " -- $(git config user.name) <$(git config user.email)> $(date -R)"
+                echo ""
+            } > debian-changes
+            cat debian-changes "$deb/changelog" > "$deb/changelog.new"
+            mv "$deb/changelog.new" "$deb/changelog"
+        done
+
+        rm -f debian-changes
+
+        zenodo_changes=$(echo "${{ steps.changelog.outputs.changes }}" | \
+                         pandoc --from gfm --to html | \
+                         tr -s "\n" " ")
+
+        jq ".version = \"${{ steps.changelog.outputs.version }}\" | \
+            .title = \"EGI-Federation/cloud-info-provider: ${{ steps.changelog.outputs.version }}\" | \
+            .related_identifiers[0].identifier = \"https://github.com/EGI-Federation/cloud-info-provider/tree/${{ steps.changelog.outputs.version }}\" | \
+            .publication_date = \"$(date '+%Y-%m-%d')\" | \
+            .description = \"$zenodo_changes\"" < .zenodo.json > .zenodo.json.new
+        mv .zenodo.json.new .zenodo.json
+        git commit -a -m "Prepare version ${{ steps.changelog.outputs.version }}"
+    - name: Create Pull Request for version
+      uses: peter-evans/create-pull-request@v3
+      with:
+        delete-branch: true
+        body: |
+          Prepares release ${{ steps.changelog.outputs.version }}
+
+          Update RPM and DEB package descriptions and .zenodo.json for
+          version ${{  steps.changelog.outputs.version }}
+        labels: release
+        branch: release-${{ steps.changelog.outputs.version }}
+        title: Release  ${{ steps.changelog.outputs.version }}
+        token: ${{ steps.generate-token.outputs.token }}

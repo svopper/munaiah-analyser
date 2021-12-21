@@ -1,0 +1,40 @@
+name: Middleman deploy
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ruby: ['3.0.0']
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Bundle Install
+        run: |
+          bundle config set --local deployment true
+          bundle install
+
+      - name: Install Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 15.x
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy
+        run: |
+          eval "$(ssh-agent -s)"
+          bundle exec rake ci:deploy
+        env:
+          encrypted_key: ${{ secrets.encrypted_key }}
+          encrypted_iv: ${{ secrets.encrypted_iv }}

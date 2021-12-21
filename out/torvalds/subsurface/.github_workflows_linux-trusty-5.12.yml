@@ -1,0 +1,37 @@
+name: Ubuntu 14.04 / Qt 5.12 for AppImage--
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  buildAppImage:
+    runs-on: ubuntu-latest
+    container:
+      image: docker://subsurface/trusty-qt512:1.1
+
+    steps:
+    - name: checkout sources
+      uses: actions/checkout@v1
+
+    - name: run build
+      run: |
+        cd ..
+        rm -rf /install-root/include/libdivecomputer
+        bash -x subsurface/.github/workflows/scripts/linux-in-container-build.sh
+
+    - name: prepare PR artifacts
+      if: github.event_name == 'pull_request'
+      run: |
+        mkdir -p Linux-artifacts
+        mv Subsurface.AppImage Linux-artifacts
+
+    - name: PR artifacts
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@master
+      with:
+        name: Linux-artifacts
+        path: Linux-artifacts

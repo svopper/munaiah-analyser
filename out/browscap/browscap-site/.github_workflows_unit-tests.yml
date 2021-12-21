@@ -1,0 +1,78 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  unit-tests:
+    name: "Unit tests"
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+          - "7.4"
+
+    env:
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_DATABASE: browscap
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure application DB credentials
+        uses: DamianReeves/write-file-action@v1.0
+        with:
+          path: config/autoload/local.php
+          contents: |
+            <?php
+            declare(strict_types=1);
+
+            return [
+                'db' => [
+                   'dsn' => 'mysql:dbname=${{ env.DB_DATABASE }}',
+                   'user' => '${{ env.DB_USER }}',
+                   'pass' => '${{ env.DB_PASSWORD }}',
+                ],
+                'debug' => false,
+            ];
+          write-mode: overwrite
+
+      - name: Run MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' --user=${{ env.DB_USER }} --password=${{ env.DB_PASSWORD }}
+
+      - name: Load MySQL schema
+        run: mysql --user=${{ env.DB_USER }} --password=${{ env.DB_PASSWORD }} ${{ env.DB_DATABASE }} < db/create004.sql
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: bcmath, curl, dom, intl, json, mbstring, pdo, pdo_mysql, xml, zip
+          coverage: none
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.composer/cache
+            vendor
+          key: php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: php-${{ matrix.php-version }}-
+
+      - name: Install dependencies
+        # 200 here represents the \Monolog\Logger::INFO constant for log levels
+        run: BC_BUILD_LOG=200 composer install --prefer-dist --no-interaction
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit

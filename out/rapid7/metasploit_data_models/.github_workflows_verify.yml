@@ -1,0 +1,64 @@
+name: Verify
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    timeout-minutes: 40
+
+    services:
+      postgres:
+        image: postgres:9.6
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: true
+      matrix:
+        ruby:
+          - 2.5
+          - 2.6
+          - 2.7
+          - 3.0
+
+    env:
+      RAILS_ENV: test
+
+    name: Ruby ${{ matrix.ruby }}
+    steps:
+      - name: Install system dependencies
+        run: sudo apt-get install libpcap-dev graphviz
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Test
+        run: |
+          cp spec/dummy/config/database.yml.github_actions spec/dummy/config/database.yml
+          bundle exec rake --version
+          bundle exec rake db:create db:migrate
+
+          # Disabling this check because it is proving unreliable
+          # git diff --exit-code spec/dummy/db/structure.sql
+          bundle exec rake spec
+          bundle exec rake yard

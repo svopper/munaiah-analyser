@@ -1,0 +1,79 @@
+name: Static data update
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 18 1 * * *
+  push:
+    branches:
+      - master
+    paths:
+      - tools/ci/staticdata/**
+
+jobs:
+  update-staticdata:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Activate PR branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+
+          if git fetch --depth=2 origin auto-update-staticdata 2>/dev/null; then
+            git checkout auto-update-staticdata
+            git rebase --onto "$GITHUB_REF" HEAD~ || git rebase --abort
+          else
+            git checkout -b auto-update-staticdata
+          fi
+
+      - name: Cache resource ETags
+        uses: actions/cache@v2
+        with:
+          path: .ci-etag
+          key: update-staticdata-etags-${{ hashFiles('tools/ci/staticdata/*.sh') }}-${{ github.run_id }}
+          restore-keys: update-staticdata-etags-${{ hashFiles('tools/ci/staticdata/*.sh') }}-
+      - name: Create emotes.txt
+        run: tools/ci/staticdata/create_emotes.sh
+      - name: Create staticdata.sqlite
+        run: tools/ci/staticdata/create_staticdata.sh
+      - name: Stage updates
+        id: git-add
+        run: |
+          mv emotes.txt staticdata.sqlite vmbot/data/ 2>/dev/null || true
+          git add vmbot/data/
+          if git diff --staged --quiet; then
+            echo "::set-output name=changed::false"
+            echo "Nothing to update"
+          else
+            echo "::set-output name=changed::true"
+            echo "Updates available"
+          fi
+
+      - name: Commit updates to PR
+        if: "${{ fromJSON(steps.git-add.outputs.changed) }}"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          commit_body="ETags:
+          pidgin_nosmile.zip       $(cat .ci-etag/pidgin_nosmile.zip.txt)
+          sqlite-latest.sqlite.bz2 $(cat .ci-etag/sqlite-latest.sqlite.bz2.txt)"
+
+          commits=($(git rev-parse HEAD "$GITHUB_REF"))
+          if [[ "${commits[0]}" != "${commits[1]}" ]]; then
+            modifier="--amend"
+          fi
+          git commit ${modifier:-} -m "Updated static data" -m "$commit_body"
+          git push --force-with-lease -u origin auto-update-staticdata
+
+          pr="$(gh pr list -s open -l auto-update -S "static data" -L 1 \
+                           --json url --template '{{ pluck "url" . | join "\n" }}')"
+          if [[ -z "$pr" ]]; then
+            gh pr create -t "Updated static data" -l auto-update \
+                         -b "*This PR has been generated automatically*"
+          else
+            echo "$pr"
+          fi

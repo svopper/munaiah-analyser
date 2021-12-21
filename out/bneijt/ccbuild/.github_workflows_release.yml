@@ -1,0 +1,26 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup
+        run: |
+          sudo apt-get install -y libgnutls28-dev g++ libbobcat-dev libgcrypt11-dev libboost-dev flex libfl-dev pandoc
+          cmake .
+      - name: Build
+        run: cmake --build . --config Release
+      - name: Package
+        run: ./package.sh
+        id: package
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/ccbuild*.tar.gz"
+          bodyFile: "build/release.md"
+          token: ${{ secrets.GITHUB_TOKEN }}

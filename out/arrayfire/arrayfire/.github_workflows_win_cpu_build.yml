@@ -1,0 +1,65 @@
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+name: ci
+
+jobs:
+    window_build_cpu:
+        name: CPU (fftw, OpenBLAS, windows-latest)
+        runs-on: windows-latest
+        env:
+
+          VCPKG_HASH: 4428702c1c56fdb7cb779584efdcba254d7b57ca #[neon2sse] create a new port; Has forge v1.0.8 and other cmake/vcpkg fixes
+
+          VCPKG_DEFAULT_TRIPLET: x64-windows
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@master
+
+            - name: VCPKG Cache
+              uses: actions/cache@v2
+              id: vcpkg-cache
+              with:
+                path: ~/vcpkg
+                key: vcpkg-deps-${{ env.VCPKG_HASH }}
+
+            - name: Install VCPKG Dependencies
+              if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+              run: |
+                cd ~
+                git clone --quiet --recursive https://github.com/microsoft/vcpkg.git
+                cd vcpkg
+                git checkout $env:VCPKG_HASH
+                .\bootstrap-vcpkg.bat
+                .\vcpkg.exe install boost-compute boost-functional boost-stacktrace fftw3 forge freeimage freetype glfw3 openblas
+                Remove-Item .\downloads,.\buildtrees,.\packages -Recurse -Force
+
+            - name: CMake Configure
+              run: |
+                  $ref = $env:GITHUB_REF | %{ if ($_ -match "refs/pull/[0-9]+/merge") { $_;} }
+                  $prnum = $ref | %{$_.Split("/")[2]}
+                  $branch = git branch --show-current
+                  $buildname = if($prnum -eq $null) { $branch } else { "PR-$prnum" }
+                  $dashboard = if($prnum -eq $null) { "Continuous" } else { "Experimental" }
+                  $buildname = "$buildname-cpu-openblas"
+                  mkdir build && cd build
+                  cmake .. -G "Visual Studio 16 2019" -A x64 `
+                      -DVCPKG_ROOT:PATH="~/vcpkg" `
+                      -DVCPKG_MANIFEST_MODE:BOOL=OFF `
+                      -DAF_BUILD_CUDA:BOOL=OFF -DAF_BUILD_OPENCL:BOOL=OFF `
+                      -DAF_BUILD_UNIFIED:BOOL=OFF -DAF_BUILD_FORGE:BOOL=ON `
+                      -DBUILDNAME:STRING="$buildname" `
+                      -DAF_COMPUTE_LIBRARY:STRING="FFTW/LAPACK/BLAS"
+                  echo "CTEST_DASHBOARD=${dashboard}" >> $env:GITHUB_ENV
+
+            - name: Build and Test
+              run: |
+                  cd build
+                  $vcpkg_path = (Resolve-Path ~).Path
+                  $Env:PATH += ";${vcpkg_path}/vcpkg/installed/x64-windows/bin"
+                  ctest -D Experimental --track ${CTEST_DASHBOARD} -T Test -T Submit -C RelWithDebInfo -R cpu -E pinverse -j2

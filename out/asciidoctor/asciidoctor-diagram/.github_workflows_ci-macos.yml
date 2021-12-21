@@ -1,0 +1,131 @@
+name: macOS unit tests
+on:
+  push:
+    branches: ['master']
+    tags-ignore: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos]
+        ruby: [2.3, 2.7, 3.0, jruby, truffleruby]
+        node: [14]
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup Golang
+        uses: actions/setup-go@v2
+      - name: Install Python Dependencies
+        run: |
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew install cairo
+          brew install pango
+          pip3 install pycairo
+          pip3 install pygobject
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Install MacTex
+        run: |
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew install --cask mactex
+          echo "/Library/TeX/texbin" >> $GITHUB_PATH
+      - name: Install Graphviz
+        run: export HOMEBREW_NO_INSTALL_CLEANUP=1 && brew install graphviz
+      - name: Install Lilypond
+        run: |
+          curl -L "https://gitlab.com/marnen/lilypond-mac-builder/-/package_files/9872804/download" -o lilypond.tar.gz
+          tar -xf lilypond.tar.gz
+          echo "$PWD" >> $GITHUB_PATH
+          sudo spctl --add "$PWD/LilyPond.app"
+      - name: Install AsciitoSVG
+        run: |
+          go get github.com/asciitosvg/asciitosvg/cmd/a2s
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      - name: Install Bytefield-SVG
+        run: npm install -g bytefield-svg
+      - name: Install ERD
+        run: |
+          git clone git://github.com/BurntSushi/erd
+          cd erd
+          stack install
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install DPIC
+        run: |
+          wget https://ece.uwaterloo.ca/~aplevich/dpic/dpic.tar.gz
+          tar -xf dpic.tar.gz
+          cd $(tar -ztf dpic.tar.gz | grep -e "dpic[^/]*/$")
+          ./configure
+          make
+          make PREFIX=local install
+      - name: Install Pikchr
+        run: |
+          wget https://pikchr.org/home/tarball/trunk/pikchr.tgz
+          tar -xf pikchr.tgz
+          cd pikchr
+          make
+          echo "$(pwd)" >> $GITHUB_PATH
+      - name: Install BPNM-JS
+        run: npm install -g bpmn-js-cmd
+      - name: Install Mermaid
+        run: npm install -g @mermaid-js/mermaid-cli
+      - name: Install NomNoml
+        run: npm install -g nomnoml
+      - name: Install StateMachineCat
+        run: npm install -g state-machine-cat
+      - name: Install Vega
+        run: |
+          npm install -g vega-cli
+          npm install -g install-peerdeps
+          install-peerdeps -g vega-lite
+      - name: Install Wavedrom
+        run: npm install -g wavedrom-cli
+      - name: Install ImageMagick
+        run: export HOMEBREW_NO_INSTALL_CLEANUP=1 && brew install imagemagick
+      - name: Install Gnuplot
+        run: export HOMEBREW_NO_INSTALL_CLEANUP=1 && brew install gnuplot
+      - name: Install UMLet
+        run: |
+          curl -s -O https://www.umlet.com/download/umlet_14_3/umlet-standalone-14.3.0.zip
+          unzip -qq umlet-standalone-14.3.0.zip
+          cp Umlet/umlet.sh Umlet/umlet
+          chmod +x Umlet/umlet
+          echo "$PWD/Umlet" >> $GITHUB_PATH
+      - name: Install MSCgen
+        run: export HOMEBREW_NO_INSTALL_CLEANUP=1 && brew install mscgen
+      - name: Install Blockdiag
+        run: pip3 install blockdiag[pdf] actdiag seqdiag nwdiag[pdf]
+      - name: Install svgbob
+        run: |
+          cargo install svgbob_cli
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install Syntrax
+        run: pip3 install syntrax
+      - name: Install Symbolator
+        run: pip3 install symbolator
+      - name: install DeJaVu Font
+        run: |
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew tap homebrew/cask-fonts
+          brew install font-dejavu
+      - name: Install Diagrams
+        run: pip3 install diagrams
+      - name: Run tests
+        run: bundle exec rake test
+        env:
+          BLOCKDIAG_FONTPATH: /Users/runner/Library/Fonts/DejaVuSans.ttf

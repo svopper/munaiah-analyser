@@ -1,0 +1,130 @@
+# Copyright (C) 2005 - 2021 Settlers Freaks <sf-team at siedler25.org>
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+name: Release
+
+on:
+  push:
+  release:
+    types: [published]
+
+env:
+  BOOST_VERSION: 1.75.0 # Use a recent one to benefit from bugfixes and performance improvements
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  Release:
+    strategy:
+      matrix:
+        include:
+          - { compiler: gcc-10,   os: ubuntu-18.04 }
+          - { compiler: msvc,     os: windows-2019 }
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - run: |
+          echo "DEPS_DIR=${{runner.temp}}/.cache" >> $GITHUB_ENV
+          echo "LIBUTIL_DIR=$GITHUB_WORKSPACE/external/libutil" >> $GITHUB_ENV
+          echo "LIBENDIAN_DIR=$GITHUB_WORKSPACE/external/libendian" >> $GITHUB_ENV
+      - name: Extract tag name
+        id: filenames
+        run: |
+          tag=${GITHUB_REF#refs/tags/}
+          if [[ "$tag" =~ refs/ ]]; then tag="NoTag"; fi
+          echo "Using tag: $tag"
+          echo "::set-output name=foldername::rttrUtils_$tag"
+          echo "::set-output name=filename::rttrUtils-${{runner.os}}-${tag}.tar.gz"
+
+      - name: Get upload URL
+        if: github.event_name == 'release'
+        run: echo "::set-output name=upload_url::https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets{?name,label}"
+        id: release
+
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        name: Checkout libutil
+        with:
+          repository: Return-To-The-Roots/libutil
+          ref: master
+          path: external/libutil
+      - uses: actions/checkout@v2
+        name: Checkout libendian
+        with:
+          repository: Return-To-The-Roots/libendian
+          ref: master
+          path: external/libendian
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{env.DEPS_DIR}}
+          key: ${{matrix.os}}-${{matrix.compiler}}-${{env.BOOST_VERSION}}
+
+      - name: Install Compiler
+        if: "startsWith(runner.os, 'Linux')"
+        run: |
+          pkgs=${{matrix.compiler}}
+          pkgs=${pkgs/gcc-/g++-}
+          sudo apt install $pkgs
+      - name: Setup compiler
+        if: "!startsWith(runner.os, 'Windows')"
+        run: tools/ci/setupCompiler.sh
+        env:
+          COMPILER: ${{matrix.compiler}}
+
+      - name: Install system packages (Linux)
+        if: "startsWith(runner.os, 'Linux')"
+        run: sudo apt install cmake cmake-data ccache libminiupnpc-dev
+      - name: Install system packages (OSX)
+        if: startsWith(runner.os, 'macOS')
+        run: brew install ccache cmake miniupnpc
+      - name: Install system packages (Windows)
+        if: startsWith(runner.os, 'Windows')
+        run: choco install wget
+      - name: Setup cmake
+        if: "!startsWith(runner.os, 'Windows')"
+        uses: jwlawson/actions-setup-cmake@v1.8
+        with:
+          cmake-version: '3.20'
+
+      - name: Setup CCache
+        if: "!startsWith(runner.os, 'Windows')"
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{matrix.os}}-${{matrix.compiler}}-${{matrix.buildType}}-${{matrix.boostVersion}}
+          max-size: 200M
+
+      - name: Install Boost
+        shell: bash
+        run: |
+          BOOST_ROOT="${DEPS_DIR}/boost${BOOST_VERSION}"
+          echo "BOOST_ROOT=${BOOST_ROOT}" >> $GITHUB_ENV
+          echo "ADDITIONAL_CMAKE_FLAGS=${ADDITIONAL_CMAKE_FLAGS} -DBoost_NO_SYSTEM_PATHS=ON -DBoost_NO_BOOST_CMAKE=ON" >> $GITHUB_ENV
+          $LIBUTIL_DIR/tools/ci/installBoost.sh "${BOOST_VERSION}" "${BOOST_ROOT}" "filesystem,system,program_options,thread,test,locale,iostreams,regex"
+
+      - name: Build
+        run: tools/ci/build.sh "Release" "${ADDITIONAL_CMAKE_FLAGS}"
+
+      - name: Package
+        run: |
+          mv installed ${{steps.filenames.outputs.foldername}}
+          tar -zvcf "${{steps.filenames.outputs.filename}}" ${{steps.filenames.outputs.foldername}}
+        working-directory: build
+
+      - name: Check asset
+        run: ls build/${{steps.filenames.outputs.filename}} # Just check that uploading would work (asset_path exists)
+      - name: Upload
+        if: success() && github.event_name == 'release'
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: build/${{steps.filenames.outputs.filename}}
+          asset_name: ${{steps.filenames.outputs.filename}}
+          asset_content_type: application/tar.gz

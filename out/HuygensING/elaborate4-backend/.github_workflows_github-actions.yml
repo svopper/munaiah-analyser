@@ -1,0 +1,31 @@
+name: tests
+
+on: [ push,pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1/5 - Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: 2/5 - Set up JDK 14
+        uses: actions/setup-java@v1
+        with:
+          java-version: '14'
+
+      - name: 3/5 - Add maven mirror settings for http repositories
+        uses: whelk-io/maven-settings-xml-action@v18
+        with:
+          mirrors: '[{ "id": "https-maven-restlet", "url": "https://maven.restlet.org", "mirrorOf": "maven-restlet" },{ "id": "https-apache-snapshots", "url": "https://repository.apache.org/snapshots", "mirrorOf": "apache.snapshots" }]'
+
+      - name: 4/5 - Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: 5/5 - Build with Maven
+        run: mvn -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true --batch-mode --update-snapshots verify

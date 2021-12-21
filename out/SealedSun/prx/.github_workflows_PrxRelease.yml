@@ -1,0 +1,86 @@
+name: Prexonite Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Release Prexonite
+    runs-on: windows-2019
+
+    steps:
+      - name: Determine version
+        id: determine-version
+        env: 
+          ref: ${{ github.ref }}
+        run: |
+          echo "Git Ref: $ref" >&2
+          echo 'Git SHA: ${{ github.sha }}' >&2
+          # remove refs/tags/v prefix (11 characters) 
+          ver="${ref:11}"
+          echo "Version: $ver"
+          echo "::set-output name=version::$ver"
+        shell: bash
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v1.7.2
+        env:
+          NUGET_AUTH_TOKEN: '${{secrets.GITHUB_TOKEN}}'
+        with:
+          dotnet-version: '5.0.x'
+          source-url: 'https://nuget.pkg.github.com/chklauser/index.json'
+      - uses: actions/cache@v2
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
+      - name: Install dependencies
+        run: dotnet restore --lock-file-path=./packages.lock.json --verbosity=normal
+      - name: Install tools
+        run: dotnet tool restore --verbosity=normal 
+      - name: Build
+        run: dotnet build --configuration=Release --no-restore --verbosity=normal -p:Version=${{steps.determine-version.outputs.version}}
+      - name: Test
+        run: dotnet test --configuration=Release --no-restore --no-build --verbosity=normal -p:Version=${{steps.determine-version.outputs.version}}
+      - name: Pack
+        run: dotnet pack --configuration=Release --no-restore --no-build --verbosity=normal -p:Version=${{steps.determine-version.outputs.version}}
+      - name: Publish
+        run: dotnet publish --configuration=Release --no-restore --no-build --verbosity=normal -p:Version=${{steps.determine-version.outputs.version}}
+#      - name: Prepare Binary ZIP
+#        run: |
+#          ver='${{steps.determine-version.outputs.version}}'
+#          cd Prx/bin/Release/net5.0/ && \
+#            mkdir zip-env && \
+#            mv publish "zip-env/prexonite-v$ver"
+#        shell: bash
+#      - name: Binary ZIP
+#        uses: thedoctor0/zip-release@0.4.1
+#        with:
+#          filename: prexonite-v${{steps.determine-version.outputs.version}}
+#          directory: Prx/bin/Release/net5.0/zip-env
+      - name: Push Prexonite Package
+        run: dotnet nuget push Prexonite/bin/Release/Prexonite.${{steps.determine-version.outputs.version}}.nupkg
+      - name: Push Prexonite Symbols Package
+        run: dotnet nuget push Prexonite/bin/Release/Prexonite.${{steps.determine-version.outputs.version}}.snupkg
+      - name: Push Prx Package
+        run: dotnet nuget push Prx/bin/Release/Prx.${{steps.determine-version.outputs.version}}.nupkg
+      - name: Push Prx Symbols Package
+        run: dotnet nuget push Prx/bin/Release/Prx.${{steps.determine-version.outputs.version}}.snupkg
+      - name: Create Release 
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          name:  ${{steps.determine-version.outputs.version}}
+          fail_on_unmatched_files: true
+          files: |
+            **/Prexonite*.nupkg
+            **/Prexonite*.snupkg
+            **/Prx*.nupkg
+            **/Prx*.snupkg
+

@@ -1,0 +1,26 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+
+    env:
+      COMPOSE_FILE: docker-compose.ci.yml
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [2.5.9, 2.6.7, 2.7.3, 3.0.1]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build docker images
+        run: docker-compose build --build-arg TARGET_VERSION=${{ matrix.ruby }}
+
+      - name: Run tests
+        run: docker-compose run ci

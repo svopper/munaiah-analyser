@@ -1,0 +1,38 @@
+name: Json2xml
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, pypy-3.8, 3.10.0]
+        os: [
+          ubuntu-20.04,
+          macOS-latest,
+          windows-latest,
+        ]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        pip install -r requirements.txt
+        python setup.py install
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        pip install xmltodict==0.12.0
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 json2xml/ --exit-zero
+    - name: Test with pytest
+      run: |
+        python setup.py test

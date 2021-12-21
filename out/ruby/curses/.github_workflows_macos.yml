@@ -1,0 +1,19 @@
+name: macos
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        gem install bundler --no-document
+        bundle install
+    - name: Build package
+      run: bundle exec rake build
+    - name: Install package
+      run: |
+        gem install pkg/curses-*.gem
+        ruby -r curses -e 'puts Curses::VERSION'

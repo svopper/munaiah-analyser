@@ -1,0 +1,64 @@
+name: Mediawiki
+
+on: [pull_request]
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Lint
+        run: composer lint .
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+
+      - name: Restore Bundler cache
+        id: cache
+        uses: actions/cache@v1
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-bundle-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bundle-
+
+      - uses: miloserdow/capistrano-deploy@v2.1
+        with:
+          target: staging
+          deploy_key: ${{ secrets.SSH_PRIVATE_KEY_PASSWORD }}
+
+#      - name: Cache Composer packages
+#        id: composer-cache
+#        uses: actions/cache@v2
+#        with:
+#          path: vendor
+#          key: ${{ runner.os }}-node-${{ hashFiles('**/composer.lock') }}
+#          restore-keys: |
+#            ${{ runner.os }}-node-
+#
+#      - name: Install dependencies
+#        if: steps.composer-cache.outputs.cache-hit != 'true'
+#        run: composer install --prefer-dist --no-progress --no-suggest
+
+    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
+    # Docs: https://getcomposer.org/doc/articles/scripts.md
+
+    # - name: Run test suite
+    #   run: composer run-script test

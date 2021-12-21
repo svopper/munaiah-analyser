@@ -1,0 +1,73 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: dqueue
+          MYSQL_USER: dqueue
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: rootpassword
+#          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install graphviz
+
+        python -m pip install --upgrade pip
+        pip install --upgrade pytest
+        pip install codecov
+        pip install pytest-cov
+        pip install codacy-coverage
+
+        pip uninstall numpy -y
+        pip install -r requirements.txt --ignore-installed
+        
+        pip install flake8 pytest
+        pip install . --upgrade
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "failed lint"
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || echo "failed second lint"
+    - name: Test with pytest
+      env:
+        DDA_DEFAULT_CACHE_ROOT: "/tmp/servercache"
+        PYTHONPATH: "./"
+        DQUEUE_DATABASE_URL: "mysql+pool://dqueue:password@localhost/dqueue?max_connections=42&stale_timeout=8001.2"
+
+      run: |        
+        py.test ./tests --cov=./
+        
+        coverage xml
+        #python-codacy-coverage -r coverage.xml
+        codecov
+
+
+

@@ -1,0 +1,55 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java#apache-maven-with-a-settings-path
+
+name: Maven Deploy
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v2
+      
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+        server-id: github # == project.distributionManagement.repository.id. How to extract it from pom.xml?
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+    
+    - name: Generate Javadocs
+      run: mvn -B javadoc:javadoc --file pom.xml
+
+    - name: Tidy up Javadocs
+      uses: cicirello/javadoc-cleanup@v1.2.0
+      with:
+        path-to-root: target/site/apidocs
+
+    - name: Log Javadoc-cleanup output
+      run: |
+        echo "modified-count = ${{ steps.tidy.outputs.modified-count }}"
+
+    - name: Copy Javadocs to the correct folder for deploy
+      run: |
+        VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        mkdir -p publish/docs/$VERSION
+        cp -rf target/site/. publish/docs/$VERSION
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ github.token }}
+        publish_dir: ./publish
+        keep_files: true # otherwise the old docs are removed
+    
+    - name: Build package with Maven
+      run: mvn -B package --file pom.xml
+
+    - name: Publish to GitHub Packages
+      run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    

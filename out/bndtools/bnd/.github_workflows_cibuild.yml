@@ -1,0 +1,85 @@
+name: 'CI Build'
+
+on:
+  push:
+    branches-ignore:
+    - 'dependabot/**'
+    paths-ignore:
+    - 'docs/**'
+    - '.github/**/*docs*'
+    - '.github/**/*codeql*'
+    - '.github/**/*rebuild*'
+    - '.github/*.yml'
+  pull_request:
+    paths-ignore:
+    - 'docs/**'
+    - '.github/**/*docs*'
+    - '.github/**/*codeql*'
+    - '.github/**/*rebuild*'
+    - '.github/*.yml'
+
+env:
+  LC_ALL: en_US.UTF-8
+  GRADLE_OPTS: >-
+    -Dorg.gradle.parallel=true
+  MAVEN_OPTS: >-
+    -Dhttp.keepAlive=false
+    -Dmaven.wagon.http.pool=false
+    -Dmaven.wagon.http.retryHandler.count=3
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    strategy:
+      fail-fast: ${{ (github.repository != 'bndtools/bnd') || ((github.ref != 'refs/heads/master') && (github.ref != 'refs/heads/next')) || (github.event_name == 'pull_request') }}
+      matrix:
+        os:
+        - 'ubuntu-latest'
+        java:
+        - '8'
+        - '11'
+        runner:
+        - 'xvfb-run --auto-servernum {0}'
+        include:
+        - os: 'ubuntu-latest'
+          java: '17'
+          runner: 'xvfb-run --auto-servernum {0}'
+          canonical: true
+          fetch-depth: '0'
+        - os: 'windows-latest'
+          java: '8'
+          runner: '{0}'
+    name: Build JDK${{ matrix.java }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Git Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: ${{ matrix.fetch-depth }}
+    - name: Gradle Wrapper Validation
+      uses: gradle/wrapper-validation-action@v1
+    - name: Set up Java ${{ matrix.java }}
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+    - name: Build
+      id: build
+      run: |
+        ${{ format(matrix.runner, './.github/scripts/cibuild.sh') }}
+      env:
+        CANONICAL: ${{ matrix.canonical && !strategy.fail-fast }}
+        JFROG_USERNAME: ${{ secrets.JFROG_USERNAME }}
+        JFROG_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
+    - name: Upload Test Reports
+      if: ${{ always() && ((steps.build.outcome == 'success') || (steps.build.outcome == 'failure')) }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: Build_JDK${{ matrix.java }}_${{ matrix.os }}-test-reports
+        path: |
+          */generated/test-reports/*/TEST-*.xml
+          maven/*/target/surefire-reports/TEST-*.xml
+          gradle-plugins/*/build/test-results/*/TEST-*.xml

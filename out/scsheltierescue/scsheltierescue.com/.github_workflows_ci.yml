@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  CI: true
+
+jobs:
+  web-deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Checkout code
+        uses: actions/checkout@v2
+      - name: ⚡ Setup Volta
+        uses: volta-cli/action@v1
+        with:
+          node-version: 12
+      - name: 🔨 Build Project
+        run: |
+          npx bower install
+          yarn install --non-interactive
+          yarn build
+      - name: 📂 FTP files
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: scsheltierescue.com/

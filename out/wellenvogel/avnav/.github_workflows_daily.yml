@@ -1,0 +1,76 @@
+# daily builds
+name: DailyBuild
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ daily-builds ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 8
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      #set a date parameter
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+      
+      - name: generate tag
+        uses: actions/github-script@v3
+        env: 
+          TAG_NAME: daily-${{ steps.date.outputs.date}}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            try{
+            await github.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "tags/"+process.env.TAG_NAME,
+            });
+            console.log("deleted ref "+process.env.TAG_NAME)
+
+            } catch(e){
+              console.log("delete result: "+e);
+            }
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/"+process.env.TAG_NAME,
+              sha: context.sha
+            })  
+      
+      - name: gradle build
+        env:  
+          AVNAV_REPO_USER: ${{ secrets.AVNAV_REPO_USER }}
+          AVNAV_REPO_PASSWD: ${{ secrets.AVNAV_REPO_PASSWD }}
+          AVNAV_REPO_BASE: "/downloads"
+        run: ./gradlew upload
+      
+      - name: gradle repo upload
+        env:  
+          AVNAV_REPO_USER: ${{ secrets.AVNAV_REPO_USER }}
+          AVNAV_REPO_PASSWD: ${{ secrets.AVNAV_REPO_PASSWD }}
+          AVNAV_REPO_KEY: ${{ secrets.AVNAV_REPO_KEY }}
+          AVNAV_REPO_BASE: ""
+        run: ./gradlew uploadRepoDaily
+
+
+        

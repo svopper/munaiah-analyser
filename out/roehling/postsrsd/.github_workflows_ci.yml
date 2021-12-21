@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake help2man bats faketime
+      - name: Build PostSRSd
+        run: |
+          make VERBOSE=ON
+      - name: Run unit tests
+        run: |
+          make test
+      - name: Run PostSRSd blackbox tests
+        run: |
+          ./run_postsrsd_tests.bats
+      - name: Install PostSRSd
+        run: |
+          sudo make install
+      - name: Check systemd service file
+        run: |
+          sudo systemctl daemon-reload
+          sudo sed -i -e 's/#SRS_DOMAIN/SRS_DOMAIN/' /etc/default/postsrsd
+          sudo systemctl start postsrsd
+          sudo journalctl --no-pager -u postsrsd
+          sudo systemctl --no-pager status postsrsd
+          pidof postsrsd
+          sudo systemctl stop postsrsd

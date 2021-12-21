@@ -1,0 +1,26 @@
+name: CMake
+on: [push, pull_request]
+jobs:
+  # CMake build
+  cmake_build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Windows, macOS_X64, Linux]
+    runs-on: [self-hosted, '${{ matrix.os }}', 'cmake']
+    name: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: CMake Cleanup
+        run: cmake -E remove_directory ${{github.workspace}}/build
+      - name: CMake Setup
+        run: cmake -E make_directory ${{github.workspace}}/build
+      - name: CMake Configure
+        env:
+          GIT_SSH_COMMAND: "${{ runner.os != 'Linux' && 'ssh' || 'ssh -i /home/buildbot/.ssh/id_ed25519 -o IdentitiesOnly=yes' }}"
+        working-directory: ${{github.workspace}}/build
+        run: cmake ${{github.workspace}} -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DSTEINWURF_RESOLVE_OPTIONS="--git_protocol=git@"
+      - name: CMake Build
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build .

@@ -1,0 +1,69 @@
+# This file is part of IVRE.
+# Copyright 2011 - 2021 Pierre LALET <pierre@droids-corp.org>
+#
+# IVRE is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# IVRE is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with IVRE. If not, see <http://www.gnu.org/licenses/>.
+
+name: Elasticsearch tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.9']
+        mongodb-version: ['4.4']
+        elastic-version: ['7.10.2']
+
+    steps:
+
+    - name: Git checkout
+      uses: actions/checkout@v2
+
+    - name: Use Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.6.0
+      with:
+        mongodb-version: ${{ matrix.mongodb-version }}
+
+    - name: Start Elasticsearch
+      uses: elastic/elastic-github-actions/elasticsearch@master
+      with:
+        stack-version: ${{ matrix.elastic-version }}
+
+    - run: pip install -r requirements-mongo.txt
+
+    - run: pip install -r requirements-elastic.txt
+
+    - name: Install IVRE
+      uses: ./.github/actions/install
+
+    - run: curl http://127.0.0.1:9200
+
+    - run: echo 'DB_VIEW = "elastic://ivre@localhost:9200/ivre"' >> ~/.ivre.conf
+
+    - name: Initialize IVRE databases
+      run: for cli in ipinfo scancli view; do ivre $cli --init < /dev/null; done
+
+    - run: tar jxf ./tests/mongodb_backup/backup_nmap_passive.tar.bz2
+
+    - run: cd tests && coverage erase && coverage run --parallel-mode tests.py --coverage && coverage combine && coverage report -i
+      env:
+        CI: true
+        DB: elastic

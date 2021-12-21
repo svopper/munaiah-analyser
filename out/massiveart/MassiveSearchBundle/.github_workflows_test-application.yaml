@@ -1,0 +1,85 @@
+name: Test application
+
+on:
+    pull_request:
+    push:
+        branches:
+            - '[0-9]+.x'
+            - '[0-9]+.[0-9]+'
+
+jobs:
+    test:
+        name: 'PHP ${{ matrix.php-version }} (${{ matrix.dependency-versions }})'
+        runs-on: ubuntu-latest
+
+        env:
+            SYMFONY_DEPRECATIONS_HELPER: weak
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - php-version: '7.2'
+                      minimum-stability: 'stable'
+                      dependency-versions: 'lowest'
+                      tools: 'composer:v1'
+                      php-cs-fixer: false
+
+                    - php-version: '7.3'
+                      minimum-stability: 'stable'
+                      dependency-versions: 'highest'
+                      tools: 'composer:v2'
+                      php-cs-fixer: false
+
+                    - php-version: '7.4'
+                      minimum-stability: 'dev'
+                      dependency-versions: 'highest'
+                      tools: 'composer:v2'
+                      php-cs-fixer: true
+
+        services:
+            elasticsearch:
+                image: elasticsearch:2.4.6
+                ports:
+                    - 9200:9200
+                env:
+                    discovery.type: 'single-node'
+                    xpack.security.enabled: 'false'
+                options: --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=10s --health-timeout=5s --health-retries=5
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+
+            - name: Install and configure PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-version }}
+                  tools: ${{ matrix.tools }}
+
+            - name: Require elasticsearch dependency
+              run: composer require --dev elasticsearch/elasticsearch:^2.1 --no-interaction --no-update
+
+            - name: Configure composer minimum-stability
+              run: composer config minimum-stability ${{ matrix.minimum-stability }}
+
+            - name: Install composer dependencies
+              uses: ramsey/composer-install@v1
+              with:
+                  dependency-versions: ${{matrix.dependency-versions}}
+
+            - name: Run php-cs-fixer
+              if: ${{ matrix.php-cs-fixer }}
+              run: |
+                  composer global require friendsofphp/php-cs-fixer:^2.19 --prefer-dist --no-interaction
+                  GLOBAL_BIN_DIR=$(composer global config bin-dir --absolute --quiet)
+                  $GLOBAL_BIN_DIR/php-cs-fixer fix --dry-run --diff
+
+            - name: Lint code
+              run: composer validate --strict
+
+            - name: Execute test cases
+              run: |
+                  vendor/bin/simple-phpunit --coverage-text
+                  vendor/bin/behat --suite=zend_lucene
+                  vendor/bin/behat --suite=elastic

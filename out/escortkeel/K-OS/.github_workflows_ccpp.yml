@@ -1,0 +1,40 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: ubuntu-18.04-gcc-9
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v2
+
+    - name: prepare tools
+      run: sudo apt install mtools bison flex xorriso
+
+    - name: build toolchain
+      run: make toolchain
+
+    - name: build libc
+      run: make libc
+
+    - name: build kernel
+      run: make kernel
+
+    - name: build apps
+      run: make apps
+
+    - name: build operating system distribution
+      run: make dist
+
+    - name: archive image
+      uses: actions/upload-artifact@v1
+      with:
+        name: os-image
+        path: dist/image/package/cdrom.iso

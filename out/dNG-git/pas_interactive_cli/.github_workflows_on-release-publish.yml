@@ -1,0 +1,26 @@
+name: py:publish
+
+on:
+  release:
+    types: [ released ]
+
+jobs:
+  pypi-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout commit
+      uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v2
+    - name: Install dependencies
+      run: |-
+        pip install -r ./build_requirements.txt
+    - name: Execute build
+      run: |-
+        python setup.py sdist bdist_wheel
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_PROD_PASSWORD }}

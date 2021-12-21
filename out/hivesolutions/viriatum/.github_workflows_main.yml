@@ -1,0 +1,104 @@
+name: Main Workflow
+on: [push]
+jobs:
+  build-gcc:
+    name: Build GCC
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        gcc-version: [5, 6, 7, 8, 9]
+    runs-on: ubuntu-latest
+    container: gcc:${{ matrix.gcc-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build Viriatum
+        run: |
+          ./autogen.sh
+          ./configure
+          make
+      - name: Test Viriatum
+        run: |
+          ./src/viriatum/viriatum --test
+  build-clang:
+    name: Build Clang
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        clang-version: [3, 4, 5, 6, 7]
+    runs-on: ubuntu-latest
+    container: silkeh/clang:${{ matrix.clang-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build Viriatum
+        run: |
+          apt-get update && apt-get install -y -q libtool automake autoconf
+          ./autogen.sh
+          CC=clang ./configure
+          make
+      - name: Test Viriatum
+        run: |
+          ./src/viriatum/viriatum --test
+  build-gcc-cmake:
+    name: Build GCC CMake
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        gcc-version: [5, 6, 7, 8, 9]
+    runs-on: ubuntu-latest
+    container: gcc:${{ matrix.gcc-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build & Install CMake
+        run: |
+          apt-get update && apt-get install -y -q wget libssl-dev
+          wget https://github.com/Kitware/CMake/releases/download/v3.16.6/cmake-3.16.6.tar.gz && tar -zxvf cmake-3.16.6.tar.gz && cd cmake-3.16.6 && ./bootstrap && make && make install
+      - name: Build & Install Dependencies
+        run: |
+          apt-get update && apt-get install -y -q wget python python-dev libpng-dev
+          wget https://bootstrap.pypa.io/pip/2.7/get-pip.py && python get-pip.py
+          pip install --upgrade "conan<1.25" urllib3
+          conan install . --build
+      - name: Build Viriatum
+        run: |
+          cmake .
+          make
+      - name: Test Viriatum
+        run: |
+          ./bin/viriatum --test
+  build-windows-cmake:
+    name: Build Windows CMake
+    timeout-minutes: 30
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build & Install Dependencies
+        run: |
+          pip3 install --upgrade conan urllib3
+          conan install . --build
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Build Viriatum
+        run: |
+          cmake . -DCMAKE_CL_64=1 -DCMAKE_GENERATOR_PLATFORM=x64 -Ax64
+          msbuild ALL_BUILD.vcxproj /P:Configuration=Release
+      - name: Test Viriatum
+        run: |
+          bin/viriatum --test
+  build-macos-cmake:
+    name: Build macOS CMake
+    timeout-minutes: 30
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build & Install Dependencies
+        run: |
+          export PATH=$PATH:/Library/Frameworks/Python.framework/Versions/2.7/bin
+          pip3 install --upgrade conan "urllib3<1.24"
+          conan install . --build
+      - name: Build Viriatum
+        run: |
+          cmake .
+          make
+      - name: Test Viriatum
+        run: |
+          ./bin/viriatum --test

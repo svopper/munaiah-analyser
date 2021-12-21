@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - /-dev|-feature|-fix/
+
+  pull_request:
+
+env:
+  JRUBY_OPTS: -J-Xmx896M
+
+jobs:
+  ci:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        java-version: [8, 15]
+        ruby-version: [jruby-9.2.18.0, jruby-head]
+        task: ['', integration]
+
+      fail-fast: false
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: Set up java ${{ matrix.java-version }}
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: ${{ matrix.java-version }}
+
+      - name: Set up ${{ matrix.ruby-version }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler: 1.17.3
+
+      - name: Install fixed rubygems version
+        run: gem update --system 2.7.11
+
+      - name: Install dependencies
+        run: bundle install --jobs=3 --retry=3
+
+      - name: Run tests
+        run: bundle exec rake ${{ matrix.TASK }}
+        if: matrix.ruby-version !=  'jruby-head'
+
+      - name: Run tests
+        run: bundle exec rake ${{ matrix.TASK }} || exit 0
+        if: matrix.ruby-version ==  'jruby-head'

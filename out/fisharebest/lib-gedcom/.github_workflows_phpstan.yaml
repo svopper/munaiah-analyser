@@ -1,0 +1,17 @@
+name: Static analysis
+
+on: [push, pull_request]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    name: phpstan
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: composer validate --strict
+
+      - run: composer install --prefer-dist --no-progress
+
+      - run: vendor/bin/phpstan analyze --no-progress --level=max src tests

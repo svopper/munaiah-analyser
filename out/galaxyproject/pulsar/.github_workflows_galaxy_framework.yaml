@@ -1,0 +1,52 @@
+name: Framework tests
+on: [push, pull_request]
+env:
+  GALAXY_TEST_DBURI: 'postgresql://postgres:postgres@localhost:5432/galaxy?client_encoding=utf8'
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7']
+        galaxy-branch: ['dev', 'master']
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'pulsar'
+      - name: Checkout tools repo
+        uses: actions/checkout@v2
+        with:
+          repository: galaxyproject/galaxy
+          ref: ${{ matrix.galaxy-branch }}
+          path: galaxy
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build Pulsar wheel and replace Galaxy's requirements.
+        run: python tools/replace_galaxy_requirements_for_ci.py
+        working-directory: 'pulsar'
+      - name: Cache pip dir
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
+      - name: Run tests
+        run: ./run_tests.sh --framework
+        working-directory: 'galaxy'
+        env:
+          GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf_${{ matrix.galaxy-branch }}.yaml
+        continue-on-error: true
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Framework test results (${{ matrix.python-version }})
+          path: 'galaxy/run_framework_tests.html'

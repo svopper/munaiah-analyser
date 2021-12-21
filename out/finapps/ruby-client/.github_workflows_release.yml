@@ -1,0 +1,54 @@
+name: Bump version and Release
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
+    steps: 
+      - name: Checkout source code
+        uses: actions/checkout@v2.3.5
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # otherwise, you will fail to push refs to dest repo
+
+      - name: Install required ruby version
+        uses: ruby/setup-ruby@v1 
+
+      - name: Get version from latest tag
+        id: get_version
+        uses: battila7/get-version-action@v2
+
+      - name: Bump version   
+        run: |
+          gem install -N gem-release
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          gem bump --skip-ci --version ${{ steps.get_version.outputs.version-without-v }}
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          # GitHub Actions token does not support pushing to protected branches.
+          # github_token: ${{ secrets.GITHUB_TOKEN }}
+          #        
+          # A manually populated`PERSONAL_ACCESS_TOKEN` environment variable 
+          # with permissions to push to a protected branch must be used.
+          # not ideal - keep eyes open for a better solution
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Release gem to rubygems.org    
+        run: |
+          set +x
+          mkdir -p ~/.gem
+          cat << EOF > ~/.gem/credentials
+          ---
+          :rubygems_api_key: ${{ secrets.RUBYGEMS_API_KEY }}
+          EOF
+          chmod 0600 ~/.gem/credentials
+          set -x
+          gem release

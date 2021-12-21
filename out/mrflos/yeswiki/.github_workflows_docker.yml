@@ -1,0 +1,17 @@
+name: Docker Image
+
+on:
+  push:
+    paths:
+    - Dockerfile
+    - .dockerignore
+    - docker-compose*.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build a Docker image able to run yeswiki
+      run: docker build -t yeswiki/server .

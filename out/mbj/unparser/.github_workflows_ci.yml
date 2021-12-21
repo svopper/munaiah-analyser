@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request: {}
+  push:
+    branches: main
+
+jobs:
+  base:
+    name: Base steps
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check Whitespace
+      run: git diff --check -- HEAD~1
+  ruby-unit-spec:
+    name: Unit Specs
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ruby-2.6, ruby-2.7, ruby-3.0]
+        os: [ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby }}
+    - run: bundle exec rspec spec/unit
+  ruby-mutant:
+    name: Mutant
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ruby-2.6, ruby-2.7, ruby-3.0]
+        os: [macos-latest, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby }}
+    - run: bundle exec mutant run --since HEAD~1 --zombie
+  ruby-integration-spec:
+    name: Integration Specs
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ruby-2.6, ruby-2.7, ruby-3.0]
+        os: [macos-latest, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby }}
+    - run: bundle exec rspec spec/integration
+  ruby-rubocop:
+    name: Rubocop
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ruby-2.6, ruby-2.7, ruby-3.0]
+        os: [macos-latest, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby }}
+    - run: bundle exec rubocop

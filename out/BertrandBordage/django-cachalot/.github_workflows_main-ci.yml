@@ -1,0 +1,74 @@
+name: Django Main Testing CI
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9']
+
+    services:
+      redis:
+        image: redis:6.0
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: cachalot
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cachalot
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: cachalot
+        ports:
+          - 3306:3306
+      memcached:
+        image: memcached
+        ports:
+          - 11211:11211
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key:
+          ${{ matrix.python-version }}-v1-${{ hashFiles('**/setup.py') }}
+        restore-keys: |
+          ${{ matrix.python-version }}-v1-
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y libmemcached-dev zlib1g-dev
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions coveralls
+    - name: Tox Test
+      run: tox
+      env:
+        TOX_TESTENV_PASSENV: POSTGRES_PASSWORD
+        POSTGRES_PASSWORD: password
+        DJANGO: 'main'

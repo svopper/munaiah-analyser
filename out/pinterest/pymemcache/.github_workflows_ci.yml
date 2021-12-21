@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, pypy3]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        sudo apt-get install libmemcached-dev
+    - name: Lint
+      if: matrix.python-version == '3.9'
+      run: |
+        pip install tox tox-gh-actions
+        tox -e flake8
+    - name: Disable IPv6 localhost
+      run: |
+        sudo sed -i '/::1/d' /etc/hosts
+    - name: Tests
+      run: |
+        pip install -r test-requirements.txt
+        py.test pymemcache/test/ \
+            -m 'unit or integration' \
+            --port ${{ job.services.memcached.ports[11211] }} \
+            --tls-port ${{ job.services.tls_memcached.ports[11211] }}
+
+    services:
+      memcached:
+        image: memcached:latest
+        ports:
+        - 11211/tcp
+      tls_memcached:
+        image: scoriacorp/tls_memcached:latest
+        ports:
+        - 11211/tcp

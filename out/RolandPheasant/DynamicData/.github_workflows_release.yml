@@ -1,0 +1,93 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  configuration: Release
+  productNamespacePrefix: "ReactiveMarbles"
+
+jobs:
+  release:
+    runs-on: windows-2022
+    environment:
+      name: release
+    outputs:
+      nbgv: ${{ steps.nbgv.outputs.SemVer2 }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2.3.5
+      with:
+        fetch-depth: 0
+
+    - name: Install Windows SDK 10.0.16299
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?linkid=864422 -OutFile winsdk.exe
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = "winsdk.exe"
+        $startInfo.Arguments = "/norestart /quiet"
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $process.Start()
+        $process.WaitForExit()
+        
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 3.1.x
+
+    - name: Install .NET 5
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Install .NET 6
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 6.0.x
+        include-prerelease: true
+        
+    - name: NBGV
+      id: nbgv
+      uses: dotnet/nbgv@master
+      with:
+        setAllVars: true
+
+    - name: Add MSBuild to PATH
+      uses: glennawatson/setup-msbuild@v1.0.3
+      with:
+        prerelease: true
+        
+    - name: NuGet Restore
+      run: msbuild /t:restore /v:minimal /m
+      working-directory: src
+      
+    - name: Build
+      run: msbuild /t:build,pack /maxcpucount /p:NoPackageAnalysis=true /verbosity:minimal /p:Configuration=${{ env.configuration }}
+      working-directory: src
+
+    - uses: nuget/setup-nuget@v1
+      name: Setup NuGet
+
+    - name: Changelog
+      uses: glennawatson/ChangeLog@v1
+      id: changelog
+
+    - name: Create Release
+      uses: actions/create-release@v1.1.4
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+          tag_name: ${{ steps.nbgv.outputs.SemVer2 }}
+          release_name: ${{ steps.nbgv.outputs.SemVer2 }}
+          body: |
+            ${{ steps.changelog.outputs.commitLog }}
+            
+    - name: NuGet Push
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
+        SOURCE_URL: https://api.nuget.org/v3/index.json
+      run: |
+        dotnet nuget push -s ${{ env.SOURCE_URL }} -k ${{ env.NUGET_AUTH_TOKEN }} **/*.nupkg

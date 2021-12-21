@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CI: true
+
+    strategy:
+      matrix:
+        compiler:
+          - clang
+          - gcc
+        container:
+          - alpine:3.14
+          - centos:8
+          - ubuntu:18.04
+
+    container: ${{ matrix.container }}
+
+    steps:
+      - name: Checkout ProFTPD
+        uses: actions/checkout@v2
+        with:
+          repository: proftpd/proftpd
+          path: proftpd
+
+      - name: Checkout module source code
+        uses: actions/checkout@v2
+        with:
+          path: proftpd/contrib/mod_sftp_ldap
+
+      - name: Whitespace check
+        if: ${{ matrix.container == 'ubuntu:18.04' }}
+        run: |
+          apt-get update -qq
+          apt-get install -y git
+          cd proftpd/contrib/mod_sftp_ldap
+          if [[ -n $(git diff --check HEAD^) ]]; then
+            echo "You must remove whitespace before submitting a pull request"
+            echo ""
+            git diff --check HEAD^
+            exit 1
+          fi
+
+      - name: Install Alpine packages
+        if: ${{ matrix.container == 'alpine:3.14' }}
+        run: |
+          apk update
+          # for builds
+          apk add bash build-base clang compiler-rt-static gcc make zlib-dev
+          # for unit tests
+          apk add check check-dev subunit subunit-dev
+
+          # for LDAP support
+          apk add openldap-dev cyrus-sasl-dev
+
+          # for OpenSSL support
+          apk add openssl openssl-dev
+
+          # for debugging
+          clang --version
+          gcc --version
+          openssl version -a
+
+      - name: Install Centos packages
+        if: ${{ matrix.container == 'centos:8' }}
+        run: |
+          # Need to add other repos for e.g. libsodium
+          yum install -y dnf-plugins-core epel-release clang gcc make zlib-devel
+          yum config-manager --set-enabled powertools
+          # for unit tests
+          yum install -y check-devel https://cbs.centos.org/kojifiles/packages/subunit/1.4.0/1.el8/x86_64/subunit-1.4.0-1.el8.x86_64.rpm https://cbs.centos.org/kojifiles/packages/subunit/1.4.0/1.el8/x86_64/subunit-devel-1.4.0-1.el8.x86_64.rpm
+
+          # for LDAP support
+          yum install -y openldap-devel cyrus-sasl-devel
+
+          # for OpenSSL support
+          yum install -y openssl-devel
+
+          # for debugging
+          clang --version
+          gcc --version
+          openssl version -a
+
+      - name: Install Ubuntu packages
+        if: ${{ matrix.container == 'ubuntu:18.04' }}
+        run: |
+          apt-get update -qq
+          # for builds
+          apt-get install -y clang gcc make
+          # for unit tests
+          apt-get install -y check libsubunit-dev
+
+          # for LDAP support 
+          apt-get install -y libldap2-dev libsasl2-dev
+
+          # for OpenSSL support
+          apt-get install -y libssl-dev
+
+          # for integration/regression test
+          # for test code coverage
+          apt-get install -y lcov ruby
+          gem install coveralls-lcov
+          # for HTML validation
+          apt-get install -y tidy
+          # for debugging
+          clang --version
+          gcc --version
+          openssl version -a
+
+      - name: Prepare code coverage
+        if: ${{ matrix.container == 'ubuntu:18.04' }}
+        run: |
+          lcov --directory proftpd --zerocounters
+
+      - name: Build as static module
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          cd proftpd
+          ./configure LIBS="-lm -lsubunit -lrt -pthread" --enable-devel=coverage --enable-tests --with-modules=mod_ldap:mod_sftp:mod_sftp_ldap
+          make
+
+      - name: Run unit tests
+        env:
+          CC: ${{ matrix.compiler }}
+        # Note: Skip the unit tests on Alpine
+        if: ${{ matrix.container != 'alpine:3.14' }}
+        run: |
+          cd proftpd/contrib/mod_sftp_ldap
+          make TEST_VERBOSE=1 check
+
+      - name: Install as static modules
+        run: |
+          cd proftpd
+          make install
+
+      - name: Build as shared modules
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          cd proftpd
+          make clean
+          ./configure LIBS="-lm -lsubunit -lrt -pthread" --enable-devel --enable-dso --with-shared=mod_ldap:mod_sftp:mod_sftp_ldap
+          make
+
+      - name: Install as shared modules
+        run: |
+          cd proftpd
+          make install
+
+      - name: Check HTML docs
+        if: ${{ matrix.container == 'ubuntu:18.04' }}
+        run: |
+          cd proftpd/contrib/mod_sftp_ldap
+          for f in $(/bin/ls *.html); do echo "Processing $f"; tidy -errors -omit -q $f; done || exit 0

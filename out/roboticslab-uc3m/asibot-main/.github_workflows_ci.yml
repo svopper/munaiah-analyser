@@ -1,0 +1,55 @@
+name: Continuous Integration
+
+on:
+  push:
+    paths:
+    - 'CMakeLists.txt'
+    - 'cmake/ycm-modules/*.cmake'
+    - '.github/workflows/ci.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  maybe_skip:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{steps.skip_check.outputs.should_skip}}
+    steps:
+    - uses: fkirc/skip-duplicate-actions@master
+      id: skip_check
+      with:
+        cancel_others: 'true'
+
+  build:
+    runs-on: ubuntu-latest
+    needs: maybe_skip
+    if: ${{needs.maybe_skip.outputs.should_skip != 'true'}}
+
+    steps:
+    - name: Check out asibot-main
+      uses: actions/checkout@v2
+
+    - name: Install dependencies via apt
+      run: sudo apt-get update && sudo apt-get install -qq ccache libeigen3-dev libboost-regex-dev libboost-filesystem-dev libboost-system-dev libboost-thread-dev libboost-iostreams-dev libboost-date-time-dev libxml2-dev libopencv-dev libpcl-dev intltool libglib2.0-dev libusb-1.0-0-dev libspnav-dev libxwiimote-dev
+
+    - name: Set up Ccache
+      uses: hendrikmuhs/ccache-action@v1
+
+    - name: Set environment variables
+      run: |
+        echo "CFLAGS=-w" >> $GITHUB_ENV
+        echo "CXXFLAGS=-w" >> $GITHUB_ENV
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+    - name: Configure asibot-main
+      run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX="$PWD/build/install-system" -DNON_INTERACTIVE_BUILD=ON
+
+    - name: Build asibot-main
+      run: cmake --build build
+
+    - name: Install asibot-main
+      run: cmake --install build
+
+    - name: Uninstall asibot-main
+      run: cmake --build build --target uninstall

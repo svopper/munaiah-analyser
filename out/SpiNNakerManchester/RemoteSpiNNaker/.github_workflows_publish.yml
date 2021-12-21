@@ -1,0 +1,71 @@
+# Copyright (c) 2020 The University of Manchester
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+name: Publish
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [14]
+    env:
+      SITE_DIR: target/staging
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set dynamic information
+        run: |
+          echo "SETTINGS_FILE=$PWD/.github/settings.xml" >> $GITHUB_ENV
+          echo "SITE_DIR=$PWD/RemoteSpiNNaker/$SITE_DIR" >> $GITHUB_ENV
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: publish-m2-j${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: publish-m2-j${{ matrix.java }}
+
+      - name: Ensure dependencies are present
+        run: mvn -B dependency:resolve dependency:resolve-plugins --settings $SETTINGS_FILE
+        working-directory: RemoteSpiNNaker
+        continue-on-error: true
+      - name: Build
+        run: mvn install --settings $SETTINGS_FILE -DskipTests=true -Dmaven.javadoc.skip=true
+        working-directory: RemoteSpiNNaker
+      - name: Build Documentation
+        run: |
+          mvn site site:stage --settings $SETTINGS_FILE
+          touch $SITE_DIR/.nojekyll
+        working-directory: RemoteSpiNNaker
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: ${{ env.SITE_DIR }}
+
+      - name: "Post: Purge SNAPSHOTs"
+        # Do not cache SNAPSHOT dependencies; we don't use external snapshots
+        # and we will always rebuild internal snapshots.
+        run: mvn dependency:purge-local-repository --settings $SETTINGS_FILE -DsnapshotsOnly=true -DreResolve=false
+        working-directory: RemoteSpiNNaker
+        continue-on-error: true

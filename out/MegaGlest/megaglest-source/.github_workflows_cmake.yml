@@ -1,0 +1,171 @@
+name: CMake
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64]
+        os: [ubuntu-18.04, ubuntu-latest]
+        compiler: [gcc, clang]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        sudo apt update
+        sudo mk/linux/setupBuildDeps.sh
+    
+    - name: Bulid MegaGlest With GCC Compiler
+      if: ${{ matrix.compiler == 'gcc' }}
+      env:
+        CC: gcc
+        CXX: g++
+      run: mk/linux/build-mg.sh
+
+    - name: Bulid MegaGlest With Clang Compiler
+      if: ${{ matrix.compiler == 'clang' }}
+      env:
+        CC: clang
+        CXX: clang++
+      run: mk/linux/build-mg.sh
+
+    - name: Prepare Snapshot
+      if: ${{ matrix.compiler == 'gcc' && matrix.os == 'ubuntu-latest' }}
+      run: |
+        cp mk/shared/*.ini mk/linux/
+        strip -g mk/linux/megaglest mk/linux/megaglest_editor mk/linux/megaglest_g3dviewer
+      
+    - name: Create Mega Glest Snapshot
+      if: ${{ matrix.compiler == 'gcc' && matrix.os == 'ubuntu-latest' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: megaglest-${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.compiler }}
+        path: |
+          mk/linux/megaglest
+          mk/linux/megaglest_editor
+          mk/linux/megaglest_g3dviewer
+          mk/linux/*.ini
+          !mk/linux/glest-dev.ini
+
+  build-win64:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64]
+        build_type: [Release]
+        include:
+          - build_type: Release
+            release: 'ON'
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Cache Vcpkg Libs
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-vcpkg-deps
+      with:
+        path: c:/vcpkg/installed
+        key: vcpkg-deps
+    
+    - name: Install Dependencies
+      run: |
+        vcpkg integrate install
+        vcpkg install brotli:x64-windows-static
+        vcpkg install bzip2:x64-windows-static
+        vcpkg install curl:x64-windows-static
+        vcpkg install expat:x64-windows-static
+        vcpkg install freetype:x64-windows-static
+        vcpkg install fribidi:x64-windows-static
+        vcpkg install ftgl:x64-windows-static
+        vcpkg install glew:x64-windows-static
+        vcpkg install libiconv:x64-windows-static
+        vcpkg install libjpeg-turbo:x64-windows-static
+        vcpkg install liblzma:x64-windows-static
+        vcpkg install libogg:x64-windows-static
+        vcpkg install libpng:x64-windows-static
+        vcpkg install libvorbis:x64-windows-static
+        vcpkg install libxml2:x64-windows-static
+        vcpkg install lua:x64-windows-static
+        vcpkg install openal-soft:x64-windows-static
+        vcpkg install opengl:x64-windows-static
+        vcpkg install miniupnpc:x64-windows-static
+        vcpkg install sdl2:x64-windows-static
+        vcpkg install sqlite3:x64-windows-static
+        vcpkg install tiff:x64-windows-static
+        vcpkg install tool-meson:x64-windows-static
+        vcpkg install wxwidgets:x64-windows-static
+        vcpkg install xerces-c:x64-windows-static
+        vcpkg install zlib:x64-windows-static
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      # Kinda guessing this using supertux + my own build scripts as guides.
+      run: cmake --no-warn-unused-cli -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=c:/vcpkg/scripts/buildsystems/vcpkg.cmake -G "Visual Studio 16 2019" -T host=x64 -A x64 -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE
+
+    - name: Build Mega Glest
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config Release --target ALL_BUILD
+    
+    - name: Prepare Snapshot
+      run: |
+        cd mk/windoze
+        cp ..\shared\*.ini .
+        $7zPath = $(Get-Command 7z).Source
+        cp $7zPath .
+        cd ../..
+      
+    - name: Create Mega Glest Snapshot
+      uses: actions/upload-artifact@v2
+      with:
+        name: megaglest-x64-windows
+        path: |
+          mk/windoze/*.exe
+          mk/windoze/*.ini
+          !mk/windoze/glest-dev.ini
+
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       arch: [x64]
+  #       os: [macos-latest]
+  #       compiler: [clang]
+  #   runs-on: ${{ matrix.os }}
+
+  #   steps:
+  #   - uses: actions/checkout@v2
+
+  #   - name: Get dependencies
+  #     run: |
+  #       brew install pkg-config cmake sdl2 lua jpeg libpng freetype ftgl libogg glew libvorbis cppunit fribidi miniupnpc curl wxmac xquartz zstd xml2 openldap
+    
+  #   - name: Bulid MegaGlest With Clang Compiler
+  #     if: ${{ matrix.compiler == 'clang' }}
+  #     env:
+  #       CC: clang
+  #       CXX: clang++
+  #     run: |
+  #       # Path hack to get curl working.
+  #       export PATH=/usr/local/Cellar/curl/7.77.0/bin:$PATH
+  #       mk/macos/build-mg.sh
+   # - name: Test
+   #   working-directory: ${{github.workspace}}/build
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+   #   run: ctest -C ${{env.BUILD_TYPE}}

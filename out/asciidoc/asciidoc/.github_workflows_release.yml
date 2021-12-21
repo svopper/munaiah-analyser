@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Create Docker image
+        run: docker build . -t asciidoc
+
+      - name: Build distributions
+        run: docker run --rm -v $(pwd)/build:/srv/asciidoc/build asciidoc /bin/bash -c "make dist"
+
+      - name: Upload asciidoc-${{ github.event.release.tag_name }}.zip
+        id: upload-release-asset-zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./build/asciidoc-${{ github.event.release.tag_name }}.zip
+          asset_name: asciidoc-${{ github.event.release.tag_name }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload asciidoc-${{ github.event.release.tag_name }}.tar.gz
+        id: upload-release-asset-tar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./build/asciidoc-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: asciidoc-${{ github.event.release.tag_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - run: sudo rm -rf build
+
+      - name: Build release
+        run: python setup.py sdist bdist_wheel --universal
+
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Update Homebrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{secrets.BREW_TOKEN}}
+          formula: asciidoc
+          tag: ${{github.ref}}
+          revision: ${{github.sha}}

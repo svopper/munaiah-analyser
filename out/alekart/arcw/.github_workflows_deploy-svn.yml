@@ -1,0 +1,45 @@
+name: Deploy to WordPress.org
+on:
+  repository_dispatch:
+    types: 'Release'
+  release:
+    types: [ published ]
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.client_payload.ref || github.sha }}
+      - name: Set TAG var
+        run: echo "TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      - name: Set TAG_NAME var
+        run: echo "TAG_NAME=${{ github.event.client_payload.ref || env.TAG }}" >> $GITHUB_ENV
+      - name: Build
+        run: |
+          npm install
+          npm run build
+      - run: ls
+      - name: Checkout SVN
+        run: |
+          svn co --non-recursive https://plugins.svn.wordpress.org/archives-calendar-widget svn
+          cd svn
+          svn up --non-recursive tags trunk
+      - name: Add release tag to SVN
+        run: mv ./dist/ ./svn/tags/${{ env.TAG_NAME }}
+      - name: Update trunk readme
+        if: "!github.event.release.prerelease"
+        run: |
+          cd svn
+          rm ./trunk/readme.txt
+          cp ./tags/${{ env.TAG_NAME }}/readme.txt ./trunk/
+      - name: Commit the release to SVN
+        run: |
+          cd svn
+          svn add ./tags/*
+          svn commit -m "Add new plugin version ${{ env.TAG }}" \
+            --username ${{ secrets.WP_SVN_USER }} \
+            --password "${{ secrets.WP_SVN_PASSWORD }}"

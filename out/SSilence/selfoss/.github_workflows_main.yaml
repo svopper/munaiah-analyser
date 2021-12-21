@@ -1,0 +1,168 @@
+# This file lints the code, runs tests, builds a package and then deploys it.
+# The following secrets need to be set:
+# - “CLOUDSMITH_API_KEY” for pushing built package to Cloudsmith
+# - “CACHIX_AUTH_TOKEN” for uploading built Nix packages to Cachix
+name: CI
+
+on:
+  pull_request:
+  push:
+
+env:
+  COMPOSER_FLAGS: "--ansi --no-interaction --no-progress --no-suggest --prefer-dist"
+
+jobs:
+  tests:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        php:
+          - '8.0'
+          - '7.4'
+          - '7.3'
+          - '7.2'
+          - '7.1'
+          - '7.0'
+          - '5.6'
+        include:
+          - php: '7.0'
+            cs_fixer: true
+            lint_js: true
+    name: 'Check with PHP ${{ matrix.php }}'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v12
+
+      - name: Set up Nix cache
+        uses: cachix/cachix-action@v8
+        with:
+          name: fossar
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Update flake.nix to match the current CI job from matrix
+        run: sed -i 's/matrix.phpPackage = "php";/matrix.phpPackage = builtins.replaceStrings ["."] [""] "php${{ matrix.php }}";/' flake.nix
+
+      - name: Cache Node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-composer-modules
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: nix-shell --run 'npm run install-dependencies'
+
+      - name: Lint front-end code
+        if: matrix.lint_js
+        run: nix-shell --run 'npm run lint:client'
+
+      - name: Check syntax of back-end code
+        run: nix-shell --run 'npm run lint:server'
+
+      - name: Lint back-end code
+        if: matrix.cs_fixer
+        run: nix-shell --run 'npm run cs:server'
+
+      - name: Run unit tests
+        run: nix-shell --run 'npm run test:server'
+
+      - name: Run integration tests
+        run: nix-shell --run 'npm run test:integration'
+
+  deploy:
+    name: 'Upload artefacts'
+    runs-on: ubuntu-20.04
+    needs:
+      - tests
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v12
+
+      - name: Cache Node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-composer-modules
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Build a zipball
+        id: zipball
+        run: |
+          nix-shell --run 'npm run dist'
+          echo "::set-output name=file_name::$(echo selfoss-*.zip)"
+          echo "::set-output name=version::$(echo selfoss-*.zip | sed -e 's/^selfoss-//' -e 's/\.zip$//')"
+
+      - name: Upload the zipball to GitHub
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.zipball.outputs.file_name }}
+          if-no-files-found: error
+          path: ${{ steps.zipball.outputs.file_name }}
+
+      - name: Upload the zipball to Cloudsmith
+        uses: cloudsmith-io/action@v0.5.2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          command: "push"
+          format: "raw"
+          owner: "fossar"
+          repo: "selfoss-git"
+          file: ${{ steps.zipball.outputs.file_name }}
+          name: selfoss.zip
+          version: ${{ steps.zipball.outputs.version }}
+          extra: '--tags version:latest'
+
+      - name: Prepare a changelog
+        run: |
+          echo "changelog_text<<CHANGES_EOF" >> $GITHUB_ENV
+          sed '1,/^## /d;/^## /Q' NEWS.md >> $GITHUB_ENV
+          echo "CHANGES_EOF" >> $GITHUB_ENV
+
+      - name: Create a release
+        uses: softprops/action-gh-release@v0.1.5
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          body: ${{ env.changelog_text }}
+          files: ${{ steps.zipball.outputs.file_name }}

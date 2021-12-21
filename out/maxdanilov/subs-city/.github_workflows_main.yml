@@ -1,0 +1,111 @@
+name: Build, Test and Push Image
+
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    env:
+      ENV: githubactions
+      NET: host
+      DOCKER_IMAGE: subscity
+
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.5
+
+      - name: Set up the enviroment
+        run: |
+          gem install rubocop -v 0.80.1
+
+      - name: Display environment
+        run: |
+          docker-compose --version
+          docker --version
+          ruby --version
+          lsb_release -a
+
+      - name: Lint
+        run: |
+          rubocop
+
+      - name: Update hosts
+        run: |
+          sudo echo "127.0.0.1   local.host msk.local.host spb.local.host" | sudo tee -a /etc/hosts
+
+      - name: Set vars
+        run: |
+          echo "IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE }}:${GITHUB_REF##*/}" >> $GITHUB_ENV
+          echo "IMAGE_BASE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE }}:master" >> $GITHUB_ENV
+
+      - name: Pull previous image for increasing build speed
+        run: |
+          docker pull ${{ env.IMAGE_BASE }} || echo "couldn't pull docker cache for master"
+          docker pull ${{ env.IMAGE }} || echo "couldn't pull docker cache for branch"
+          docker tag ${{ env.IMAGE }} subscity || echo "couldn't retag"
+
+      - name: Build
+        run: |
+          ./scripts/build.sh --cache-from ${{ env.IMAGE }}
+          docker tag subscity ${{ env.IMAGE }} || echo "couldn't retag"
+
+      - name: Cleanup pre-existing MySQL data dir
+        run: |
+          sudo rm -rf /var/lib/mysql
+
+      - name: Start services
+        run: |
+          docker-compose up -d
+
+      - name: Verify DB connection
+        run: |
+          while ! mysqladmin ping -h"127.0.0.1" --silent; do
+            sleep 3
+            echo "Waiting for DB to start..."
+          done
+
+      - name: Run test DB query
+        run: |
+          mysql -h 127.0.0.1 -u root --password=password -e 'select 1;'
+
+      - name: Tests bootstrapping
+        run: |
+          docker exec -t subscity-app /bin/bash -c "cd /subscity && ./test"
+          docker exec -t subscity-app /bin/bash -c "cd /subscity && bundle exec rake ar:schema:load && padrino run db/seed_cities.rb"
+          docker exec -t subscity-app /bin/bash -c "cd /subscity/tasks && bundle exec rake clear_cache"
+
+      - name: Check redirect to HTTPS
+        run: |
+          curl -sI 'http://local.host:3000' | grep -q 'https://msk.local.host/'
+
+      - name: Check page contents
+        run: |
+          curl -sL 'http://msk.local.host:3000' | grep -q 'vk.com/subscity_msk'
+          curl -sL 'http://msk.local.host:3000/stylesheets/design.css' | grep -q 'color'
+          curl -sL 'http://spb.local.host:3000/javascripts/default.min.js' | grep -q 'function'
+
+      - name: Check redirects (via nginx)
+        run: |
+          curl -skIL 'http://local.host' | grep -q 'https://msk.local.host/'
+          curl -sI 'http://msk.local.host/aaa?b=1' | grep -q 'https://msk.local.host/aaa?b=1'
+
+      - name: Check page contents (via nginx)
+        run: |
+          curl -skL 'https://msk.local.host' | grep -q 'vk.com/subscity_msk'
+          curl -skL 'https://msk.local.host/stylesheets/design.css' | grep -q 'color'
+          curl -skL 'https://spb.local.host/javascripts/default.min.js' | grep -q 'function'
+
+      - name: Push image
+        run: |
+          docker push ${{ env.IMAGE }}

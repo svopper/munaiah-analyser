@@ -1,0 +1,33 @@
+name: build
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: 12 20 3 * *
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          echo LIBS=-lrt >> $GITHUB_ENV
+          echo VALGRIND="valgrind --error-exitcode=1" >> $GITHUB_ENV
+          sudo apt-get -y install valgrind
+      - if: startsWith(matrix.os, 'windows-')
+        run: |
+          echo 'C:\msys64\usr\bin' >> $GITHUB_PATH
+          echo 'C:\msys64\mingw64\bin' >> $GITHUB_PATH
+      - uses: actions/checkout@v2
+      - run: make -B
+      - run: make VALGRIND="${VALGRIND-}" check

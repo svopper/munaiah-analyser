@@ -1,0 +1,81 @@
+name: Check repos with new version of coding standard
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  tag:
+    runs-on: ubuntu-20.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    name: Get tag
+    steps:
+      - id: tag
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+
+  check-repos-and-create-pr:
+    needs: tag
+    runs-on: ubuntu-20.04
+    name: Check repo
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - imbo-adapters-sdk
+          - imbo-b2-adapters
+          - imbo-filesystem-adapters
+          - imbo-mongodb-adapters
+          - imbo-mysql-adapters
+          - imbo-pdo-adapters
+          - imbo-postgresql-adapters
+          - imbo-s3-adapters
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: imbo/${{ matrix.repo }}
+          ref: refs/heads/main
+          token: ${{ secrets.PUBLIC_REPO_ACCESS_PAT }}
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: php-cs-fixer
+
+      - run: |
+          composer install
+          composer update imbo/imbo-coding-standard
+
+      - id: check
+        run: |
+          if ! php-cs-fixer fix --dry-run --quiet; then
+            echo ::set-output name=result::failure
+          fi
+        continue-on-error: true
+
+      - if: ${{ steps.check.outputs.result == 'failure' }}
+        run: |
+          php-cs-fixer fix
+
+      - if: ${{ steps.check.outputs.result == 'failure' }}
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.PUBLIC_REPO_ACCESS_PAT }}
+          branch: coding-standard-violations/${{ needs.tag.outputs.tag }}
+          delete-branch: true
+          commit-message: |
+            [automated] Fix coding standard violations
+
+            Version ${{ needs.tag.outputs.tag }} of imbo/imbo-coding-standard has discovered
+            some coding standard violations. This commit fixes these violations.
+          title: |
+            [automated] Fix coding standard violations (imbo/imbo-coding-standard@${{ needs.tag.outputs.tag }})
+          body: |
+            Howdy, partner!
+
+            [imbo/imbo-coding-standard@${{ needs.tag.outputs.tag }}](https://github.com/imbo/imbo-coding-standard) was just released, and it discovered some coding standard violations in this repo. :disappointed:
+
+            I know how much you hate to fix these types of errors, so I went ahead and fixed them for you. :partying_face:
+
+            This pull request is brought to you by [this workflow run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}).

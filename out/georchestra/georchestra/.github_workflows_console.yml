@@ -1,0 +1,93 @@
+name: "console"
+on:
+  push:
+    paths:
+      - "ldap/**"
+      - "postgresql/**"
+      - "commons/**"
+      - "ldap-account-management/**"
+      - "console/**"
+  pull_request:
+    paths:
+      - "ldap/**"
+      - "postgresql/**"
+      - "commons/**"
+      - "ldap-account-management/**"
+      - "console/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - name: "Checking out"
+      uses: actions/checkout@v1
+
+    - name: "Setting up Java"
+      uses: actions/setup-java@v1
+      with:
+        java-version: '8.x'
+
+    - name: "Configuring Maven"
+      run: |
+          mkdir -p $HOME/.m2
+          cp .github/resources/m2-settings.xml $HOME/.m2/settings.xml
+
+    - name: "Maven repository caching"
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: "Installing & checking formatting"
+      run: ./mvnw install -pl :console --also-make -P-all,console --no-transfer-progress -B -Dfmt.action=validate -Dadditionalparam=-Xdoclint:none -DskipTests
+      # note "-pl :console --also-make" builds only the project and its dependencies
+
+    - name: "Building LDAP and PostgreSQL docker images"
+      if: github.repository == 'georchestra/georchestra'
+      run: |
+        docker build -t georchestra/ldap:latest ./ldap
+        docker build -t georchestra/database:latest ./postgresql
+
+    - name: "Running tests"
+      working-directory: console/
+      run: ../mvnw verify --no-transfer-progress -Dfmt.skip=true -Dadditionalparam=-Xdoclint:none -Dskip.npm
+
+    - name: Getting image tag
+      if: github.repository == 'georchestra/georchestra'
+      id: version
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
+    - name: "Building docker image"
+      if: github.repository == 'georchestra/georchestra'
+      working-directory: console/
+      run: ../mvnw --no-transfer-progress clean package docker:build -Pdocker,log4j-logstash,sentry-log4j -DdockerImageName=georchestra/console:${{ steps.version.outputs.VERSION }} -DskipTests
+
+    - name: "Logging in docker.io"
+      if: github.repository == 'georchestra/georchestra'
+      uses: azure/docker-login@v1
+      with:
+        username: '${{ secrets.DOCKER_HUB_USERNAME }}'
+        password: '${{ secrets.DOCKER_HUB_PASSWORD }}'
+
+    - name: "Pushing latest to docker.io"
+      if: github.ref == 'refs/heads/master' && github.repository == 'georchestra/georchestra'
+      run: |
+        docker tag georchestra/console:${{ steps.version.outputs.VERSION }} georchestra/console:latest
+        docker push georchestra/console:latest
+
+    - name: "Pushing release branch to docker.io"
+      if: contains(github.ref, 'refs/heads/20.') && github.repository == 'georchestra/georchestra'
+      run: |
+        docker push georchestra/console:${{ steps.version.outputs.VERSION }}
+
+    - name: "Pushing release tag to docker.io"
+      if: contains(github.ref, 'refs/tags/20.') && github.repository == 'georchestra/georchestra'
+      run: |
+        docker push georchestra/console:${{ steps.version.outputs.VERSION }}
+
+    - name: "Remove SNAPSHOT jars from repository"
+      run: |
+        find .m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}

@@ -1,0 +1,121 @@
+# Copyright (c) 2020 The University of Manchester
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+name: Build and Test
+on: [push]
+env:
+  CI_NAME: "Github Actions"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [8, 11, 14]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set dynamic information
+      env:
+        BRANCH_NAME_OR_REF: ${{ github.head_ref || github.ref }}
+      run: |
+        echo "CI_BRANCH=${BRANCH_NAME_OR_REF#refs/heads/}" >> $GITHUB_ENV
+        echo "CI_PULL_REQUEST=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")" >> $GITHUB_ENV
+        echo "SETTINGS_FILE=$PWD/.github/settings.xml" >> $GITHUB_ENV
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: test-m2-j${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: test-m2-j${{ matrix.java }}
+    - name: Maven library-update
+      run: mvn -B dependency:resolve dependency:resolve-plugins --settings $SETTINGS_FILE
+      working-directory: RemoteSpiNNaker
+      continue-on-error: true
+
+    - name: Maven compile
+      run: mvn install --settings $SETTINGS_FILE -DskipTests=true -Dmaven.javadoc.skip=true
+      working-directory: RemoteSpiNNaker
+    - name: Maven test
+      id: test
+      run: mvn verify --settings $SETTINGS_FILE -Dmaven.javadoc.skip=true jacoco:report
+      working-directory: RemoteSpiNNaker
+    - name: "Report: Coverage via coveralls.io"
+      run: |
+        mvn coveralls:report --settings $SETTINGS_FILE --no-transfer-progress -DrepoToken=$COVERALLS_SECRET
+      env:
+        CI_NAME: github
+        CI_BUILD_NUMBER: ${{ github.run_id }}
+        CI_BUILD_URL: https://github.com/${{ github.repository }}/commit/${{ github.event.after }}/checks
+        COVERALLS_SECRET: ${{ secrets.GITHUB_TOKEN }}
+      working-directory: RemoteSpiNNaker
+      continue-on-error: true
+
+    - name: "Post-Run: Purge SNAPSHOTs"
+      # Do not cache SNAPSHOT dependencies; we don't use external snapshots
+      # and we will always rebuild internal snapshots.
+      run: mvn dependency:purge-local-repository --settings $SETTINGS_FILE -DsnapshotsOnly=true -DreResolve=false
+      working-directory: RemoteSpiNNaker
+      continue-on-error: true
+
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set dynamic information
+      run: |
+        echo "SETTINGS_FILE=$PWD/.github/settings.xml" >> $GITHUB_ENV
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: validate-m2-j${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: validate-m2-j${{ matrix.java }}
+    - name: Maven library-update
+      run: mvn -B dependency:resolve dependency:resolve-plugins --settings $SETTINGS_FILE
+      working-directory: RemoteSpiNNaker
+      continue-on-error: true
+
+    - name: Maven rat
+      run: mvn apache-rat:check --settings $SETTINGS_FILE -V || (find . -type f -name 'rat*.txt' -print | xargs grep -l unapproved | xargs cat; exit 1)
+      working-directory: RemoteSpiNNaker
+    - name: Maven compile
+      run: mvn install --settings $SETTINGS_FILE -DskipTests=true -Dmaven.javadoc.skip=true
+      working-directory: RemoteSpiNNaker
+    - name: Maven checkstyle
+      run: mvn checkstyle:check --settings $SETTINGS_FILE -Dmaven.javadoc.skip=true
+      working-directory: RemoteSpiNNaker
+    - name: Maven javadoc
+      run: mvn javadoc:aggregate --settings $SETTINGS_FILE
+      working-directory: RemoteSpiNNaker
+
+    - name: "Post-Run: Purge SNAPSHOTs"
+      # Do not cache SNAPSHOT dependencies; we don't use external snapshots
+      # and we will always rebuild internal snapshots.
+      run: mvn dependency:purge-local-repository --settings $SETTINGS_FILE -DsnapshotsOnly=true -DreResolve=false
+      working-directory: RemoteSpiNNaker
+      continue-on-error: true

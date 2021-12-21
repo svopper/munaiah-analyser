@@ -1,0 +1,108 @@
+name: Ruya.Services.MessageQueue.Abstractions
+
+on:
+  push:
+    branches:
+    - master
+    paths:
+    - '.github/workflows/Ruya.Services.MessageQueue.Abstractions.yml'
+    - 'src/Ruya.Services.MessageQueue.Abstractions/**'
+
+jobs:
+
+  build:
+    if: github.event_name == 'push' && contains(toJson(github.event.commits), '***NO_CI***') == false && contains(toJson(github.event.commits), '[ci skip]') == false && contains(toJson(github.event.commits), '[skip ci]') == false
+    runs-on: ubuntu-latest
+
+    env:
+      buildConfiguration: 'Release'
+      buildNumber: '1.2'
+      projectFile: './src/Ruya.Services.MessageQueue.Abstractions/Ruya.Services.MessageQueue.Abstractions.csproj'
+      projectTestFile: './test/Ruya.Services.MessageQueue.Abstractions.Tests/Ruya.Services.MessageQueue.Abstractions.Tests.csproj'
+
+    steps:
+      - name: Extract branch name
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: Set the build number
+        run: echo ::set-env name=buildNumber::$buildNumber.${GITHUB_RUN_NUMBER}
+
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: Set NuGet credentials
+        shell: pwsh
+        run: |
+          ./tools/Set-NuGetCredentials.ps1 -ConfigFile ./nuget.config -Source github -Username ${{github.actor}} -Password ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.x
+
+      - name: Restore
+        run: dotnet restore $projectFile
+      - name: Build
+        run: dotnet build $projectFile --configuration $buildConfiguration -p:BuildNumber=$buildNumber
+      - name: Test
+        run: dotnet test $projectTestFile --configuration $buildConfiguration -p:CollectCoverage=true
+        continue-on-error: true
+      - name: Publish
+        run: dotnet publish $projectFile --configuration $buildConfiguration --no-restore --no-build --output ./artifacts/staging
+      - name: Pack
+        run: dotnet pack $projectFile --configuration $buildConfiguration --no-restore --no-build --output ./artifacts/packages
+
+      # - name: Publish artifacts (staging)
+      #   uses: actions/upload-artifact@master
+      #   with:
+      #     name: staging
+      #     path: ./artifacts/staging
+
+      # - name: Publish artifacts (packages)
+      #   uses: actions/upload-artifact@master
+      #   with:
+      #     name: packages
+      #     path: ./artifacts/packages
+
+      # - name: Publish artifacts (output)
+      #   uses: actions/upload-artifact@master
+      #   if: failure()
+      #   with:
+      #     name: output
+      #     path: ./
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{env.buildNumber}}
+          release_name: ${{github.workflow}}.${{env.buildNumber}}
+          draft: false
+          prerelease: true
+          body: |
+            [Changelog](https://github.com/${{github.repository}}/blob/${{ steps.extract_branch.outputs.branch }}/CHANGELOG.md)
+        continue-on-error: true
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/packages/${{github.workflow}}.${{env.buildNumber}}.nupkg
+          asset_name: ${{github.workflow}}.${{env.buildNumber}}.nupkg
+          asset_content_type: application/zip
+        continue-on-error: true
+
+      - name: Push to GitHub Packages
+        run: dotnet nuget push ./artifacts/packages/*.nupkg --skip-duplicate --source "github" --api-key ${GITHUB_TOKEN}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to Nuget
+        run: dotnet nuget push ./artifacts/packages/*.nupkg --skip-duplicate --source "nuget" --api-key ${NUGET_API_KEY}
+        env:
+          NUGET_API_KEY: ${{secrets.NUGET_API_KEY}}

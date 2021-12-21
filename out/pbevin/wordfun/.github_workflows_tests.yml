@@ -1,0 +1,27 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache target directory
+      uses: actions/cache@v2
+      with:
+        path: api/target
+        key: ${{ runner.os }}-${{ hashFiles('api/Cargo.toml', 'api/Cargo.lock', 'api/src') }}
+
+    - name: Run tests
+      working-directory: api
+      run: cargo test --verbose

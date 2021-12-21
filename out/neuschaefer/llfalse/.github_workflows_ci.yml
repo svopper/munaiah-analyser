@@ -1,0 +1,16 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build-make:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get install llvm-dev
+      - run: make
+  build-meson:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get install llvm-dev meson
+      - run: meson build
+      - run: ninja -C build

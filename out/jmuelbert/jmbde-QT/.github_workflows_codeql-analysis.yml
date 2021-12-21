@@ -1,0 +1,146 @@
+---
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+#
+# ******** NOTE ********
+# We have attempted to detect the languages in your repository. Please check
+# the `language` matrix defined below to confirm you have the correct set of
+# supported CodeQL languages.
+#
+name: CodeQL
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [master]
+  schedule:
+    - cron: 17 0 * * 3
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [cpp, python]
+        qt_version: [6.1.0]
+        qt_target: [desktop]
+        config:
+          - {
+              os: ubuntu-latest,
+              name: 'Ubuntu Latest clang-12',
+              qt_arch: gcc_64,
+              arch: amd64,
+              artifact: 'Ubuntu-clang',
+              generator: "-G 'Unix Makefiles'",
+              cc: 'clang-12',
+              cxx: 'clang-12',
+              image_repo: jmuelbert/ci-building-images,
+            }
+    # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
+    # Learn more:
+    # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ matrix.language }}
+      # If you wish to specify custom queries, you can do so here or in a config file.
+      # By default, queries listed here will override any specified in a config file.
+      # Prefix the list here with "+" to use these queries and those in the config file.
+      # queries: ./path/to/local/query, your-org/your-repo/queries@main
+
+      # - name: Cache Qt
+      #   if: matrix.language == 'cpp'
+      #   id: cache-qt
+      #   uses: actions/cache@v2.1.6
+      #   with:
+      #     path:
+      #.     ${{ runner.workspace}}/build/Qt/${{ matrix.qt_version }}/${{
+      #       matrix.config.qt_arch }}
+      #     key:
+      #.       ${{ runner.os }}-QtCache/${{ matrix.qt_version }}/${{ matrix.config.qt_arch
+      #       }}
+
+      - name: Install Qt
+        if: matrix.language == 'cpp'
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: ${{ matrix.qt_version }}
+          target: ${{ matrix.qt_target }}
+          arch: ${{ matrix.config.qt_arch }}
+          dir: '${{ github.workspace }}/build/'
+          # modules: 'qtscript'
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
+      - name: Get conan
+        if: matrix.language == 'cpp'
+        id: conan
+        uses: turtlebrowser/get-conan@v1.0
+
+      - name: Create Build Environment
+        if: matrix.language == 'cpp'
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        if: matrix.language == 'cpp'
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Note the current convention is to use the -S and -B options here to specify source
+        # and build directories, but this is only available with CMake 3.13 and higher.
+        # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+        #
+        # We need to source the profile file to make sure conan is in PATH
+        run: |
+          cmake $GITHUB_WORKSPACE \
+            ${{ matrix.config.generator }} \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DBUILD_TESTING=ON \
+            -DBUILD_TRANSLATIONS=ON
+
+      - name: Build
+        if: matrix.language == 'cpp'
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        # Execute the build.  You can specify a specific target with "--target <NAME>"
+        run: cmake --build . --config $BUILD_TYPE -j2
+
+      # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
+      # If this step fails, then you should remove it and run the build manually (see below)
+      - name: Autobuild
+        if: matrix.language == 'python'
+        uses: github/codeql-action/autobuild@v1
+      #  run: |
+      #    pip3 install --user wheel
+      #    pip3 install --user conan
+      #    export PATH=$PATH:~/.local/bin
+      #    make bootstrap
+      #    make release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1

@@ -1,0 +1,72 @@
+name: Install QA - install-snoopy.sh
+
+
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+      - install
+    paths:
+      - 'install/install-snoopy.sh'
+
+  pull_request:
+    branches:
+      - master
+      - install
+    paths:
+      - 'install/install-snoopy.sh'
+
+
+
+jobs:
+  install-qa-test-installfile:
+
+    name: Test install-snoopy.sh ${{matrix.install_mode}}
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+    strategy:
+      matrix:
+        install_mode:
+          - stable
+          - git-master
+          - download
+
+
+
+    ###
+    ### Steps to run
+    ###
+    steps:
+
+
+
+      ### Fetch the code
+      #
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+
+      ### Install
+      #
+      - run: ./install/install-snoopy.sh ${{matrix.install_mode}}
+
+
+
+      ### Verify Snoopy operation (or successful download)
+      #
+      - name: Verify Snoopy operation
+        run: |
+          touch /var/log/snoopy.log
+          echo "output = file:/var/log/snoopy.log" >> /etc/snoopy.ini
+          /bin/echo "Snoopy is alive and well"
+          cat /var/log/snoopy.log | grep -v ': grep' | grep "Snoopy is alive and well"
+        if: ${{ matrix.install_mode != 'download' }}
+
+      - name: Verify Snoopy download
+        run: ls -la snoopy-*.tar.gz
+        if: ${{ matrix.install_mode == 'download' }}

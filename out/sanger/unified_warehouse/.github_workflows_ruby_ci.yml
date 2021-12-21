@@ -1,0 +1,55 @@
+
+name: Ruby Lint and Test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true # Runs bundle install and caches gems. See the ruby_test.yml
+                            # example if you need more control over bundler.
+    - name: Run lint
+      run: bundle exec rubocop --display-style-guide --extra-details --parallel
+
+  test:
+
+    runs-on: ubuntu-latest
+    env:
+      DBHOST: 127.0.0.1 # If we use localhost, rails tries to use a socket
+
+    # Services
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idservices
+    services:
+      mysql:
+        # Use the Mysql docker image https://hub.docker.com/_/mysql
+        image: mysql:5.7 # Using 5.7 to map to what is used in production.
+        ports:
+         - 3306:3306 # Default port mappings
+         # Monitor the health of the container to mesaure when it is ready
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: '' # Set root PW to nothing
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true # Runs bundle install and caches gems. See the ruby_test.yml
+                            # example if you need more control over bundler.
+    - name: Setup database
+      run: bundle exec rake db:setup
+    - name: Test & publish code coverage
+      uses: paambaati/codeclimate-action@v2.7.5
+      env:
+        CC_TEST_REPORTER_ID:  ${{ secrets.CC_TEST_REPORTER_ID || 'ad256ca98e26c93f585bc0c49b9b8215a8b3c36f56a8ce5981e55aedf0d1739e' }}
+      with:
+        coverageCommand: bundle exec rspec

@@ -1,0 +1,26 @@
+name: Build XPlat Frontends
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Install dependencies
+      run: dotnet restore ILSpy.XPlat.slnf
+    - name: Build
+      run: dotnet build ILSpy.XPlat.slnf --configuration Debug --no-restore
+

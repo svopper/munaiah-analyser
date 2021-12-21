@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11.5
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: sequel_test
+        ports: ["3306:3306"]
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ "1.9.3", "2.0.0", 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, "3.0", jruby-9.1, jruby-9.2, jruby-9.3, truffleruby-head ]
+    name: ${{ matrix.ruby }}
+    env:
+      BUNDLE_GEMFILE: .ci.gemfile
+    steps:
+    - uses: actions/checkout@v2
+    - run: sudo apt-get -yqq install libpq-dev mysql-client libmysqlclient-dev
+    - run: sudo apt-get -yqq install libxml2-dev libxslt-dev
+      if: startsWith(matrix.ruby, 'truffleruby')
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - run: bundle exec rake spec_ci
+      env:
+        DEFAULT_DATABASE: 1
+        MYSQL_ROOT_PASSWORD: 1
+      continue-on-error: ${{ startsWith(matrix.ruby, 'truffleruby') }}

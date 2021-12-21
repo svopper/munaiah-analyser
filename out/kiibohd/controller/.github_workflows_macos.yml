@@ -1,0 +1,107 @@
+name: macOS Build Environment
+
+on: [push, pull_request]
+
+env:
+  PIPENV_ACTIVE: 1
+  DYLD_INSERT_LIBRARIES: /Applications/Xcode_11.3.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
+  brew_packages: >-
+    binutils
+    ctags
+    dfu-util
+    gnu-sed
+    ninja
+    tree
+
+jobs:
+  firmware:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install ${{ env.brew_packages }}
+        brew tap armmbed/formulae
+        brew install armmbed/formulae/arm-none-eabi-gcc
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards
+      run: ./ic_keyboards.bash
+
+  firmware-test:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install ${{ env.brew_packages }}
+        brew tap armmbed/formulae
+        brew install armmbed/formulae/arm-none-eabi-gcc
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Test
+      working-directory: Keyboards
+      # AddressSanitizer doesn't seem to work in macOS CI environments for some reason
+      run: EnableHostOnlyBuild=true HostTest=kll.py DisableSanitizer=true ./ic_keyboards.bash
+
+  other-firmware:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install ${{ env.brew_packages }}
+        brew tap armmbed/formulae
+        brew install armmbed/formulae/arm-none-eabi-gcc
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards/Others
+      run: ./others.bash
+
+  test-builds:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install ${{ env.brew_packages }}
+        brew tap armmbed/formulae
+        brew install armmbed/formulae/arm-none-eabi-gcc
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Keyboards/Testing
+      # AddressSanitizer doesn't seem to work in macOS CI environments for some reason
+      run: DisableSanitizer=true ./all_tests.bash
+
+  bootloaders:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install ${{ env.brew_packages }}
+        brew tap armmbed/formulae
+        brew install armmbed/formulae/arm-none-eabi-gcc
+    - name: Install kll compiler
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install kll
+    - name: Build
+      working-directory: Bootloader/Builds
+      run: ./all.bash

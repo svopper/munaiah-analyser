@@ -1,0 +1,73 @@
+name: Python package
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+#        python: [3.5, 3.6, 3.7, 3.8, 3.9]
+        python: [3.6, 3.7, 3.8, 3.9]
+        django: [
+          "Django>=1.11,<2.0",
+          "Django>=2.0,<2.1",
+          "Django>=2.1,<2.2",
+          "Django>=2.2,<3.0",
+          "Django>=3.0,<3.1",
+          "Django>=3.1,<3.2"
+        ]
+#        exclude:
+#          - python: 3.5
+#            django: Django>=3.0
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pytest, pytest-django and pytest-lazy-fixture, django and impostor
+        run: |
+          pip install pytest==6.1.2 pytest-django==4.1.0 pytest-lazy-fixture==0.6.3
+          pip install "${{ matrix.django }}"
+          pip install -e .
+      - name: Run tests
+        run: pytest -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      - name: Install Tox and any other packages
+        run: |
+          pip install flake8
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      - name: Install Coverage
+        run: |
+          pip install django pytest pytest-django pytest-lazy-fixture pytest-cov
+          pip install -e .
+      - name: Execute coverage
+        run: |
+          # execute tests with coverage
+          pytest --cov-report=xml --cov=impostor tests/
+          export CODECOV_TOKEN="${{ secrets.CODECOV_TOKEN }}"
+          bash <(curl -s https://codecov.io/bash)

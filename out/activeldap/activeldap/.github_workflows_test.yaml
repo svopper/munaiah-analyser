@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  ruby:
+    name: >-
+      Ruby ${{ matrix.ruby }} &
+      Active Model ${{ matrix.activemodel }} &
+      ${{ matrix.adapter }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - 2.5
+          - 2.6
+          - 2.7
+        activemodel:
+          - "5"
+          - "6"
+        adapter:
+          - ldap
+          - net-ldap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run
+        run: |
+          docker-compose run \
+            -e ACTIVE_LDAP_TEST_ADAPTER=${{ matrix.adapter }} \
+            ruby-${{ matrix.ruby }}-activemodel-${{ matrix.activemodel }}
+
+  jruby:
+    name: JRuby ${{ matrix.jruby }} & Active Model ${{ matrix.activemodel }}
+    strategy:
+      fail-fast: false
+      matrix:
+        jruby:
+          - 9
+        activemodel:
+          - "5"
+          - "6"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run
+        run: |
+          docker-compose run \
+            jruby-${{ matrix.jruby }}-activemodel-${{ matrix.activemodel }}

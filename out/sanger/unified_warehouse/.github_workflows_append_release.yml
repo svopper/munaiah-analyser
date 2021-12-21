@@ -1,0 +1,30 @@
+name: Automatic appending of build product to releases
+
+on:
+  release:
+    types: published
+
+env:
+  BUNDLE_WITHOUT: 'test lint'
+
+jobs:
+  build-and-append-to-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+
+      # Actually run our build
+      - name: Create Build
+        run: ./compile-build
+
+      # Upload the release asset as an artifact to the existing release
+      - uses: shogo82148/actions-upload-release-asset@v1.3.1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: release.tar.gz
+          asset_content_type: application/gzip

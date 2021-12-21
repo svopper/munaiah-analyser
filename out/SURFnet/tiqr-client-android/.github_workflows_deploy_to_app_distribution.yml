@@ -1,0 +1,42 @@
+name: Distribute to Firebase App Distribution
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+        if: git diff --name-only --diff-filter=AM ${{ github.event.before }} ${{ github.sha }} # If there are changes since the last run
+      - uses: benjlevesque/short-sha@v1.2
+        id: short-sha
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: install firebase tool
+        run: |
+          yarn global add firebase-tools
+          echo "$(yarn global bin)" >> $GITHUB_PATH
+      - name: Install Dependencies
+        run: gem install bundler && bundle install
+      - name: distribute to Firebase App Distribution
+        run: bundle exec fastlane bundle_for_distribution
+        env:
+          FIREBASE_CLI_TOKEN: ${{ secrets.FIREBASE_CLI_TOKEN }}
+          FIREBASE_APP_ID_ANDROID: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          GIT_COMMIT: ${{ steps.short-sha.outputs.sha }}
+          BUILD_NUMBER: ${{ github.run_number }}
+      - name: Notify Slack about success
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"icon_emoji": ":lock:", "username": "GitHub Actions", "text":":white_check_mark: [Tiqr Android] Build #${{ github.run_number }} completed successfully (${{ steps.short-sha.outputs.sha }})"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify Slack about failure
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"icon_emoji": ":lock:", "username": "GitHub Actions", "text":":x: [Tiqr Android] Build #${{ github.run_number }} failed (${{ steps.short-sha.outputs.sha }})"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()

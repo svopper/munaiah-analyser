@@ -1,0 +1,48 @@
+name: .NET Core
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types: [released]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 100
+        
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+        
+    - name: Install dependencies
+      working-directory: ./src
+      run: dotnet restore
+      
+    - name: Build
+      working-directory: ./src
+      run: | 
+        dotnet build --configuration Release --no-restore
+        dotnet pack -c Release Jeffijoe.MessageFormat/Jeffijoe.MessageFormat.csproj
+      
+    - name: Test
+      working-directory: ./src
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Publish to NuGet
+      if: github.event_name == 'release' # Only publish on Release creation.
+      working-directory: ./src
+      run: |
+        dotnet nuget push Jeffijoe.MessageFormat/**/*.nupkg --api-key ${{ secrets.NUGET_JEFFIJOE_KEY }} --source https://api.nuget.org/v3/index.json

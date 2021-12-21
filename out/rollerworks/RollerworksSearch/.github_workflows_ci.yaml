@@ -1,0 +1,130 @@
+name: Full CI process
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+env:
+    ES_HTTP_PORT: '59200'
+    ELASTICSEARCH_HOST: 'localhost'
+    ELASTICSEARCH_PORT: '59200'
+    DB_HOST: 127.0.0.1
+
+jobs:
+    test:
+        name: PHP ${{ matrix.php-versions }}
+        runs-on: ubuntu-18.04
+        strategy:
+            fail-fast: false
+            matrix:
+                php-versions: ['7.4', '8.0']
+
+        services:
+            # https://docs.docker.com/samples/library/postgres/
+            postgres:
+                image: postgres:9.6
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: search_tests
+                ports:
+                    - "5432:5432"
+                options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+
+            # https://docs.docker.com/samples/library/mysql/
+            mariadb-server:
+                image: mariadb:10.3
+                env:
+                    MYSQL_DATABASE: search_tests
+                    MYSQL_ROOT_PASSWORD: nope
+                ports:
+                    - "3306:3306"
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+            # https://hub.docker.com/_/elasticsearch/
+            elasticsearch:
+                image: elasticsearch:7.3.0
+                ports:
+                    - "59200:9200"
+                options: -e="discovery.type=single-node" -e="xpack.security.enabled=false" --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=10s --health-timeout=5s --health-retries=10
+
+        steps:
+            # —— Check Elasticsearch 🔎 ——————————————————————————————————————————————
+            -
+                name: Check the Elasticsearch connection from runner host
+                run: |
+                    curl -fsSL "http://localhost:$ES_HTTP_PORT"
+                    curl -fsSL "http://localhost:$ES_HTTP_PORT/_cluster/health?pretty"
+
+            # —— Setup Github actions 🐙 —————————————————————————————————————————————
+            # https://github.com/actions/checkout (official)
+            -
+                name: Checkout
+                uses: actions/checkout@v2
+
+            # https://github.com/shivammathur/setup-php (community)
+            -
+                name: Setup PHP, extensions and composer with shivammathur/setup-php
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: ${{ matrix.php-versions }}
+                    extensions: mbstring, xml, ctype, iconv, intl, bcmath, pdo_sqlite, dom, filter, json, pgsql, pdo, pdo_pgsql, pdo_mysql
+                    coverage: xdebug
+                env:
+                    update: true
+
+            # —— Composer 🧙‍️ —————————————————————————————————————————————————————————
+            -
+                name: Install Composer dependencies
+                run: |
+                    rm -f composer.lock
+                    composer global require symfony/flex
+
+                    # ElasticaBundle is not compatible with PHP 8 yet.
+                    if [ "${{ matrix.php-versions }}" = "8.0" ]; then composer install --no-progress --no-interaction --no-suggest --optimize-autoloader --ansi --ignore-platform-req=php; fi
+                    if [ "${{ matrix.php-versions }}" != "8.0" ]; then composer install --no-progress --no-interaction --no-suggest --optimize-autoloader --ansi; fi
+            ## —— Tests ✅ ———————————————————————————————————————————————————————————
+            -
+                name: Run Tests
+                env:
+                    SYMFONY_DEPRECATIONS_HELPER: weak
+                run: |
+                    vendor/bin/phpunit --verbose
+                    vendor/bin/phpunit --verbose --configuration phpunit/pgsql.xml
+                    vendor/bin/phpunit --verbose --configuration phpunit/mysql.xml
+
+    lint:
+        name: PHP-QA
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+        steps:
+            -
+                name: Checkout
+                uses: actions/checkout@v2
+
+            # https://github.com/shivammathur/setup-php (community)
+            -
+                name: Setup PHP, extensions and composer with shivammathur/setup-php
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '7.4'
+                    extensions: mbstring, xml, ctype, iconv, intl, bcmath, pdo_sqlite, dom, filter, json, pgsql, pdo, pdo_pgsql, pdo_mysql
+                    coverage: xdebug
+                    tools: cs2pr
+
+            # —— Composer 🧙‍️ —————————————————————————————————————————————————————————
+            -
+                name: Install Composer dependencies
+                run: |
+                    rm -f composer.lock
+                    composer global require symfony/flex
+                    composer install --no-progress --no-interaction --no-suggest --optimize-autoloader --ansi
+
+            -
+                name: Run PHP-QA
+                run: |
+                    make cs-full-check
+                    vendor/bin/phpstan analyse --memory-limit=-1 --error-format=checkstyle | cs2pr

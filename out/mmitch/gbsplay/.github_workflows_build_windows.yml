@@ -1,0 +1,60 @@
+# This workflow will build and test gbsplay in various configurations on Windows.
+
+name: Windows Build
+
+on:
+  push:
+  pull_request:
+    types: [opened]
+  schedule:
+    - cron: '23 4 5 * *'
+
+jobs:
+  build-windows:
+    name: Build and test on Windows
+
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        msystem: [MSYS, MINGW64, MINGW32]
+        flags: ['', '--enable-sharedlibgbs']
+        include:
+          - msystem: MSYS
+            packages: gcc
+            plugouts: dsound devdsp
+          - msystem: MINGW64
+            packages: mingw-w64-x86_64-toolchain mingw-w64-x86_64-SDL2
+            plugouts: dsound sdl
+          - msystem: MINGW32
+            packages: mingw-w64-i686-toolchain mingw-w64-i686-SDL2
+            plugouts: dsound sdl
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: git base-devel ${{ matrix.packages }} libintl gettext-devel zlib-devel
+        release: false
+        update: false
+    - name: Build and test
+      env:
+        CONFIGURE_FLAGS: ${{ matrix.flags }} --enable-verbosebuild
+      run: |
+        make
+    - name: Check activated plugouts
+      run: |
+        ./check_plugouts.sh ${{ matrix.plugouts }}
+    - name: Check build flags
+      run: |
+        ./check_buildflags.sh --disable-hardening ${{ matrix.flags }} --enable-verbosebuild
+    - name: Dump configure on error
+      if: ${{ failure() }}
+      run: |
+        bash -x -v configure && cat config.err

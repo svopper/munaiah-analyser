@@ -1,0 +1,64 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build:
+    name: >-
+      ${{ matrix.os }} ruby ${{ matrix.ruby }} ${{ matrix.db }}
+    # Run all the tests on the new environment as much as possible.
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/specifications-for-github-hosted-runners
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.allow-failure || false }}
+    strategy:
+      matrix:
+        os:
+          # Use ubuntu-18.04 instead of ubuntu-20.04 temporarily, due to a failing test on mysql 8.0.
+          # https://github.com/brianmario/mysql2/issues/1165
+          # - ubuntu-20.04 # focal
+          - ubuntu-18.04 # bionic
+          # - ubuntu-16.04 # xenial
+        ruby:
+          - '3.0'
+          - 2.7
+          - 2.6
+          - 2.5
+          - 2.4
+          - 2.3
+          - 2.2
+          - 2.1
+        db: ['']
+        include:
+          # Allow failure due to Mysql2::Error: Unknown system variable 'session_track_system_variables'.
+          - {os: ubuntu-16.04, ruby: 2.4, db: mariadb10.0, allow-failure: true}
+          # Comment out due to ci/setup.sh stucking.
+          # - {os: ubuntu-18.04, ruby: 2.4, db: mariadb10.1}
+          # Allow failure due to the issue #965, #1165.
+          - {os: ubuntu-20.04, ruby: 2.4, db: mariadb10.3, allow-failure: true}
+          - {os: ubuntu-18.04, ruby: 2.4, db: mysql57}
+          # Allow failure due to the issue #1165.
+          - {os: ubuntu-20.04, ruby: 2.4, db: mysql80, allow-failure: true}
+          - {os: ubuntu-18.04, ruby: 'head', db: '', allow-failure: true}
+          # db: A DB's brew package name in macOS case.
+          #     Set a name "db: 'name@X.Y'" when using an old version.
+          # MariaDB lastet version
+          # Allow failure due to the following test failures that rarely happens.
+          # https://github.com/brianmario/mysql2/issues/1194
+          - {os: macos-latest, ruby: 2.4, db: mariadb, allow-failure: true}
+          # MySQL latest version
+          # Allow failure due to the issue #1165.
+          - {os: macos-latest, ruby: 2.4, db: mysql, allow-failure: true}
+      # On the fail-fast: true, it cancels all in-progress jobs
+      # if any matrix job fails unlike Travis fast_finish.
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      # https://github.com/ruby/setup-ruby
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - run: ruby -v
+      - run: bundle install --without development
+      - if: matrix.db != ''
+        run: echo 'DB=${{ matrix.db }}' >> $GITHUB_ENV
+      - run: sudo echo "127.0.0.1 mysql2gem.example.com" | sudo tee -a /etc/hosts
+      - run: bash ci/setup.sh
+      - run: bundle exec rake

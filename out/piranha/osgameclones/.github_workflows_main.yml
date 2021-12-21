@@ -1,0 +1,27 @@
+name: Build and Deploy
+on: [push, pull_request]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Setup Python
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: '3.7'
+
+    - name: Setup pipenv
+      run: |
+        sudo -H pip install -U pipenv
+        pipenv install
+    
+    - name: Build
+      run: |
+        make
+        test 6000 -lt $(cat _build/index.html | wc -l)
+        yarn install
+        yarn danger ci
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

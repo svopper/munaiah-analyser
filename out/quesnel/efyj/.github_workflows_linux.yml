@@ -1,0 +1,38 @@
+name: Linux
+
+on:
+  push:
+    branches: [ master, test ]
+  pull_request:
+    branches: [ master, test ]
+
+env:
+  CC: gcc-10
+  CXX: g++-10
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        BUILD_TYPE: [Debug, RelWithDebInfo, Release]
+
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    
+    - name: Install expat
+      run: sudo apt-get install libexpat-dev
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_CXX_STANDARD=17 -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.BUILD_TYPE}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
+      

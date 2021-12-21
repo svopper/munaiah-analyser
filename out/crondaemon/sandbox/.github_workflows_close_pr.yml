@@ -1,0 +1,20 @@
+name: Close Pull Requests
+
+on:
+  push:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  close_pr:
+    name: Close PRs
+    runs-on: ubuntu-latest
+    steps:
+    - uses: crondaemon/close-pr@v1
+      with:
+        # Optional. Post a issue comment just before closing a pull request.
+        comment: |
+          Hi, thank you for your contribution!
+          Github is however not the right place for these.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

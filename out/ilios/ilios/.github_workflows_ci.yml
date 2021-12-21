@@ -1,0 +1,202 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: '33 2 * * 1' # weekly, on Monday morning
+
+env:
+  MAILER_DSN: null://null
+  ILIOS_LOCALE: en
+  ILIOS_SECRET: ThisTokenIsNotSoSecretChangeIt
+  ILIOS_FILE_SYSTEM_STORAGE_PATH: /tmp
+  SYMFONY_DEPRECATIONS_HELPER: disabled=1
+  MESSENGER_TRANSPORT_DSN: doctrine://default
+  latest_php: 8.0
+
+jobs:
+  code_style:
+    name: Code Style
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use PHP ${{ env.latest_php }}
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        coverage: none
+        php-version: ${{ env.latest_php }}
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: lint PHP
+      run: vendor/bin/phpcs
+    - name: lint twig
+      run: bin/console lint:twig templates custom
+    - name: phpstan src
+      run: |
+        bin/console cache:warmup --env=dev
+        vendor/bin/phpstan analyse --no-progress
+    - name: phpstan tests
+      run: |
+        bin/console cache:warmup --env=test
+        vendor/bin/phpstan analyse -c tests/phpstan.neon.dist tests --no-progress
+
+  tests:
+    name: PHPUnit Tests
+    needs: code_style
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: [8.0]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        coverage: none
+        php-version: ${{ matrix.php-version }}
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: Run Tests
+      run: vendor/bin/phpunit
+
+  test_migrations_against_mysql:
+    name: Test Migrations Against MySQL
+    needs: code_style
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use PHP ${{ env.latest_php }}
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        coverage: none
+        php-version: ${{ env.latest_php }}
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: Drop, Create, Migrate, and Validate DB
+      env:
+        ILIOS_DATABASE_URL: mysql://root:root@127.0.0.1:3306/ilios?serverVersion=5.7
+      run: |
+        sudo /etc/init.d/mysql start
+        bin/console doctrine:database:drop --if-exists --force
+        bin/console doctrine:database:create
+        bin/console doctrine:migrations:migrate  --no-interaction
+        bin/console doctrine:schema:validate
+
+  run_twice:
+    name: PHPUnit Run Twice
+    needs: code_style
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: [8.0]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        coverage: none
+        php-version: ${{ matrix.php-version }}
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: First Run
+      run: vendor/bin/phpunit --group twice
+    - name: Second Run
+      run: vendor/bin/phpunit --group twice
+
+  build_and_run_containers:
+    name: Build, Run, Test Containers
+    needs: code_style
+    runs-on: ubuntu-latest
+    env:
+      ILIOS_DATABASE_URL: mysql://root:root@127.0.0.1:3306/ilios?serverVersion=5.7
+      ILIOS_SECRET: DifferentSecret
+      ILIOS_FILE_SYSTEM_STORAGE_PATH: /tmp
+    steps:
+    - uses: actions/checkout@v2
+    - name: Drop, Create Database to use everywhere else
+      run: |
+        sudo /etc/init.d/mysql start
+        mysql -uroot -proot -e "DROP DATABASE IF EXISTS ilios"
+        mysql -uroot -proot -e "CREATE DATABASE ilios"
+    - name: Migrate Database
+      run: |
+        docker build --target migrate-database -t ilios-migrate-database .
+        docker run --name ilios-migrate-database -e ILIOS_SECRET -e ILIOS_DATABASE_URL -e ILIOS_FILE_SYSTEM_STORAGE_PATH --network=host ilios-migrate-database
+    - name: Consume Messages
+      run: |
+        docker build --target consume-messages -t ilios-consume-messages .
+        docker run -d --name ilios-consume-messages -e ILIOS_SECRET -e ILIOS_DATABASE_URL -e ILIOS_FILE_SYSTEM_STORAGE_PATH ilios-consume-messages
+        docker ps | grep -q ilios-consume-messages
+    - name: Apache PHP
+      run: |
+        docker build -t ilios-php-apache-test .
+        docker run -d --name ilios-php-apache-test -e ILIOS_SECRET -e ILIOS_DATABASE_URL -e ILIOS_FILE_SYSTEM_STORAGE_PATH ilios-php-apache-test
+        docker ps | grep -q ilios-php-apache-test
+        docker exec ilios-php-apache-test php /var/www/ilios/bin/console monitor:health
+    - name: Nginx
+      run: |
+        docker build --target nginx -t ilios-nginx .
+        docker run -d --name ilios-nginx ilios-nginx
+        docker ps | grep -q ilios-nginx
+    - name: FPM
+      run: |
+        docker build --target fpm -t ilios-fpm .
+        docker run -d --name ilios-fpm -e ILIOS_SECRET -e ILIOS_DATABASE_URL -e ILIOS_FILE_SYSTEM_STORAGE_PATH ilios-fpm
+        docker ps | grep -q ilios-fpm
+        docker exec ilios-fpm php /var/www/ilios/bin/console monitor:health
+    - name: FPM Dev
+      run: |
+        docker build --target fpm-dev -t ilios-fpm-dev .
+        docker run -d --name ilios-fpm-dev -e ILIOS_SECRET -e ILIOS_DATABASE_URL -e ILIOS_FILE_SYSTEM_STORAGE_PATH ilios-fpm-dev
+        docker ps | grep -q ilios-fpm-dev
+        docker exec ilios-fpm-dev php /var/www/ilios/bin/console monitor:health
+    - name: Admin
+      run: |
+        docker build --target admin -t ilios-admin .
+        docker run -d --name ilios-admin ilios-admin
+        docker ps | grep -q ilios-admin
+    - name: MySQL
+      run: |
+        docker build --target mysql -t ilios-mysql .
+        docker run -d --name mysql ilios-mysql
+        docker ps | grep -q ilios-mysql
+    - name: MySQL Demo
+      run: |
+        docker build --target mysql-demo -t ilios-mysql-demo .
+        docker run -d --name mysql-demo ilios-mysql-demo
+        docker ps | grep -q ilios-mysql-demo
+    - name: Elasticsearch
+      run: |
+        docker build --target elasticsearch -t ilios-elasticsearch .
+        docker run -d --name elasticsearch ilios-elasticsearch
+        docker ps | grep -q ilios-elasticsearch
+
+  check_setup_command:
+    name: Setup Command
+    needs: code_style
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: [8.0]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@2.15.0
+        with:
+          coverage: none
+          php-version: ${{ matrix.php-version }}
+          extensions: apcu
+      - name: Run Setup Command
+        run: bin/setup

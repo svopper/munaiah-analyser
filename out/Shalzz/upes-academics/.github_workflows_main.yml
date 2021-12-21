@@ -1,0 +1,116 @@
+name: Android CI
+
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+env:
+  NDK_VERSION: "ndk;21.0.6113669"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+
+    - name: Set up JDK 11.x
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11.x
+
+    - name: Install required Android tools
+      run: |
+        echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install ${NDK_VERSION} > /dev/null
+        echo "y" | sudo $ANDROID_HOME/tools/bin/sdkmanager --licenses > /dev/null
+
+    - name: Download Dependencies
+      run: ./gradlew androidDependencies
+
+    - name: Check Dependency Versions
+      run: ./gradlew :app:dependencies
+
+    - name: Run Unit Tests
+      run: ./gradlew test
+
+    - name: Build
+      run: ./gradlew assemble --continue --stacktrace
+      env:
+        APP_KEY: ${{ secrets.APP_KEY }}
+
+    - name: Run Lint checks
+      run: ./gradlew lint --continue
+
+  test:
+    runs-on: macos-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+
+    - name: Run Instrumentation tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 29
+        script: ./gradlew connectedCheck --stacktrace
+
+  deploy:
+    needs: [build, test]
+    if: contains(github.ref, 'tags')
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+
+    - name: Set up JDK 11.x
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11.x
+
+    - name: Install required Android tools
+      run: |
+        echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install ${NDK_VERSION} > /dev/null
+        echo "y" | sudo $ANDROID_HOME/tools/bin/sdkmanager --licenses > /dev/null
+
+    - name: Decrypt service account key
+      run: ./.github/scripts/decrypt_secret.sh
+      env:
+        LARGE_SECRET_PASSPHRASE: ${{ secrets.LARGE_SECRET_PASSPHRASE }}
+
+    - name: Publish
+      run: ./gradlew publishRelease --stacktrace
+      env:
+        APP_KEY: ${{ secrets.APP_KEY }}
+
+    - name: Read last commit message
+      id: changelog
+      run: |
+        echo "$(git log --format=%B -n 1)"
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.changelog.outputs.body }}
+        draft: false
+        prerelease: false
+
+    - run: pwd
+    - run: ls ./app/build/outputs/apk/release/app-release.apk
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: /home/runner/work/college-academics/college-academics/app/build/outputs/apk/release/app-release.apk
+        asset_name: college-academics-${{ github.ref }}.apk
+        asset_content_type: application/vnd.android.package-archive

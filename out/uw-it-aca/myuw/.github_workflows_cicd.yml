@@ -1,0 +1,320 @@
+#
+# Example GitHub Actions config that drives UW-IT AXD2 integration and deployment
+#
+# Preconditions:
+#
+#  1) Application docker build is based on django-container
+#
+#  2) Application test suite is kicked off in docker/test.sh
+#
+#  3) Application repo has access to the two secrets
+#     at https://github.com/organizations/uw-it-aca/settings/secrets:
+#
+#     GH_AUTH_TOKEN: Grants access to private flux deployment repo
+#     GCP_JSON_KEY: Grants access to Google Cloud Registry
+#
+# To adapt this config file to a specific django project:
+#
+#  1) Set RELEASE_NAME suitable for deployment to k8s. RELEASE_NAME must
+#     match the "repo" value in docker/*-values.yml.
+#
+#  2) Set DJANGO_APP to the name of the django project name/directory.
+#
+#  3) Verify that the lists of branches for push/pull_request is appropriate,
+#     and add other branch names if needed.  Additional branch names must
+#     also have steps defined in the deploy job
+#
+#  4) Confirm that the build steps are suitable.  Likely they are, but
+#     some projects have an intermediate build step that could benefit
+#     from caching, so it may be useful to augment the build steps.
+#
+---
+name: Build, Test and Deploy
+
+env:
+  # Release name must match "repo" value in docker/*-values.yml
+  RELEASE_NAME: myuw
+  DJANGO_APP: myuw
+
+# Be sure that branches defined here have corresponding steps
+# defined in the "deploy" job
+on:
+  push:
+    branches: [main, master, qa, develop, vue/dev]
+  pull_request:
+    branches: [main, master, qa, develop, vue/dev]
+    types: [opened, reopened, synchronize]
+
+jobs:
+  context:
+    runs-on: ubuntu-18.04
+
+    outputs:
+      commit_hash: ${{ steps.context.outputs.commit_hash }}
+      git_repo_branch: ${{ steps.context.outputs.git_repo_branch }}
+      image_tag: ${{ steps.context.outputs.image_tag }}
+
+    steps:
+      - name: Set up Context
+        id: context
+        uses: uw-it-aca/actions/cicd-context@main
+        with:
+          release_name: ${{ env.RELEASE_NAME }}
+
+  build:
+    runs-on: ubuntu-18.04
+
+    needs: context
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Run Python Linters
+        uses: uw-it-aca/actions/python-linters@main
+        with:
+          app_name: ${DJANGO_APP}
+          exclude_paths: 'migrations'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-$(echo ${{ hashFiles('Dockerfile') }} | head -c 16)
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Disable Vue Devtools
+        if: endsWith(github.ref, '/master') || endsWith(github.ref, '/qa')
+        run: echo "VUE_DEVTOOLS=False" >> $GITHUB_ENV
+
+      - name: Enable Vue Devtools
+        if: ${{ !(endsWith(github.ref, '/master') || endsWith(github.ref, '/qa')) }}
+        run: echo "VUE_DEVTOOLS=True" >> $GITHUB_ENV
+
+      - name: Build App Image
+        uses: docker/build-push-action@v2
+        with:
+          target: app-container
+          tags: ${{ needs.context.outputs.image_tag }}
+          push: false
+          load: true
+          build-args: VUE_DEVTOOLS=${{ env.VUE_DEVTOOLS }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+
+      - name: Build Test Image
+        uses: docker/build-push-action@v2
+        with:
+          target: app-test-container
+          tags: app-test-container
+          push: false
+          load: true
+
+      - name: Start Memcached
+        run: docker run -d -h memcached -p 11211:11211 memcached:1.6-alpine
+
+      - name: Run Tests in Image
+        id: tests
+        shell: bash
+        run: >-
+          docker run -u root -t
+          -v ${PWD}:/coverage
+          -e DJANGO_APP="$DJANGO_APP"
+          -e "ENV=localdev" -e "AUTH=SAML_MOCK"
+          app-test-container
+          bash -c ". ./docker/test_python.sh"
+
+      - name: Push Image to Repository
+        if: github.event_name == 'push'
+        uses: uw-it-aca/actions/gcr-push@main
+        with:
+          image_tag: ${{ needs.context.outputs.image_tag }}
+          gcp_json_key: ${{ secrets.GCP_JSON_KEY }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: python-coverage
+          path: .coverage.*
+
+    outputs:
+      image_tag: ${{ steps.cicd.outputs.image_tag }}
+
+  eslint:
+    runs-on: ubuntu-18.04
+
+    container:
+      image: node:14.6.0-stretch
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install packages
+        run: npm install .
+
+      - name: Run eslint
+        run: ./node_modules/.bin/eslint myuw/static/vue --ext .vue
+
+  jest-cypress:
+    runs-on: ubuntu-18.04
+
+    container:
+      image: cypress/browsers:node14.16.0-chrome90-ff88
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install packages
+        run: npm install .
+
+      - name: Run jest
+        run: ./node_modules/.bin/jest --ci --coverage
+
+      - name: Move jest lcov report
+        shell: bash
+        run: |
+          mv coverage/lcov.info lcov-jest.info
+          rm -rf coverage
+
+      - name: Run cypress
+        run: ./node_modules/.bin/cypress run-ct
+
+      - name: Merge cypress and jest lcov reports
+        shell: bash
+        run: |
+          apt install lcov -y
+          lcov -a lcov-jest.info -a coverage/lcov.info -o lcov.info
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: jest-cypress-coverage
+          path: lcov.info
+
+  collect-coverage:
+    needs: [build, jest-cypress]
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: python-coverage
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: jest-cypress-coverage
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Set up Ruby 2.6
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Record Test Results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gem install coveralls-lcov
+          python -m pip install --upgrade pip coverage coveralls==2.2.0
+          coverage combine
+          coveralls-lcov -v -n lcov.info > js-coverage.json
+          coveralls --merge=js-coverage.json
+
+  deploy:
+    if: github.event_name == 'push'
+
+    needs: [context, build, eslint, jest-cypress]
+
+    outputs:
+      context: ${{ steps.context.outputs.context }}
+
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Deployment Pipeline
+        if: >-
+          contains(fromJSON('["main", "master", "qa"]'),
+            needs.context.outputs.git_repo_branch)
+        uses: uw-it-aca/actions/cicd-deploy@main
+        with:
+          release_name: ${{ env.RELEASE_NAME }}
+          commit_hash: ${{ needs.context.outputs.commit_hash }}
+          git_repo_branch: ${{ needs.context.outputs.git_repo_branch }}
+          gh_auth_token: ${{ secrets.GH_AUTH_TOKEN }}
+
+      - name: Deploy Develop Branch
+        if: needs.context.outputs.git_repo_branch == 'develop'
+        uses: uw-it-aca/actions/cicd-deploy@main
+        with:
+          release_name: ${{ env.RELEASE_NAME }}
+          commit_hash: ${{ needs.context.outputs.commit_hash }}
+          git_repo_branch: ${{ needs.context.outputs.git_repo_branch }}
+          gh_auth_token: ${{ secrets.GH_AUTH_TOKEN }}
+          app_instance: dev
+
+      - name: Deploy Vue Branch
+        if: needs.context.outputs.git_repo_branch == 'vue/dev'
+        uses: uw-it-aca/actions/cicd-deploy@main
+        with:
+          release_name: ${{ env.RELEASE_NAME }}
+          commit_hash: ${{ needs.context.outputs.commit_hash }}
+          git_repo_branch: ${{ needs.context.outputs.git_repo_branch }}
+          gh_auth_token: ${{ secrets.GH_AUTH_TOKEN }}
+          app_instance: vue
+
+      - name: 'Surface context from executed build step'
+        id: context
+        shell: bash
+        run: echo "::set-output name=context::$(< ${CONTEXT_FILENAME})"
+
+  housekeeping:
+    if: github.event_name == 'push' &&
+        (endsWith(github.ref, '/master') || endsWith(github.ref, '/qa') ||
+         endsWith(github.ref, '/develop') || endsWith(github.ref, '/vue/dev'))
+
+    needs: [context, build, deploy]
+
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: House Keeping
+        uses: uw-it-aca/actions/cicd-housekeeping@main
+        with:
+          release_name: ${{ env.RELEASE_NAME }}
+          gh_auth_token: ${{ secrets.GH_AUTH_TOKEN }}
+          registry_password: ${{ secrets.GCP_JSON_KEY }}
+          context: ${{ needs.deploy.outputs.context }}

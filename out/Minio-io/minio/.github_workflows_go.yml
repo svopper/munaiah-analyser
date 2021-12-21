@@ -1,0 +1,35 @@
+name: Go
+
+on:
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    name: MinIO Setup on ${{ matrix.go-version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: [1.16.x, 1.17.x]
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build on ${{ matrix.os }}
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CGO_ENABLED: 0
+          GO111MODULE: on
+          MINIO_KMS_KES_CERT_FILE: /home/runner/work/minio/minio/.github/workflows/root.cert
+          MINIO_KMS_KES_KEY_FILE: /home/runner/work/minio/minio/.github/workflows/root.key
+          MINIO_KMS_KES_ENDPOINT: "https://play.min.io:7373"
+          MINIO_KMS_KES_KEY_NAME: "my-minio-key"
+          MINIO_KMS_AUTO_ENCRYPTION: on
+        run: |
+          sudo sysctl net.ipv6.conf.all.disable_ipv6=0
+          sudo sysctl net.ipv6.conf.default.disable_ipv6=0
+          make verify
+          make verify-healing

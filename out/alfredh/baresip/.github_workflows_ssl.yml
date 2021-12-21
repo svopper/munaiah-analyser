@@ -1,0 +1,34 @@
+name: OpenSSL no-deprecated and LibreSSL
+
+on: [push, pull_request]
+
+jobs:
+  ssl:
+    runs-on: ubuntu-latest 
+
+    strategy:
+      matrix:
+        ssl: [libressl, openssl]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: sreimers/pr-dependency-action@v0.3
+      with:
+        name: re
+        repo: https://github.com/baresip/re
+        secret: ${{ secrets.GITHUB_TOKEN }}
+
+    - uses: sreimers/pr-dependency-action@v0.3
+      with:
+        name: rem
+        repo: https://github.com/baresip/rem
+        secret: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: make re/rem
+      run: |
+        for p in re rem; do cd $p && sudo PATH="$PATH" make install && cd - && sudo rm -Rf $p; done
+        sudo ldconfig
+
+    - name: make baresip
+      run: make EXTRA_CFLAGS="-Iassets/${{ matrix.ssl }}/include -Werror" EXTRA_LFLAGS="-Lassets/${{ matrix.ssl }}" CCACHE=;

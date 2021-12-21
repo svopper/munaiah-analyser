@@ -1,0 +1,117 @@
+name: Cryptopus CI build
+
+on:
+  push:
+    branches:
+      - master
+      - stable
+
+  pull_request:
+
+  # scheduled for 2AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  # Set the job key. The key is displayed as the job name
+  # when a job name is not provided
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out a copy of your repository on the ubuntu-latest machine
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Ruby 2.7
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+          bundler-cache: true
+
+      # Setup Node
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.18.0'
+
+      # Npm global packages caching
+      - name: Cache global npm modules
+        id: global-node-modules-cache
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-global-node-modules
+        with:
+          # npm cache files are stored in `~/.npm` on Linux
+          path: ~/.npm
+          key: ${{ runner.os }}-global-build-cache-v1-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-global-build-cache-v1-${{ hashFiles('**/package-lock.json') }}
+      # Node modules caching
+      - name: Cache node modules
+        id: node-modules-cache
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          # npm modules cache files are stored in `./node_modules`
+          path: ./node_modules
+          key: ${{ runner.os }}-build-cache-v1-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-cache-v1-${{ hashFiles('**/package-lock.json') }}
+      - name: Before Install
+        run: sudo service mysql restart
+
+      - name: Install bundler
+        run: gem install bundler:2.2.17
+
+      - name: Run yarn
+        if: steps.node-modules-cache.outputs.cache-hit != 'true' || steps.global-node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn
+
+      - name: Add ember-cli
+        run: yarn global add ember-cli
+
+      - name: Add npm
+        run: yarn global add npm
+
+      - name: Set yarn prefix
+        run: yarn config set --prefix ./frontend install ./frontend
+
+      - name: Clear Logs
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:clear_logs --trace
+
+      - name: Rubocop
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:rubocop --trace
+
+      - name: Brakeman
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:brakeman --trace
+
+      # Frontend prepare
+      - name: Prepare Frontend
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:frontend_prepare --trace
+
+      # Frontend specs
+      - name: Run frontend specs
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:frontend_specs --trace
+
+      - name: Run backend specs
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: bundle exec rake ci:spec --trace
+
+      # Run end-to-end tests
+      - name: Run system specs
+        if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: bundle exec rake nightly:e2e --trace
+
+      # Cleanup
+      - name: Run rake frontend clean
+        run: bundle exec rake frontend:clean

@@ -1,0 +1,38 @@
+name: Java
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+    paths:
+      - "java/**"
+      - .github/workflows/java.yaml
+jobs:
+  tests-java-1_8:
+    name: Test
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: make test-java
+
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Run tests
+        run: make test-java
+
+      - name: Run sonarqube
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: (cd java && gradle sonarqube)

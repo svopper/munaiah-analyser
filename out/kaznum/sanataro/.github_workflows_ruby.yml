@@ -1,0 +1,41 @@
+name: Ruby
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Ruby 2.5
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: 2.5.x
+    - name: Install required packages to build/test
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libqtwebkit-dev libqtwebkit4 libmysqlclient-dev libpq-dev libsqlite3-dev nodejs xvfb
+    - name: Install bundler and install required gems
+      run: |
+        gem install bundler:1.17.3
+        bundle install --jobs 4 --retry 3 --without production development
+    - name: Rubocop
+      run: |
+        bundle exec rubocop .
+    - name: haml-lint
+      run: |
+        bundle exec haml-lint .
+    - name: Prepare DB and Assets
+      run: |
+        cp -v config/database.yml.sample config/database.yml
+        bundle exec rake db:create db:schema:load assets:precompile
+    - name: Run spec
+      run: |
+        bundle exec rake spec
+    - name: Run cucumber
+      run: |
+        xvfb-run --auto-servernum bundle exec rake cucumber
+    - name: Cleanup xvfb pidx
+      uses: bcomnes/cleanup-xvfb@v1

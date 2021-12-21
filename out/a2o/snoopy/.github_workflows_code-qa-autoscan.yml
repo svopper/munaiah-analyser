@@ -1,0 +1,82 @@
+name: Code QA - Autoscan
+
+
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'contrib/**'
+      - 'doc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'ChangeLog'
+      - 'COPYING'
+      - 'contrib/**'
+      - 'doc/**'
+      - 'install/**'
+      - 'lib/*/IMPORT.defs'
+      - 'lib/*/LICENSE'
+      - 'README.md'
+
+
+
+jobs:
+  code-qa-autoscan:
+
+    name: Scan for configure.ac changes
+    runs-on: ubuntu-20.04
+    container: ciready/ubuntu:20.04-ci-c
+
+    steps:
+
+
+
+      ### Fetch the code
+      #
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+
+      ### Install build environment tools
+      #
+      - run: ./dev-tools/install-dev-software.sh
+
+
+
+      ### Run autoscan
+      #
+      - name: Run autoscan, check for changes
+        run: |
+          cp configure.scan configure.scan.GIT
+          autoscan
+          diff -u configure.scan.GIT configure.scan
+
+
+
+      ### If changes are detected, show this help hint
+      #
+      - name: "Failed? Here's what you should do to fix the issue:"
+        if: failure()
+        run: |
+          echo -e "Check the autoscan-related section in this document:\n\n    https://github.com/a2o/snoopy/blob/master/doc/HACKING-QA.md#autoscan\n\n"

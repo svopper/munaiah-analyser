@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker build --tag ghcr.io/${GITHUB_REPOSITORY} .
+      - run: docker push ghcr.io/${GITHUB_REPOSITORY}
+      - uses: azure/setup-kubectl@v1
+        with:
+          version: 'v1.19.7'
+      - uses: azure/k8s-set-context@v1
+        with:
+          method: service-account
+          k8s-url: ${{ secrets.K8S_URL }}
+          k8s-secret: ${{ secrets.K8S_SECRET }}
+      - run: kubectl set image statefulset/davidwbarratt web=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/${GITHUB_REPOSITORY})

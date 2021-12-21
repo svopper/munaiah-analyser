@@ -1,0 +1,272 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenColorIO Project.
+#
+
+name: Wheel
+
+on:
+  push:
+    # Workflow run on tags for v2 only.
+    tags:
+      - v2.*
+  pull_request:
+    # Workflow run on pull_request only when related files change.
+    branches-ignore:
+      - RB-0.*
+      - RB-1.*
+      - gh-pages
+    tags-ignore:
+      - v0.*
+      - v1.*
+    paths:
+      - .github/workflows/wheel_workflow.yml
+      - pyproject.toml
+  schedule:
+    # Nightly build
+    - cron: "0 0 * * *"
+
+jobs:
+  # Linux jobs run in Docker containers (manylinux), so the latest OS version
+  # is OK. macOS and Windows jobs need to be locked to specific virtual
+  # environment versions to mitigate issues from OS updates, and will require
+  # maintenance as OS versions are retired.
+  #
+  # Due to documentation build failing on manylinux2010 (maybe too old doxygen
+  # version), we build on manylinux2014 image, this requires pip >= 19.3.
+
+  # ---------------------------------------------------------------------------
+  # Linux
+  # ---------------------------------------------------------------------------
+
+  linux:
+    name: Build wheels on Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # -------------------------------------------------------------------
+          # CPython 32 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 32 bits
+            python: cp36-*
+            arch: i686
+          - build: CPython 3.7 32 bits
+            python: cp37-*
+            arch: i686
+          - build: CPython 3.8 32 bits
+            python: cp38-*
+            arch: i686
+          - build: CPython 3.9 32 bits
+            python: cp39-*
+            arch: i686
+          - build: CPython 3.10 32 bits
+            python: cp310-*
+            arch: i686
+          # -------------------------------------------------------------------
+          # CPython 64 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 64 bits
+            python: cp36-*
+            arch: x86_64
+          - build: CPython 3.7 64 bits
+            python: cp37-*
+            arch: x86_64
+          - build: CPython 3.8 64 bits
+            python: cp38-*
+            arch: x86_64
+          - build: CPython 3.9 64 bits
+            python: cp39-*
+            arch: x86_64
+          - build: CPython 3.10 64 bits
+            python: cp310-*
+            arch: x86_64
+          # -------------------------------------------------------------------
+          # CPython ARM 64 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 ARM 64 bits
+            python: cp36-*
+            arch: aarch64
+          - build: CPython 3.7 ARM 64 bits
+            python: cp37-*
+            arch: aarch64
+          - build: CPython 3.8 ARM 64 bits
+            python: cp38-*
+            arch: aarch64
+          - build: CPython 3.9 ARM 64 bits
+            python: cp39-*
+            arch: aarch64
+          - build: CPython 3.10 ARM 64 bits
+            python: cp310-*
+            arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.2
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  # ---------------------------------------------------------------------------
+  # macOS
+  # ---------------------------------------------------------------------------
+
+  macos:
+    name: Build wheels on macOS
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        include:
+        # Python 3.10 can be enabled when numpy ship the binary wheel (which
+        # we use during tests). Building it within GH produces the following:
+        # RuntimeError: Polyfit sanity test emitted a warning, most likely due
+        # to using a buggy Accelerate backend. If you compiled yourself, see
+        # site.cfg.example for information. Otherwise report this to the vendor
+        # that provided NumPy.
+
+          # -------------------------------------------------------------------
+          # CPython 64 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 64 bits
+            python: cp36-*
+            arch: x86_64
+          - build: CPython 3.7 64 bits
+            python: cp37-*
+            arch: x86_64
+          - build: CPython 3.8 64 bits
+            python: cp38-*
+            arch: x86_64
+          - build: CPython 3.9 64 bits
+            python: cp39-*
+            arch: x86_64
+          # - build: CPython 3.10 64 bits
+          #   python: cp310-*
+          #   arch: x86_64
+          # -------------------------------------------------------------------
+          # CPython ARM 64 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.8 ARM 64 bits
+            python: cp38-*
+            arch: arm64
+          - build: CPython 3.9 ARM 64 bits
+            python: cp39-*
+            arch: arm64
+          # - build: CPython 3.10 ARM 64 bits
+          #   python: cp310-*
+          #   arch: arm64
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.2
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  # ---------------------------------------------------------------------------
+  # Windows
+  # ---------------------------------------------------------------------------
+
+  windows:
+    name: Build wheels on Windows
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        include:
+          # -------------------------------------------------------------------
+          # CPython 32 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 32 bits
+            python: cp36-*
+            arch: x86
+          - build: CPython 3.7 32 bits
+            python: cp37-*
+            arch: x86
+          - build: CPython 3.8 32 bits
+            python: cp38-*
+            arch: x86
+          - build: CPython 3.9 32 bits
+            python: cp39-*
+            arch: x86
+          - build: CPython 3.10 32 bits
+            python: cp310-*
+            arch: x86
+          # -------------------------------------------------------------------
+          # CPython 64 bits
+          # -------------------------------------------------------------------
+          - build: CPython 3.6 64 bits
+            python: cp36-*
+            arch: AMD64
+          - build: CPython 3.7 64 bits
+            python: cp37-*
+            arch: AMD64
+          - build: CPython 3.8 64 bits
+            python: cp38-*
+            arch: AMD64
+          - build: CPython 3.9 64 bits
+            python: cp39-*
+            arch: AMD64
+          - build: CPython 3.10 64 bits
+            python: cp310-*
+            arch: AMD64
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.2
+        env:
+          CIBW_BUILD: ${{ matrix.python }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+
+  upload_pypi:
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/setup-python@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

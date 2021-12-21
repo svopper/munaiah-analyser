@@ -1,0 +1,25 @@
+name: Haskell CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: mstksg/setup-stack@v1
+    - name: Cache build dependencies
+      uses: actions/cache@v1
+      with:
+        path: .stack-work/
+        key: ${{ runner.OS }}-stack-cache-${{ github.ref }}
+    - name: Install dependencies
+      run: |
+        stack --no-terminal --install-ghc test --only-dependencies
+    - name: Build
+      run: |
+        stack build --fast
+    - name: Rebuild Site
+      run: stack exec site rebuild

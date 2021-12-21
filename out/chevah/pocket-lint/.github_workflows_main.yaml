@@ -1,0 +1,60 @@
+#
+# GitHub actions test run.
+#
+# Available VMs
+# https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners
+#
+name: UnitTest
+
+# Only run on pull requests.
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  linux:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+
+    - name: Show action context
+      run: |
+        echo << EOF
+        ${{ toJSON(github) }}
+        EOF
+
+    - uses: actions/checkout@v2
+
+    - name: Set Up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install
+      run: |
+        pip install .[dev]
+
+    - name: Unit test
+      run: |
+        nosetests scame/
+
+    - name: Scame on itself
+      run: |
+        scame --align-closing --max-length=200  --pycodestyle scame/ setup.py
+
+    - name: pyflakes
+      run: |
+        pyflakes scame/
+
+    - name: isort
+      run: |
+        isort -m VERTICAL_HANGING_INDENT --tc scame/
+
+    - name: Black
+      run: |
+        black --check scame/ setup.py

@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Attach firmware to release
+    runs-on: ubuntu-20.04
+    container:
+      image: paradajz168/opendeck-dev:latest
+      options: --user root
+    steps:
+      - name: Pull the repository and submodules
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Build
+        run: |
+          git fetch --tags
+          cd src/
+          ../scripts/build_targets.sh
+      - name: Upload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name="${GITHUB_REF##*/}"
+          hub release edit $(find ./src/build/merged -type f -name "*.sysex" -not -name "*mega16u2*" -printf "-a %p ") -m "" "$tag_name"
+          hub release edit $(find ./src/build/merged -type f -name "*.hex" -printf "-a %p ") -m "" "$tag_name"
+          hub release edit $(find ./src/build/merged -type f -not -name "*_sysex.bin" -name "*.bin" -printf "-a %p ") -m "" "$tag_name"

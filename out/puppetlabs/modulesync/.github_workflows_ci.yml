@@ -1,0 +1,48 @@
+---
+name: CI
+on:
+  - pull_request
+  - push
+
+env:
+  BUNDLE_WITHOUT: release
+
+jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+      - name: Run linter
+        run: bundle exec rubocop --format github
+  test:
+    needs: rubocop
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ruby: "2.5"
+          - ruby: "2.6"
+          - ruby: "2.7"
+          - ruby: "3.0"
+            codecov: "yes"
+    env:
+      CODECOV: ${{ matrix.codecov }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run unit tests
+        run: bundle exec rake spec
+      - name: Run behavior tests
+        run: bundle exec cucumber
+      - name: Build gem
+        run: gem build *.gemspec

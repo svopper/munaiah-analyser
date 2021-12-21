@@ -1,0 +1,3295 @@
+{
+    "actions/create-release": [
+        "Publishing",
+        "Continuous integration",
+        "Deployment"
+    ],
+    "actions/checkout": [
+        "Utilities"
+    ],
+    "actions/setup-ruby": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "actions/upload-release-asset": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "flcdrg/remove-release-asset-action": [
+        "Publishing",
+        "Utilities"
+    ],
+    "dev-drprasad/delete-older-releases": [
+        "Publishing",
+        "Utilities"
+    ],
+    "pierotofy/set-swap-space": [
+        "Utilities"
+    ],
+    "easingthemes/ssh-deploy": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "ethomson/send-tweet-action": [
+        "Chat"
+    ],
+    "treebeardtech/nbmake-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "thomaseizinger/create-release": [
+        "Publishing"
+    ],
+    "hramos/needs-attention": [
+        "Open Source management"
+    ],
+    "sonots/slack-notice-action": [
+        "Chat"
+    ],
+    "dlang-community/setup-dlang": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "pascalgn/automerge-action": [
+        "Code review",
+        "Continuous integration"
+    ],
+    "nanasess/composer-installer-action": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "ashutoshvarma/action-cmake-build": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "whatnick/wait-action": [
+        "Container CI",
+        "Testing"
+    ],
+    "andymckay/labeler": [
+        "Utilities"
+    ],
+    "asarium/clang-tidy-action": [
+        "Reporting"
+    ],
+    "submitty/action-dependabot-title-fixer": [
+        "Continuous integration"
+    ],
+    "StephaneBour/actions-php-security-checker": [
+        "Security",
+        "Code quality"
+    ],
+    "Apple-Actions/import-codesign-certs": [
+        "Mobile CI",
+        "Mobile"
+    ],
+    "fastify/github-action-merge-dependabot": [
+        "Dependency management",
+        "Open Source management"
+    ],
+    "py-actions/py-dependency-install": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "ruzickap/action-my-markdown-linter": [
+        "Code quality",
+        "Testing"
+    ],
+    "frankdejonge/use-github-token": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "andrewmcodes/bundler-audit-action": [
+        "Dependency management",
+        "Security"
+    ],
+    "TimonVS/pr-labeler-action": [
+        "Utilities",
+        "Project management"
+    ],
+    "mheap/github-action-required-labels": [
+        "Code review"
+    ],
+    "jacobtomlinson/gha-find-replace": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "DuckSoft/extract-7z-action": [
+        "Utilities",
+        "Deployment"
+    ],
+    "crate-ci/typos": [
+        "Code quality",
+        "Code review"
+    ],
+    "cake-build/cake-action": [
+        "Desktop tools",
+        "Continuous integration"
+    ],
+    "varunsridharan/action-wp-org-deploy": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "TrueBrain/actions-flake8": [
+        "Code review",
+        "Code quality"
+    ],
+    "technote-space/create-pr-action": [
+        "Utilities",
+        "Project management"
+    ],
+    "olegtarasov/get-tag": [
+        "Utilities"
+    ],
+    "reviewdog/action-misspell": [
+        "Code review",
+        "Code quality"
+    ],
+    "jtalk/url-health-check-action": [
+        "Testing",
+        "Monitoring"
+    ],
+    "ridedott/merge-me-action": [
+        "Dependency management",
+        "Security"
+    ],
+    "umutphp/php-var-dump-check-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "Gottox/irc-message-action": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "helaili/jekyll-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "ecampidoglio/cake-action": [
+        "Desktop tools",
+        "Continuous integration"
+    ],
+    "actions-rs/toolchain": [
+        "Dependency management",
+        "Open Source management"
+    ],
+    "andstor/file-existence-action": [
+        "Utilities",
+        "Testing"
+    ],
+    "laminas/laminas-continuous-integration-action": [
+        "Continuous integration"
+    ],
+    "iRoachie/slack-github-actions": [
+        "Reporting",
+        "Continuous integration"
+    ],
+    "JasonEtco/upload-to-release": [
+        "Publishing"
+    ],
+    "jungwinter/comment": [
+        "Utilities"
+    ],
+    "fiam/arm-none-eabi-gcc": [
+        "Continuous integration"
+    ],
+    "DoozyX/clang-format-lint-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "JamesIves/github-pages-deploy-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "aormsby/Fork-Sync-With-Upstream-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "Jimver/cuda-toolkit": [
+        "Dependency management"
+    ],
+    "danielpalme/ReportGenerator-GitHub-Action": [
+        "Testing",
+        "Code quality"
+    ],
+    "ZedThree/clang-tidy-review": [
+        "Code review",
+        "Code quality"
+    ],
+    "michaeljolley/aggregit": [
+        "Monitoring",
+        "Reporting"
+    ],
+    "n1hility/cancel-previous-runs": [
+        "Continuous integration"
+    ],
+    "StephaneBour/actions-php-cpd": [
+        "Code quality",
+        "Code review"
+    ],
+    "zyborg/pester-tests-report": [
+        "Testing",
+        "Reporting"
+    ],
+    "at-wat/bloom-release-action": [
+        "Deployment"
+    ],
+    "supercharge/redis-github-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "manusa/actions-publish-docker": [
+        "Publishing",
+        "Container CI"
+    ],
+    "samuelmeuli/action-maven-publish": [
+        "Publishing",
+        "Deployment"
+    ],
+    "casperdcl/deploy-pypi": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "varunsridharan/action-repository-meta": [
+        "Utilities",
+        "Community"
+    ],
+    "schneegans/dynamic-badges-action": [
+        "Continuous integration",
+        "Reporting"
+    ],
+    "julia-actions/julia-docdeploy": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "dawidd6/action-download-artifact": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "at-wat/catkin-release-action": [
+        "Deployment"
+    ],
+    "Burnett01/rsync-deployments": [
+        "Deployment",
+        "Utilities"
+    ],
+    "Dunning-Kruger/lock-issues": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "leafo/gh-actions-luarocks": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "richardsimko/github-tag-action": [
+        "Utilities",
+        "Publishing"
+    ],
+    "edplato/trufflehog-actions-scan": [
+        "Security",
+        "Continuous integration"
+    ],
+    "lukka/get-cmake": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "jaywcjlove/changelog-generator": [
+        "Deployment",
+        "Publishing"
+    ],
+    "zricethezav/gitleaks-action": [
+        "Security",
+        "Code search"
+    ],
+    "php-actions/composer": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "robinraju/release-downloader": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "peter-evans/find-comment": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "erclu/check-crlf": [
+        "Utilities",
+        "Support"
+    ],
+    "returntocorp/bento-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "turtlebrowser/get-conan": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "jpetrucciani/mypy-check": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "haya14busa/action-workflow_run-status": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "bazelbuild/setup-bazelisk": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "salsify/action-detect-and-tag-new-version": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "JimCronqvist/action-ssh": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "gsactions/commit-message-checker": [
+        "Code quality",
+        "Code review"
+    ],
+    "kiegroup/github-action-build-chain": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "z0al/dependent-issues": [
+        "Project management"
+    ],
+    "crazy-max/ghaction-github-pages": [
+        "Deployment",
+        "Publishing"
+    ],
+    "gittools/actions/gitversion/setup": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "ros-tooling/setup-ros": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "slavcodev/coverage-monitor-action": [
+        "Code quality",
+        "Testing"
+    ],
+    "akhileshns/heroku-deploy": [
+        "Deployment",
+        "Publishing"
+    ],
+    "natanlao/perl-critic-action": [
+        "Code quality"
+    ],
+    "yogstation13/DreamAnnotate": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "2m/arch-pkgbuild-builder": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "BSFishy/pip-action": [
+        "Utilities"
+    ],
+    "dev-drprasad/delete-tag-and-release": [
+        "Utilities",
+        "Publishing"
+    ],
+    "EndBug/add-and-commit": [
+        "Utilities",
+        "Project management"
+    ],
+    "reviewdog/action-vint": [
+        "Code review",
+        "Code quality"
+    ],
+    "actionshub/chef-install": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "JetBrains/qodana-action": [
+        "Code quality"
+    ],
+    "s4u/setup-maven-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "thomaseizinger/create-pull-request": [
+        "Code review",
+        "Project management"
+    ],
+    "sualeh/prepare-maven-build": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "mikeal/merge-release": [
+        "Open Source management",
+        "Publishing"
+    ],
+    "GeneaLabs/action-reviewdog-phpmd": [
+        "Code quality",
+        "Code review"
+    ],
+    "phpDocumentor/phar-ga": [
+        "Publishing",
+        "Deployment"
+    ],
+    "mtanzi/action-automerge": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "paulhatch/semantic-version": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "patrickjahns/version-drafter-action": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "nosborn/github-action-markdown-cli": [
+        "Code quality"
+    ],
+    "booxmedialtd/ws-action-parse-semver": [
+        "Utilities"
+    ],
+    "dmnemec/copy_file_to_another_repo_action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "ammaraskar/msvc-problem-matcher": [
+        "Code quality",
+        "Reporting"
+    ],
+    "jamescurtin/isort-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "devbotsxyz/xcode-notarize": [
+        "Continuous integration"
+    ],
+    "rlespinasse/github-slug-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "cpina/github-action-push-to-another-repository": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "NuGet/setup-nuget": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "peter-evans/close-issue": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "alex-page/github-project-automation-plus": [
+        "Project management"
+    ],
+    "perl-actions/install-with-cpanm": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "limjh16/jekyll-action-ts": [
+        "Deployment"
+    ],
+    "egorpugin/sw-action": [
+        "Project management",
+        "Dependency management"
+    ],
+    "ArminJo/arduino-test-compile": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "dessant/label-actions": [
+        "Project management",
+        "Utilities"
+    ],
+    "saucelabs/sauce-connect-action": [
+        "Testing",
+        "Deployment"
+    ],
+    "char0n/swagger-editor-validate": [
+        "API management",
+        "Code quality"
+    ],
+    "juarezr/firebirdsql-github-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "rbialon/flake8-annotations": [
+        "Code review",
+        "Code quality"
+    ],
+    "r7kamura/rubocop-problem-matchers-action": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "thollander/actions-comment-pull-request": [
+        "Chat"
+    ],
+    "jwlawson/actions-setup-cmake": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "metcalfc/changelog-generator": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "arduino/arduino-lint-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "ben-z/actions-comment-on-issue": [
+        "Project management"
+    ],
+    "jwgmeligmeyling/pmd-github-action": [
+        "Code quality",
+        "Security"
+    ],
+    "satackey/action-docker-layer-caching": [
+        "Container CI",
+        "Utilities"
+    ],
+    "cachix/install-nix-action": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "egor-tensin/setup-gcc": [
+        "IDEs",
+        "Utilities"
+    ],
+    "tibdex/github-app-token": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "actionshub/yamllint": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "s0/git-publish-subdir-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "bahmutov/npm-install": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "xresloader/upload-to-github-release": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "Atrox/codecov-action": [
+        "Testing",
+        "Code quality"
+    ],
+    "julia-actions/julia-runtest": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "vapier/coverity-scan-action": [
+        "Security",
+        "Code quality"
+    ],
+    "AkhileshNS/heroku-deploy": [
+        "Deployment",
+        "Publishing"
+    ],
+    "AppImageCrafters/build-appimage-action": [
+        "Utilities"
+    ],
+    "JJ/issue-greeting-action": [
+        "Community",
+        "Open Source management"
+    ],
+    "snickerbockers/submodules-init": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "hpi-swa/setup-smalltalkCI": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "burnett01/rsync-deployments": [
+        "Deployment",
+        "Utilities"
+    ],
+    "rokroskar/workflow-run-cleanup-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "ScaCap/action-surefire-report": [
+        "Testing",
+        "Reporting"
+    ],
+    "bruceadams/get-release": [
+        "Publishing"
+    ],
+    "mirromutth/mysql-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "ridedott/dependabot-auto-merge-action": [
+        "Dependency management",
+        "Security"
+    ],
+    "jenkey2011/vuepress-deploy": [
+        "Deployment",
+        "Publishing"
+    ],
+    "actions-rs/install": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "wei/wget": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "WyriHaximus/github-action-composer.lock-diff": [
+        "Code review"
+    ],
+    "MSP-Greg/setup-ruby-pkgs": [
+        "Testing"
+    ],
+    "ldeluigi/mtg-fetch-action": [
+        "Support",
+        "Community"
+    ],
+    "mhausenblas/mkdocs-deploy-gh-pages": [
+        "Publishing",
+        "Deployment"
+    ],
+    "r0adkll/upload-google-play": [
+        "Deployment",
+        "Mobile CI"
+    ],
+    "gimmyxd/rtc-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "act10ns/slack": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "shallwefootball/s3-upload-action": [
+        "Continuous integration"
+    ],
+    "actionsx/prettier": [
+        "Code quality",
+        "Code review"
+    ],
+    "asadmansr/Firebase-Test-Lab-Action": [
+        "Testing",
+        "Mobile"
+    ],
+    "Morishiri/block-merge-commits-action": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "rickstaa/action-black": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "lgeiger/black-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "FedericoCarboni/setup-ffmpeg": [
+        "Dependency management"
+    ],
+    "archive/github-actions-slack": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "crondaemon/close-pr": [
+        "Code review",
+        "Utilities"
+    ],
+    "akhilerm/tag-push-action": [
+        "Container CI"
+    ],
+    "marceloprado/has-changed-path": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "tinovyatkin/action-php-codesniffer": [
+        "Code quality",
+        "Code review"
+    ],
+    "octokit/request-action": [
+        "Utilities"
+    ],
+    "pascalgn/npm-publish-action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "elgohr/Github-Release-Action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "ravsamhq/notify-slack-action": [
+        "Reporting",
+        "Chat"
+    ],
+    "technote-space/broken-link-checker-action": [
+        "Utilities"
+    ],
+    "mikepenz/action-junit-report": [
+        "Reporting",
+        "Testing"
+    ],
+    "peaceiris/actions-gh-pages": [
+        "Deployment",
+        "Publishing"
+    ],
+    "fregante/daily-version-action": [
+        "Publishing"
+    ],
+    "msys2/setup-msys2": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "superbrothers/close-pull-request": [
+        "Utilities"
+    ],
+    "iyu/actions-milestone": [
+        "Project management",
+        "Code review"
+    ],
+    "SublimeText/syntax-test-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "wagoid/commitlint-github-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "egor-tensin/setup-mingw": [
+        "IDEs",
+        "Utilities"
+    ],
+    "fnkr/github-action-ghr": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "dangoslen/changelog-enforcer": [
+        "Project management",
+        "Utilities"
+    ],
+    "rickstaa/sphinx-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "olafurpg/setup-scala": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "EthanSK/git-branch-name-action": [
+        "Utilities"
+    ],
+    "mxschmitt/action-tmate": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "xt0rted/block-autosquash-commits-action": [
+        "Code review"
+    ],
+    "vishnudxb/redis-cluster": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "jwalton/gh-docker-logs": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "svenstaro/upload-release-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "overtrue/phplint": [
+        "Code review",
+        "Code quality"
+    ],
+    "julia-actions/setup-julia": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "Yikun/hub-mirror-action": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "peter-evans/s3-backup": [
+        "Utilities",
+        "Project management"
+    ],
+    "yanzay/notify-telegram": [
+        "Chat"
+    ],
+    "docker-practice/actions-setup-docker": [
+        "Container CI"
+    ],
+    "NasAmin/trx-parser": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "yogevbd/enforce-label-action": [
+        "Project management",
+        "Open Source management"
+    ],
+    "s-weigand/setup-conda": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "peter-evans/close-pull": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "cloudsmith-io/action": [
+        "Dependency management",
+        "Deployment"
+    ],
+    "simplybusiness/version-forget-me-not": [
+        "Publishing",
+        "Deployment"
+    ],
+    "php-actions/phpunit": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "mathieudutour/github-tag-action": [
+        "Utilities",
+        "Publishing"
+    ],
+    "WyriHaximus/github-action-jwage-changelog-generator": [
+        "Publishing",
+        "Utilities"
+    ],
+    "Bullrich/generate-release-changelog": [
+        "Publishing",
+        "Utilities"
+    ],
+    "srggrs/assign-one-project-github-action": [
+        "Project management",
+        "Utilities"
+    ],
+    "darenm/Setup-VSTest": [
+        "Utilities",
+        "Testing"
+    ],
+    "akhilmhdh/contributors-readme-action": [
+        "Community",
+        "Utilities"
+    ],
+    "kannansuresh/jekyll-blog-archive-workflow": [
+        "Publishing",
+        "Deployment"
+    ],
+    "kanga333/comment-hider": [
+        "Utilities"
+    ],
+    "pixta-dev/repository-mirroring-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "AButler/upload-release-assets": [
+        "Publishing"
+    ],
+    "Happypig375/github-action-benchmark": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "reviewdog/action-actionlint": [
+        "Code review",
+        "Code quality"
+    ],
+    "maxim-lobanov/setup-xcode": [
+        "Utilities"
+    ],
+    "danielr1996/envsubst-action": [
+        "Continuous integration"
+    ],
+    "gerbal/always-cache": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "jpetrucciani/bandit-check": [
+        "Continuous integration",
+        "Security"
+    ],
+    "repo-sync/github-sync": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "christian-korneck/update-container-description-action": [
+        "Container CI",
+        "Utilities"
+    ],
+    "maxim-lobanov/setup-xamarin": [
+        "Utilities"
+    ],
+    "GabrielBB/xvfb-action": [
+        "Testing",
+        "Desktop tools"
+    ],
+    "yuya-takeyama/docker-tag-from-github-ref-action": [
+        "Utilities",
+        "Container CI"
+    ],
+    "appleboy/gh-pages-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "amancevice/setup-code-climate": [
+        "Code quality",
+        "Testing"
+    ],
+    "shalzz/zola-deploy-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "actionshub/markdownlint": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "liri-infra/qmllint-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "supercharge/mongodb-github-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "technote-space/pr-commit-body-action": [
+        "Utilities"
+    ],
+    "jstastny/publish-gem-to-github": [
+        "Deployment",
+        "Publishing"
+    ],
+    "github/super-linter": [
+        "Code quality",
+        "Code review"
+    ],
+    "srt32/uptime": [
+        "Deployment",
+        "Utilities"
+    ],
+    "alialaa/issue-action": [
+        "Utilities",
+        "Reporting"
+    ],
+    "puppets-epic-show-theatre/action-pdk-test-unit": [
+        "Code quality",
+        "Testing"
+    ],
+    "devmasx/merge-branch": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "filipstefansson/uuid-action": [
+        "Utilities",
+        "Deployment"
+    ],
+    "maxkomarychev/oction-create-issue": [
+        "Utilities",
+        "API management"
+    ],
+    "Gamesight/slack-workflow-status": [
+        "Reporting",
+        "Chat"
+    ],
+    "jakejarvis/s3-sync-action": [
+        "Deployment",
+        "Utilities"
+    ],
+    "homoluctus/slatify": [
+        "Chat"
+    ],
+    "OskarStark/phpstan-ga": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "jaapio/keelsh-deploy": [
+        "Deployment",
+        "Publishing"
+    ],
+    "hecrj/setup-rust-action": [
+        "Continuous integration"
+    ],
+    "nick-invision/retry": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "larrylawl/Auto-Github-Issue-Labeller": [
+        "Utilities",
+        "Project management"
+    ],
+    "airvzxf/cache-anything-new-action": [
+        "Container CI",
+        "Utilities"
+    ],
+    "errata-ai/vale-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "stefanluptak/delete-old-pr-artifacts": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "crazy-max/ghaction-github-status": [
+        "Monitoring",
+        "Continuous integration"
+    ],
+    "dwenegar/upload-release-assets": [
+        "Publishing",
+        "Utilities"
+    ],
+    "roots/issue-closer-action": [
+        "Open Source management",
+        "Community"
+    ],
+    "bacongobbler/azure-blob-storage-upload": [
+        "Publishing"
+    ],
+    "r0adkll/sign-android-release": [
+        "Publishing",
+        "Mobile CI"
+    ],
+    "chekalsky/phpcs-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "ffurrer2/extract-release-notes": [
+        "Publishing",
+        "Utilities"
+    ],
+    "camptocamp/backport-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "peter-evans/dockerhub-description": [
+        "Deployment",
+        "Publishing"
+    ],
+    "appleboy/scp-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "m1ner79/Github-Twittction": [
+        "Publishing",
+        "Chat"
+    ],
+    "meeDamian/github-release": [
+        "Deployment",
+        "Publishing"
+    ],
+    "shivammathur/setup-php": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "home-assistant/builder": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "tclindner/sentry-releases-action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "two-pack/redmine-plugin-test-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "scacap/action-surefire-report": [
+        "Testing",
+        "Reporting"
+    ],
+    "hidakatsuya/setup-diff-pdf": [
+        "Utilities",
+        "Testing"
+    ],
+    "someimportantcompany/github-actions-slack-message": [
+        "Chat",
+        "Monitoring"
+    ],
+    "fjogeleit/http-request-action": [
+        "Utilities",
+        "Deployment"
+    ],
+    "miurahr/install-linuxdeploy-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "dawidd6/action-homebrew-bump-formula": [
+        "Deployment",
+        "Publishing"
+    ],
+    "fusion-engineering/setup-git-credentials": [
+        "Security",
+        "Dependency management"
+    ],
+    "apache/skywalking-eyes": [
+        "Utilities",
+        "Project management"
+    ],
+    "ammaraskar/sphinx-action": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "peaceiris/actions-mdbook": [
+        "Deployment",
+        "Publishing"
+    ],
+    "localheinz/composer-normalize-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "peaceiris/actions-label-commenter": [
+        "Project management",
+        "Open Source management"
+    ],
+    "karancode/yamllint-github-action": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "DamianReeves/write-file-action": [
+        "Utilities",
+        "Desktop tools"
+    ],
+    "amannn/action-semantic-pull-request": [
+        "Code review",
+        "Continuous integration"
+    ],
+    "reugn/github-action-aerospike": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "KyleMayes/install-llvm-action": [
+        "Dependency management"
+    ],
+    "laminas/automatic-releases": [
+        "Publishing",
+        "Open Source management"
+    ],
+    "nttld/setup-ndk": [
+        "Utilities"
+    ],
+    "johnwbyrd/update-release": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "alexleventer/github-issue-due-dates-action": [
+        "Project management",
+        "Time tracking"
+    ],
+    "cvmfs-contrib/github-action-cvmfs": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "OskarStark/php-cs-fixer-ga": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "charmixer/auto-changelog-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "technote-space/workflow-conclusion-action": [
+        "Utilities"
+    ],
+    "Apple-Actions/download-provisioning-profiles": [
+        "Mobile",
+        "Mobile CI"
+    ],
+    "ammaraskar/gcc-problem-matcher": [
+        "Code quality",
+        "Reporting"
+    ],
+    "reviewdog/action-suggester": [
+        "Code review",
+        "Code quality"
+    ],
+    "android-actions/setup-android": [
+        "Continuous integration",
+        "Mobile CI"
+    ],
+    "khan/pull-request-comment-trigger": [
+        "Code review",
+        "Deployment"
+    ],
+    "fauguste/auto-cancellation-running-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "tonyhallett/artifacts-url-comments": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "actions-ecosystem/action-regex-match": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "haya14busa/action-cond": [
+        "Utilities"
+    ],
+    "eps1lon/actions-label-merge-conflict": [
+        "Open Source management",
+        "Project management"
+    ],
+    "shivammathur/cache-extensions": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "joncloud/makensis-action": [
+        "Deployment",
+        "Desktop tools"
+    ],
+    "kkak10/pr-number-action": [
+        "Utilities"
+    ],
+    "andstor/copycat-action": [
+        "Deployment",
+        "Utilities"
+    ],
+    "webfactory/ssh-agent": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "nanoufo/action-upload-artifacts-and-release-assets": [
+        "Publishing"
+    ],
+    "rjstone/discord-webhook-notify": [
+        "Chat",
+        "Monitoring"
+    ],
+    "nev7n/wait_for_response": [
+        "Testing",
+        "Utilities"
+    ],
+    "itsmeow/curseforge-upload": [
+        "Publishing",
+        "API management"
+    ],
+    "JasonEtco/is-sponsor-label-action": [
+        "Open Source management",
+        "GitHub Sponsors"
+    ],
+    "jmarrec/setup-qtifw": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "nanasess/setup-chromedriver": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "shogo82148/actions-setup-perl": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "Harmon758/postgresql-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "fountainhead/action-wait-for-check": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "mamba-org/provision-with-micromamba": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "Daniel-Marynicz/postgresql-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "whelk-io/maven-settings-xml-action": [
+        "Dependency management",
+        "Open Source management"
+    ],
+    "Pendect/action-rsyncer": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "rhysd/action-setup-vim": [
+        "Desktop tools",
+        "Testing"
+    ],
+    "mattnotmitt/doxygen-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "andrewmcodes/standardrb-action": [
+        "Code review",
+        "Code quality"
+    ],
+    "peaceiris/actions-hugo": [
+        "Deployment",
+        "Publishing"
+    ],
+    "snok/install-poetry": [
+        "Dependency management",
+        "Publishing"
+    ],
+    "montudor/action-zip": [
+        "Utilities",
+        "Deployment"
+    ],
+    "addnab/docker-run-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "kciter/aws-ecr-action": [
+        "Container CI"
+    ],
+    "maxheld83/ghpages": [
+        "Deployment",
+        "Publishing"
+    ],
+    "mschilde/auto-label-merge-conflicts": [
+        "Project management",
+        "Utilities"
+    ],
+    "dorny/test-reporter": [
+        "Testing",
+        "Reporting"
+    ],
+    "actions-hub/docker": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "yokawasa/action-sqlcheck": [
+        "Code quality",
+        "Code review"
+    ],
+    "jurplel/install-qt-action": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "battila7/get-version-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "peter-evans/create-or-update-project-card": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "mikehardy/buildcache-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "toshimaru/auto-author-assign": [
+        "Project management",
+        "Open Source management"
+    ],
+    "actions-rs/audit-check": [
+        "Security",
+        "Dependency management"
+    ],
+    "cicirello/javadoc-cleanup": [
+        "Utilities",
+        "Publishing"
+    ],
+    "crazy-max/ghaction-upx": [
+        "Deployment",
+        "Utilities"
+    ],
+    "gabrielfalcao/pyenv-action": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "ludeeus/action-shellcheck": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "rdarida/simple-github-pages-deploy-action": [
+        "Deployment"
+    ],
+    "jakejarvis/wait-action": [
+        "Utilities"
+    ],
+    "liskin/gh-problem-matcher-wrap": [
+        "Code quality",
+        "Code review"
+    ],
+    "mshick/add-pr-comment": [
+        "Code review",
+        "Utilities"
+    ],
+    "sormuras/download-jdk": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "rrainn/dynamodb-action": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "bubkoo/auto-comment": [
+        "Utilities"
+    ],
+    "softprops/action-gh-release": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "FranzDiebold/github-env-vars-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "MeilCli/danger-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "puppets-epic-show-theatre/action-pdk-validate": [
+        "Testing",
+        "Code quality"
+    ],
+    "dokku/github-action": [
+        "Deployment"
+    ],
+    "jandelgado/gcov2lcov-action": [
+        "Testing",
+        "Code quality"
+    ],
+    "christian-draeger/read-properties": [
+        "Utilities"
+    ],
+    "starburst997/github-action-benchmark": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "wemake-services/wemake-python-styleguide": [
+        "Code quality",
+        "Code review"
+    ],
+    "symplify/github-action-monorepo-split": [
+        "Open Source management"
+    ],
+    "jwgmeligmeyling/spotbugs-github-action": [
+        "Code quality",
+        "Security"
+    ],
+    "at-wat/setup-gh-pr-comment": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "nvuillam/mega-linter/flavors/php": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "olivernybroe/action-conflict-finder": [
+        "Code quality",
+        "Testing"
+    ],
+    "technote-space/toc-generator": [
+        "Utilities",
+        "Publishing"
+    ],
+    "ministryofjustice/opg-repository-scanner": [
+        "Security",
+        "Reporting"
+    ],
+    "dawidd6/action-debian-package": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "robotology/gh-action-nightly-merge": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "K-Phoen/semver-release-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "Gr1N/setup-poetry": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "wbari/start-mongoDB": [
+        "Utilities",
+        "Testing"
+    ],
+    "zulip/github-actions-zulip/send-message": [
+        "Chat"
+    ],
+    "crowdin/github-action": [
+        "Localization"
+    ],
+    "axel-op/googlejavaformat-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "newrelic/repolinter-action": [
+        "Open Source management",
+        "Continuous integration"
+    ],
+    "whoan/docker-build-with-cache-action": [
+        "Container CI",
+        "Publishing"
+    ],
+    "gittools/actions/gitversion/execute": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "Raul6469/android-gradle-action": [
+        "Mobile CI"
+    ],
+    "aabadie/riot-action": [
+        "Utilities"
+    ],
+    "wei/curl": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "gregsdennis/dependencies-action": [
+        "Utilities",
+        "Project management"
+    ],
+    "technote-space/assign-author": [
+        "Project management",
+        "Utilities"
+    ],
+    "harmon758/postgresql-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "nelonoel/branch-name": [
+        "Utilities",
+        "Deployment"
+    ],
+    "sunnysid3up/python-linter": [
+        "Code quality",
+        "Code review"
+    ],
+    "jidicula/clang-format-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "ocaml/setup-ocaml": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "BSFishy/meson-build": [
+        "Continuous integration"
+    ],
+    "roryprimrose/set-vs-sdk-project-version": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "JRubics/poetry-publish": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "chrnorm/deployment-action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "c-hive/gha-npm-cache": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "actionshub/test-kitchen": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "banyan/auto-label": [
+        "Code review",
+        "Code search"
+    ],
+    "technote-space/create-project-card-action": [
+        "Project management",
+        "Utilities"
+    ],
+    "bcomnes/cleanup-xvfb": [
+        "Utilities",
+        "Testing"
+    ],
+    "egor-tensin/setup-cygwin": [
+        "Utilities"
+    ],
+    "mymindstorm/setup-emsdk": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "usefulness/diffuse-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "ahmadnassri/action-dependabot-auto-merge": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "github/super-linter/slim": [
+        "Code quality",
+        "Code review"
+    ],
+    "gr2m/create-or-update-pull-request-action": [
+        "Utilities"
+    ],
+    "AndreMiras/coveralls-python-action": [
+        "Code quality"
+    ],
+    "test-room-7/action-update-file": [
+        "Utilities",
+        "Publishing"
+    ],
+    "jwgmeligmeyling/checkstyle-github-action": [
+        "Code quality"
+    ],
+    "actionshub/chef-delivery": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "avsm/setup-ocaml": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "Actions-R-Us/actions-tagger": [
+        "Publishing",
+        "Project management"
+    ],
+    "thomaseizinger/keep-a-changelog-new-release": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "reactivecircus/android-emulator-runner": [
+        "Mobile CI",
+        "Testing"
+    ],
+    "apexskier/github-release-commenter": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "lannonbr/issue-label-manager-action": [
+        "Utilities"
+    ],
+    "andymckay/pycodestyle-action": [
+        "Code review"
+    ],
+    "frabert/replace-string-action": [
+        "Utilities"
+    ],
+    "prince-chrismc/label-merge-conflicts-action": [
+        "Open Source management",
+        "Continuous integration"
+    ],
+    "rectalogic/notify-irc": [
+        "Chat"
+    ],
+    "mstimberg/github-calc-nep29": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "betwo/github-setup-catkin": [
+        "Continuous integration"
+    ],
+    "chromaui/action": [
+        "Publishing",
+        "Testing"
+    ],
+    "crazy-max/ghaction-dump-context": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "crazy-max/ghaction-import-gpg": [
+        "Security",
+        "Utilities"
+    ],
+    "crazy-max/ghaction-chocolatey": [
+        "Deployment",
+        "Utilities"
+    ],
+    "mattermost/action-mattermost-notify": [
+        "Chat",
+        "Utilities"
+    ],
+    "zattoo/changelog": [
+        "Testing",
+        "Code review"
+    ],
+    "peter-evans/rebase": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "bubkoo/welcome-action": [
+        "Utilities"
+    ],
+    "ashutoshgngwr/validate-fastlane-supply-metadata": [
+        "Mobile",
+        "Code review"
+    ],
+    "miloserdow/capistrano-deploy": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "scherermichael-oss/action-has-permission": [
+        "Security"
+    ],
+    "EnricoMi/publish-unit-test-result-action": [
+        "Testing",
+        "Reporting"
+    ],
+    "ktomk/run-travis-yml": [
+        "Continuous integration"
+    ],
+    "nikitasavinov/checkstyle-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "vsoch/pull-request-action": [
+        "Publishing",
+        "Deployment"
+    ],
+    "tonynv/asciidoctor-action": [
+        "Publishing",
+        "Utilities"
+    ],
+    "DeLaGuardo/setup-graalvm": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "wei/git-sync": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "fsfe/reuse-action": [
+        "Open Source management",
+        "Testing"
+    ],
+    "chkfung/android-version-actions": [
+        "Mobile CI",
+        "Publishing"
+    ],
+    "reviewdog/action-yamllint": [
+        "Code review",
+        "Code quality"
+    ],
+    "actions-rs/clippy-check": [
+        "Code quality",
+        "Code review"
+    ],
+    "superchargejs/redis-github-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "brandedoutcast/publish-nuget": [
+        "Publishing",
+        "Deployment"
+    ],
+    "edge/simple-slack-notify": [
+        "Reporting",
+        "Chat"
+    ],
+    "deadsnakes/action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "wzieba/Firebase-Distribution-Github-Action": [
+        "Publishing",
+        "Mobile CI"
+    ],
+    "styfle/cancel-workflow-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "ilammy/setup-nasm": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "actions-x/commit": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "peter-evans/repository-dispatch": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "jimschubert/query-tag-action": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "codespell-project/sort-problem-matcher": [
+        "Code review",
+        "Continuous integration"
+    ],
+    "kanga333/variable-mapper": [
+        "Utilities"
+    ],
+    "stefanzweifel/git-auto-commit-action": [
+        "Utilities"
+    ],
+    "ShiftLeftSecurity/scan-action": [
+        "Security",
+        "Open Source management"
+    ],
+    "SamKirkland/FTP-Deploy-Action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "arduino/report-size-deltas": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "isort/isort-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "tomwhross/write-good-action": [
+        "Code quality",
+        "Community"
+    ],
+    "mr-smithers-excellent/docker-build-push": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "superfly/flyctl-actions": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "browserstack/github-actions/setup-env": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "chindit/actions-phpcs": [
+        "Code quality"
+    ],
+    "sand4rt/ftp-deployer": [
+        "Deployment",
+        "Publishing"
+    ],
+    "thedoctor0/zip-release": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "ros-tooling/action-ros-lint": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "jaroldwong/ecr-push-and-ecs-deploy": [
+        "Deployment"
+    ],
+    "jenschelkopf/issue-label-notification-action": [
+        "Project management",
+        "Support"
+    ],
+    "DuckSoft/create-7z-action": [
+        "Publishing",
+        "Utilities"
+    ],
+    "tj-actions/eslint-changed-files": [
+        "Code quality",
+        "Code review"
+    ],
+    "horochx/deploy-via-scp": [
+        "Deployment"
+    ],
+    "paulfantom/periodic-labeler": [
+        "Project management",
+        "Open Source management"
+    ],
+    "ChrisCarini/intellij-platform-plugin-verifier-action": [
+        "IDEs",
+        "Testing"
+    ],
+    "lycheeverse/lychee-action": [
+        "Code review",
+        "Continuous integration"
+    ],
+    "lukka/run-cmake": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "plettich/action-codespell": [
+        "Code review",
+        "Code quality"
+    ],
+    "webispy/checkpatch-action": [
+        "Code review",
+        "Code quality"
+    ],
+    "leafo/gh-actions-lua": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "larsoner/circleci-artifacts-redirector-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "Eun/http-server-action": [
+        "Utilities",
+        "Testing"
+    ],
+    "thenabeel/action-phpcs": [
+        "Code quality",
+        "Code review"
+    ],
+    "Renato66/auto-label": [
+        "Community",
+        "Utilities"
+    ],
+    "submitty/action-pr-title": [
+        "Continuous integration"
+    ],
+    "Lukasss93/telegram-action": [
+        "Reporting",
+        "Chat"
+    ],
+    "Arduino-CI/action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "egor-tensin/cleanup-path": [
+        "Utilities"
+    ],
+    "actions-ecosystem/action-remove-labels": [
+        "Utilities",
+        "Project management"
+    ],
+    "crazy-max/ghaction-github-labeler": [
+        "Project management",
+        "Open Source management"
+    ],
+    "richardsimko/update-tag": [
+        "Utilities",
+        "Publishing"
+    ],
+    "oleksiyrudenko/gha-git-credentials": [
+        "Deployment",
+        "Publishing"
+    ],
+    "seferov/pr-lint-action": [
+        "Utilities",
+        "Project management"
+    ],
+    "hmarr/debug-action": [
+        "Utilities",
+        "Testing"
+    ],
+    "skaut/wordpress-version-checker": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "kevinpainchaud/simple-ftp-deploy-action": [
+        "Deployment"
+    ],
+    "dawidd6/action-send-mail": [
+        "Monitoring",
+        "Reporting"
+    ],
+    "actionshub/kitchen-dokken": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "peter-evans/create-pull-request": [
+        "Utilities",
+        "Project management"
+    ],
+    "bilelmoussaoui/flatpak-github-actions/flatpak-builder": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "uraimo/run-on-arch-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "10up/action-wordpress-plugin-deploy": [
+        "Publishing",
+        "Deployment"
+    ],
+    "huaxk/postgis-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "reviewdog/action-setup": [
+        "Code review",
+        "Code quality"
+    ],
+    "softprops/turnstyle": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "johanvanhelden/gha-clover-test-coverage-check": [
+        "Testing",
+        "Code quality"
+    ],
+    "sobolevn/restrict-cursing-action": [
+        "Project management",
+        "Support"
+    ],
+    "heinrichreimer/github-changelog-generator-action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "pypa/gh-action-pypi-publish": [
+        "Publishing",
+        "Deployment"
+    ],
+    "limitusus/json-syntax-check": [
+        "Code review",
+        "Testing"
+    ],
+    "seanmiddleditch/gha-setup-ninja": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "peter-evans/create-issue-from-file": [
+        "Reporting",
+        "Utilities"
+    ],
+    "g4s8/xcop-action": [
+        "Code quality"
+    ],
+    "imjohnbo/gh-polls-bot-action": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "sobolevn/misspell-fixer-action": [
+        "Localization",
+        "Utilities"
+    ],
+    "valadas/set-dnn-manifest-versions": [
+        "Utilities"
+    ],
+    "lukka/run-vcpkg": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "skx/github-action-publish-binaries": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "fnkr/github-action-git-bash": [
+        "Utilities"
+    ],
+    "anothrNick/github-tag-action": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "browniebroke/hacktoberfest-labeler-action": [
+        "Project management",
+        "Community"
+    ],
+    "fregante/title-to-labels-action": [
+        "Community",
+        "Project management"
+    ],
+    "benc-uk/workflow-dispatch": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "MarkusJx/install-boost": [
+        "Continuous integration"
+    ],
+    "sudo-bot/action-scrutinizer": [
+        "Utilities",
+        "Reporting"
+    ],
+    "jd-0001/gh-action-comment-on-new-issue": [
+        "Project management",
+        "Open Source management"
+    ],
+    "potiuk/cancel-workflow-runs": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "smartsquaregmbh/delete-old-packages": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "valadas/get-release-branch-version": [
+        "Utilities"
+    ],
+    "lee-dohm/close-matching-issues": [
+        "Project management",
+        "Utilities"
+    ],
+    "jsmrcaga/action-netlify-deploy": [
+        "Deployment"
+    ],
+    "nanasess/setup-php": [
+        "Continuous integration"
+    ],
+    "suyash/actions-bazelisk": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "rtCamp/action-phpcs-code-review": [
+        "Code review",
+        "Code quality"
+    ],
+    "mikepenz/release-changelog-builder-action": [
+        "Publishing",
+        "Utilities"
+    ],
+    "m4nu56/postgresql-action": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "jimschubert/beast-changelog-action": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "KSXGitHub/github-actions-deploy-aur": [
+        "Deployment"
+    ],
+    "GitGuardian/gg-shield-action": [
+        "Security",
+        "Code review"
+    ],
+    "jitterbit/get-changed-files": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "github/issue-labeler": [
+        "Open Source management",
+        "Project management"
+    ],
+    "peter-evans/slash-command-dispatch": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "Itsblue/download-release-assets-action": [
+        "Deployment"
+    ],
+    "dawidd6/action-publish-gem": [
+        "Deployment",
+        "Publishing"
+    ],
+    "tj-actions/changed-files": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "syphar/restore-pip-download-cache": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "burrunan/gradle-cache-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "textbook/git-checkout-submodule-action": [
+        "Continuous integration"
+    ],
+    "pkg-src/github-action-git-bash": [
+        "Utilities"
+    ],
+    "suo/flake8-github-action": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "iamsauravsharma/create-dotenv": [
+        "Utilities"
+    ],
+    "mskelton/changelog-reminder-action": [
+        "Code review",
+        "Utilities"
+    ],
+    "Ilshidur/action-slack": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "conda-incubator/setup-miniconda": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "shinhwagk/actions-crypto": [
+        "Security",
+        "Utilities"
+    ],
+    "chrnorm/deployment-status": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "lazy-actions/slatify": [
+        "Chat"
+    ],
+    "gagoar/invoke-aws-lambda": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "maierj/fastlane-action": [
+        "Mobile CI",
+        "Mobile"
+    ],
+    "ibiqlik/action-yamllint": [
+        "Code quality",
+        "Testing"
+    ],
+    "geekyeggo/delete-artifact": [
+        "Continuous integration"
+    ],
+    "JS-DevTools/npm-publish": [
+        "Publishing",
+        "Deployment"
+    ],
+    "reggionick/s3-deploy": [
+        "Deployment",
+        "Publishing"
+    ],
+    "CharMixer/auto-changelog-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "nikeee/docfx-action": [
+        "Publishing",
+        "Deployment"
+    ],
+    "lots0logs/gh-action-get-changed-files": [
+        "Utilities"
+    ],
+    "piotrpawlaczek/python-blacken": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "leleliu008/github-actions-vagrant": [
+        "Support"
+    ],
+    "QwerMike/xpath-action": [
+        "Utilities"
+    ],
+    "nuget/setup-nuget": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "volta-cli/action": [
+        "Utilities"
+    ],
+    "reviewdog/action-shellcheck": [
+        "Code review",
+        "Code quality"
+    ],
+    "chindit/actions-phpstan": [
+        "Code quality",
+        "Code review"
+    ],
+    "reviewdog/action-eslint": [
+        "Code review",
+        "Code quality"
+    ],
+    "aktions/codeclimate-test-reporter": [
+        "Code quality"
+    ],
+    "ashutoshvarma/setup-ninja": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "eregon/publish-release": [
+        "Deployment",
+        "Publishing"
+    ],
+    "git-for-windows/setup-git-for-windows-sdk": [
+        "Utilities"
+    ],
+    "JoshuaTheMiller/conditional-build-matrix": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "geertvdc/setup-hub": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "mstksg/setup-stack": [
+        "Dependency management",
+        "Deployment"
+    ],
+    "elgohr/Publish-Docker-Github-Action": [
+        "Publishing",
+        "Container CI"
+    ],
+    "jakejarvis/hugo-build-action": [
+        "Publishing",
+        "Deployment"
+    ],
+    "codespell-project/codespell-problem-matcher": [
+        "Code review",
+        "Continuous integration"
+    ],
+    "WyriHaximus/github-action-create-milestone": [
+        "Utilities"
+    ],
+    "jmarrec/rubocop-composite-action": [
+        "Code quality",
+        "Utilities"
+    ],
+    "ChristophWurst/xmllint-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "peter-evans/create-or-update-comment": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "appleboy/ssh-action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "juliangruber/read-file-action": [
+        "Utilities"
+    ],
+    "nbprojekt/gource-action": [
+        "Community",
+        "Publishing"
+    ],
+    "fkirc/skip-duplicate-actions": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "pCYSl5EDgo/cat": [
+        "Utilities"
+    ],
+    "duderman/rubocop-annotate-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "codfish/semantic-release-action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "JackMcKew/pyinstaller-action-windows": [
+        "Deployment",
+        "Publishing"
+    ],
+    "Ilshidur/action-discord": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "arduino/setup-arduino-cli": [
+        "Utilities"
+    ],
+    "reviewdog/action-remark-lint": [
+        "Code quality",
+        "Code review"
+    ],
+    "SeyfSV/setup-mqclient": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "tim-actions/get-pr-commits": [
+        "Code review",
+        "Utilities"
+    ],
+    "glennawatson/signclient": [
+        "Publishing",
+        "Utilities"
+    ],
+    "fregante/setup-git-user": [
+        "Deployment",
+        "Publishing"
+    ],
+    "chetan/invalidate-cloudfront-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "macmade/action-xcodebuild": [
+        "Continuous integration",
+        "IDEs"
+    ],
+    "paambaati/codeclimate-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "platisd/clang-tidy-pr-comments": [
+        "Code quality",
+        "Testing"
+    ],
+    "shyim/junit-report-annotations-action": [
+        "Utilities"
+    ],
+    "azjezz/setup-hhvm": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "mstksg/get-package": [
+        "Dependency management",
+        "Deployment"
+    ],
+    "crazy-max/ghaction-docker-buildx": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "ncipollo/release-action": [
+        "Continuous integration",
+        "Project management"
+    ],
+    "WyriHaximus/github-action-get-previous-tag": [
+        "Continuous integration"
+    ],
+    "php-actions/phpstan": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "nixbuild/nix-quick-install-action": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "voxmedia/github-action-slack-notify-build": [
+        "Chat"
+    ],
+    "tomasnorre/typo3-upload-ter": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "cachix/cachix-action": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "ramsey/composer-install": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "frankdejonge/use-subsplit-publish": [
+        "Open Source management",
+        "Publishing"
+    ],
+    "rojopolis/spellcheck-github-actions": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "srvaroa/labeler": [
+        "Code review",
+        "Project management"
+    ],
+    "scottbrenner/generate-changelog-action": [
+        "Publishing",
+        "Utilities"
+    ],
+    "myci-actions/add-deb-repo": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "joschi/setup-jdk": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "shimataro/ssh-key-action": [
+        "Deployment",
+        "Publishing"
+    ],
+    "MCKanpolat/auto-semver-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "easimon/maximize-build-space": [
+        "Utilities"
+    ],
+    "lukka/set-shell-env": [
+        "Utilities"
+    ],
+    "norio-nomura/action-swiftlint": [
+        "Code quality"
+    ],
+    "RollyPeres/base64-to-path": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "musps/action-deployer-php": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "5monkeys/cobertura-action": [
+        "Code quality",
+        "Testing"
+    ],
+    "chabad360/hugo-gh-pages": [
+        "Container CI",
+        "Deployment"
+    ],
+    "al-cheb/configure-pagefile-action": [
+        "Utilities"
+    ],
+    "actions-rs/cargo": [
+        "Dependency management",
+        "Open Source management"
+    ],
+    "canastro/copy-action": [
+        "Project management"
+    ],
+    "shogo82148/actions-setup-mysql": [
+        "Testing"
+    ],
+    "RalfG/python-wheels-manylinux-build": [
+        "Publishing",
+        "Deployment"
+    ],
+    "carlosperate/download-file-action": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "Roang-zero1/github-upload-release-artifacts-action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "getnikola/nikola-action": [
+        "Publishing",
+        "Deployment"
+    ],
+    "wangchucheng/git-repo-sync": [
+        "Open Source management",
+        "Continuous integration"
+    ],
+    "garygrossgarten/github-action-scp": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "andrewmusgrave/automatic-pull-request-review": [
+        "Open Source management",
+        "Code review"
+    ],
+    "release-drafter/release-drafter": [
+        "Publishing",
+        "Deployment"
+    ],
+    "technote-space/get-diff-action": [
+        "Utilities"
+    ],
+    "SwiftDocOrg/github-wiki-publish-action": [
+        "Utilities",
+        "Deployment"
+    ],
+    "dieghernan/cff-validator": [
+        "Publishing",
+        "Testing"
+    ],
+    "py-actions/flake8": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "reitermarkus/rerun-workflow": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "hendrikmuhs/ccache-action": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "ilammy/msvc-dev-cmd": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "timheuer/base64-to-file": [
+        "Utilities"
+    ],
+    "kentaro-m/task-completed-checker-action": [
+        "Utilities"
+    ],
+    "aki77/simplecov-report-action": [
+        "Code quality",
+        "Testing"
+    ],
+    "Gr1n/setup-poetry": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "nikosmoum/auto-assign-reviewer-team": [
+        "Project management",
+        "Code review"
+    ],
+    "egor-tensin/setup-clang": [
+        "IDEs",
+        "Utilities"
+    ],
+    "octokit/graphql-action": [
+        "Utilities"
+    ],
+    "daneden/enable-automerge-action": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "joutvhu/get-release": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "tibdex/backport": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "dcodeIO/setup-node-nvm": [
+        "Utilities"
+    ],
+    "dessant/repo-lockdown": [
+        "Project management",
+        "Open Source management"
+    ],
+    "reviewdog/action-hadolint": [
+        "Code review",
+        "Code quality"
+    ],
+    "gradle-update/update-gradle-wrapper-action": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "travisj/build-number-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "WebFreak001/deploy-nightly": [
+        "Deployment",
+        "Publishing"
+    ],
+    "tibdex/autosquash": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "dentarg/postgres": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "fregante/release-with-changelog": [
+        "Publishing",
+        "Utilities"
+    ],
+    "arduino/compile-sketches": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "hmanzur/actions-set-secret": [
+        "Utilities",
+        "Dependency management"
+    ],
+    "Vampire/setup-wsl": [
+        "Utilities"
+    ],
+    "repo-sync/pull-request": [
+        "Project management",
+        "Open Source management"
+    ],
+    "borales/actions-yarn": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "skeet70/default-project-board-action": [
+        "Project management",
+        "Community"
+    ],
+    "c-hive/gha-remove-artifacts": [
+        "Utilities"
+    ],
+    "golangci/golangci-lint-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "skjolber/maven-cache-github-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "get-woke/woke-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "radcortez/project-metadata-action": [
+        "Utilities"
+    ],
+    "treosh/lighthouse-ci-action": [
+        "Continuous integration",
+        "Monitoring"
+    ],
+    "dessant/lock-threads": [
+        "Project management",
+        "Open Source management"
+    ],
+    "dart-lang/setup-dart": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "returntocorp/semgrep-action": [
+        "Security",
+        "Continuous integration"
+    ],
+    "steebchen/kubectl": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "dorny/paths-filter": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "avto-dev/markdown-lint": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "tvdias/github-tagger": [
+        "Continuous integration"
+    ],
+    "egor-tensin/vs-shell": [
+        "IDEs",
+        "Utilities"
+    ],
+    "enriikke/gatsby-gh-pages-action": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "varunsridharan/action-apigen": [
+        "Code search",
+        "Utilities"
+    ],
+    "gerrymanoim/pr-prefix-labeler": [
+        "Project management",
+        "Publishing"
+    ],
+    "qcastel/github-actions-maven-release": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "naveenrajm7/rpmbuild": [
+        "Publishing",
+        "Deployment"
+    ],
+    "mad9000/actions-find-and-replace-string": [
+        "Utilities",
+        "Deployment"
+    ],
+    "srt32/git-actions": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "peter-evans/commit-comment": [
+        "Project management",
+        "Open Source management"
+    ],
+    "rohith/publish-nuget": [
+        "Publishing",
+        "Deployment"
+    ],
+    "rtCamp/action-slack-notify": [
+        "Reporting",
+        "Chat"
+    ],
+    "pullreminders/slack-action": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "reviewdog/action-rubocop": [
+        "Code review",
+        "Code quality"
+    ],
+    "cla-assistant/github-action": [
+        "Open Source management",
+        "Project management"
+    ],
+    "juliangruber/sleep-action": [
+        "Utilities"
+    ],
+    "deliverybot/status": [
+        "Deployment"
+    ],
+    "lemonarc/jekyll-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "Zomzog/changelog-checker": [
+        "Code quality",
+        "Code review"
+    ],
+    "TheDoctor0/zip-release": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "cycjimmy/semantic-release-action": [
+        "Utilities",
+        "Publishing"
+    ],
+    "adRise/update-pr-branch": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "shallwefootball/upload-s3-action": [
+        "Continuous integration"
+    ],
+    "marvinpinto/action-automatic-releases": [
+        "Publishing",
+        "Deployment"
+    ],
+    "srfrnk/current-time": [
+        "Time tracking"
+    ],
+    "hmarr/auto-approve-action": [
+        "Code review",
+        "Utilities"
+    ],
+    "aahmed-se/setup-maven": [
+        "Container CI"
+    ],
+    "i3h/download-release-asset": [
+        "Utilities"
+    ],
+    "hennejg/github-tag-action": [
+        "Continuous integration"
+    ],
+    "DeLaGuardo/setup-clojure": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "nucleos/auto-merge-action": [
+        "Continuous integration",
+        "Open Source management"
+    ],
+    "fedora-python/tox-github-action": [
+        "Testing"
+    ],
+    "skymatic/semver-validation-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "ibakshay/greet-contributors-action": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "qxip/please-star-light": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "warchant/setup-sonar-scanner": [
+        "Code quality",
+        "Utilities"
+    ],
+    "chabad360/htmlproofer": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "adamkdean/simple-slack-notify": [
+        "Reporting",
+        "Chat"
+    ],
+    "samuelmeuli/action-snapcraft": [
+        "Dependency management",
+        "Publishing"
+    ],
+    "skymatic/code-sign-action": [
+        "Security",
+        "Utilities"
+    ],
+    "cicirello/jacoco-badge-generator": [
+        "Testing",
+        "Utilities"
+    ],
+    "korelstar/xmllint-problem-matcher": [
+        "Code review",
+        "Reporting"
+    ],
+    "browniebroke/pre-commit-autoupdate-action": [
+        "Dependency management"
+    ],
+    "einaregilsson/build-number": [
+        "Continuous integration",
+        "Publishing"
+    ],
+    "systemd/mkosi": [
+        "Continuous integration"
+    ],
+    "deliverybot/deployment-status": [
+        "Deployment"
+    ],
+    "benjlevesque/short-sha": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "JasonEtco/create-an-issue": [
+        "Project management"
+    ],
+    "github-actions-x/commit": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "Thog/action-equals": [
+        "Utilities"
+    ],
+    "shogo82148/actions-setup-redis": [
+        "Utilities",
+        "Testing"
+    ],
+    "LadyCailin/azure-table-storage-upload": [
+        "Publishing"
+    ],
+    "skjnldsv/read-package-engines-version-actions": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "samin/mysql-action": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "gaurav-nelson/github-action-markdown-link-check": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "samuelmeuli/lint-action": [
+        "Code quality",
+        "Testing"
+    ],
+    "10up/action-wordpress-plugin-asset-update": [
+        "Publishing",
+        "Deployment"
+    ],
+    "glassechidna/artifact-cleaner": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "coursier/cache-action": [
+        "Dependency management"
+    ],
+    "arma-actions/sqflint": [
+        "Code quality"
+    ],
+    "mindsers/changelog-reader-action": [
+        "Open Source management",
+        "Publishing"
+    ],
+    "aurelien-baudet/workflow-dispatch": [
+        "Utilities"
+    ],
+    "w9jds/firebase-action": [
+        "Deployment"
+    ],
+    "andrewmcodes/rubocop-linter-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "nuuday/github-changelog-action": [
+        "Publishing",
+        "Continuous integration"
+    ],
+    "ASzc/change-string-case-action": [
+        "Utilities"
+    ],
+    "seanmiddleditch/gha-setup-vsdevenv": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "kurocha/setup-cpp": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "ammaraskar/sphinx-problem-matcher": [
+        "Publishing",
+        "Code quality"
+    ],
+    "apple-actions/import-codesign-certs": [
+        "Mobile CI",
+        "Mobile"
+    ],
+    "EndBug/latest-tag": [
+        "Utilities",
+        "Open Source management"
+    ],
+    "cclauss/Find-Python-syntax-errors-action": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "korelstar/phplint-problem-matcher": [
+        "Code review",
+        "Reporting"
+    ],
+    "niden/actions-memcached": [
+        "Container CI"
+    ],
+    "s3krit/matrix-message-action": [
+        "Chat",
+        "Reporting"
+    ],
+    "jannekem/run-python-script-action": [
+        "Utilities"
+    ],
+    "UnicornGlobal/has-changes-action": [
+        "Utilities",
+        "Testing"
+    ],
+    "fcakyon/conda-publish-action": [
+        "Publishing",
+        "Dependency management"
+    ],
+    "sudo-bot/action-doctum": [
+        "Utilities"
+    ],
+    "shogo82148/actions-upload-release-asset": [
+        "Publishing"
+    ],
+    "martincostello/update-dotnet-sdk": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "codelytv/pr-size-labeler": [
+        "Code review",
+        "Utilities"
+    ],
+    "mstachniuk/ci-skip": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "reviewdog/action-languagetool": [
+        "Code review",
+        "Code quality"
+    ],
+    "kielabokkie/ssh-key-and-known-hosts-action": [
+        "Deployment",
+        "Utilities"
+    ],
+    "pullpreview/action": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "tj-actions/branch-names": [
+        "Container CI",
+        "Continuous integration"
+    ],
+    "wearerequired/lint-action": [
+        "Code quality",
+        "Testing"
+    ],
+    "tiangolo/issue-manager": [
+        "Community",
+        "Open Source management"
+    ],
+    "openzim/docker-publish-action": [
+        "Container CI"
+    ],
+    "juankaram/sentry-release": [
+        "Deployment",
+        "Code quality"
+    ],
+    "whywaita/setup-lxd": [
+        "Deployment"
+    ],
+    "sarisia/actions-status-discord": [
+        "Reporting",
+        "Chat"
+    ],
+    "grassedge/git-pr-release-action": [
+        "Project management",
+        "Deployment"
+    ],
+    "dawidd6/action-get-tag": [
+        "Utilities",
+        "Publishing"
+    ],
+    "subosito/flutter-action": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "WyriHaximus/github-action-helm3": [
+        "Deployment"
+    ],
+    "tubone24/update_release": [
+        "Deployment",
+        "Publishing"
+    ],
+    "gleam-lang/setup-erlang": [
+        "Continuous integration"
+    ],
+    "dotnet/nbgv": [
+        "Continuous integration",
+        "Project management"
+    ],
+    "toolmantim/release-drafter": [
+        "Publishing",
+        "Deployment"
+    ],
+    "rojopolis/envkey-action": [
+        "Deployment",
+        "Utilities"
+    ],
+    "lsegal/github-release-from-changelog-action": [
+        "Project management",
+        "Open Source management"
+    ],
+    "roots/issue-closer": [
+        "Open Source management",
+        "Community"
+    ],
+    "stCarolas/setup-maven": [
+        "Continuous integration"
+    ],
+    "micnncim/action-label-syncer": [
+        "Open Source management",
+        "Utilities"
+    ],
+    "sbeyer/include-guards-check-action": [
+        "Code quality",
+        "Code review"
+    ],
+    "david-a-wheeler/flawfinder": [
+        "Code Scanning Ready",
+        "Security"
+    ],
+    "sphinx-notes/pages": [
+        "Publishing",
+        "Deployment"
+    ],
+    "cirrus-actions/rebase": [
+        "Code review",
+        "Utilities"
+    ],
+    "pat-s/always-upload-cache": [
+        "Dependency management",
+        "Continuous integration"
+    ],
+    "jwalton/gh-find-current-pr": [
+        "Utilities",
+        "Deployment"
+    ],
+    "technote-space/auto-cancel-redundant-job": [
+        "Utilities"
+    ],
+    "coditory/changelog-parser": [
+        "Continuous integration",
+        "Project management"
+    ],
+    "check-spelling/check-spelling": [
+        "Code review",
+        "Code quality"
+    ],
+    "glennawatson/ChangeLog": [
+        "Publishing",
+        "Utilities"
+    ],
+    "hadolint/hadolint-action": [
+        "Container CI",
+        "Code quality"
+    ],
+    "TriPSs/conventional-changelog-action": [
+        "Project management"
+    ],
+    "percy/storybook-action": [
+        "Testing",
+        "Continuous integration"
+    ],
+    "arkon/issue-closer-action": [
+        "Community",
+        "Open Source management"
+    ],
+    "vmactions/freebsd-vm": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "pozetroninc/github-action-get-latest-release": [
+        "Continuous integration",
+        "Dependency management"
+    ],
+    "cadwallion/publish-rubygems-action": [
+        "Publishing",
+        "Open Source management"
+    ],
+    "trilom/file-changes-action": [
+        "Code review",
+        "Utilities"
+    ],
+    "rumblefrog/setup-sp": [
+        "Continuous integration"
+    ],
+    "JuliaRegistries/TagBot": [
+        "Continuous integration"
+    ],
+    "ryankurte/action-apt": [
+        "Dependency management",
+        "Utilities"
+    ],
+    "lewagon/wait-on-check-action": [
+        "Continuous integration",
+        "Deployment"
+    ],
+    "pre-commit/action": [
+        "Code quality",
+        "Testing"
+    ],
+    "jupyterhub/action-major-minor-tag-calculator": [
+        "Continuous integration"
+    ],
+    "xmake-io/github-action-setup-xmake": [
+        "Utilities",
+        "IDEs"
+    ],
+    "warrenbuckley/Setup-MSBuild": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "lpenz/ghaction-pytest-cov": [
+        "Testing",
+        "Reporting"
+    ],
+    "papeloto/action-zip": [
+        "Publishing",
+        "Utilities"
+    ],
+    "warrenbuckley/Setup-Nuget": [
+        "Utilities",
+        "Continuous integration"
+    ],
+    "getong/mariadb-action": [
+        "Continuous integration",
+        "Container CI"
+    ],
+    "rinx/setup-graalvm-ce": [
+        "Utilities"
+    ],
+    "8398a7/action-slack": [
+        "Chat",
+        "Continuous integration"
+    ],
+    "s4u/maven-settings-action": [
+        "Continuous integration",
+        "Utilities"
+    ],
+    "ros-tooling/action-ros-ci": [
+        "Container CI",
+        "Utilities"
+    ],
+    "faberNovel/github-changelog-generator-action": [
+        "Continuous integration"
+    ],
+    "browser-actions/setup-firefox": [
+        "Continuous integration",
+        "Testing"
+    ],
+    "imciner2/run-lcov": [
+        "Code quality",
+        "Continuous integration"
+    ],
+    "yuzutech/annotations-action": [
+        "Code review",
+        "Code quality"
+    ],
+    "mikefarah/yq": [
+        "Deployment",
+        "Utilities"
+    ],
+    "jesusvasquez333/verify-pr-label-action": [
+        "Continuous integration",
+        "Project management"
+    ],
+    "symfonycorp/security-checker-action": [
+        "Security",
+        "Dependency management"
+    ],
+    "bobheadxi/deployments": [
+        "Deployment",
+        "Project management"
+    ],
+    "sreimers/pr-dependency-action": [
+        "Dependency management",
+        "Code review"
+    ],
+    "TomasVotruba/github-action-monorepo-split": [
+        "Open Source management"
+    ],
+    "ada-actions/toolchain": [
+        "Continuous integration",
+        "Code quality"
+    ],
+    "actions-ecosystem/action-add-labels": [
+        "Utilities",
+        "Project management"
+    ],
+    "deployphp/action": [
+        "Deployment",
+        "Continuous integration"
+    ],
+    "tim-actions/dco": [
+        "Continuous integration",
+        "Code review"
+    ],
+    "singingwolfboy/build-dpkg-buster": [
+        "Publishing"
+    ],
+    "vitalyliber/dokku-github-action": [
+        "Deployment"
+    ],
+    "ad-m/github-push-action": [
+        "Utilities",
+        "Deployment"
+    ]
+}

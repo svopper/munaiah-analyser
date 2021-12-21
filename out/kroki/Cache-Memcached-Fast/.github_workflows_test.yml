@@ -1,0 +1,82 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+
+        # All supported Perl versions except latest.
+        perl: [
+          '5.8',  '5.10', '5.12', '5.14', '5.16', '5.18', '5.20', '5.22',
+          '5.24', '5.26', '5.28', '5.30', '5.32'
+        ]
+
+        # Variants of the latest Perl.
+        include:
+          - no-memcached: true
+            os: macos-latest
+            perl: '5.34'
+
+          - no-memcached: true
+            os: windows-latest
+            perl: '5.34'
+
+          - name: ' (no memcached)'
+            no-memcached: true
+            os: ubuntu-latest
+            perl: '5.34'
+
+          # This is effectively our normal one, ithreads with cover and xt.
+          - name: ' (ithread, xt)'
+            cover: true
+            ithread: true
+            os: ubuntu-latest
+            perl: '5.34'
+            xt: true
+
+    runs-on: ${{ matrix.os }}
+
+    name: v${{ matrix.perl }} on ${{ matrix.os }}${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - if: ${{ !matrix.no-memcached }}
+        uses: niden/actions-memcached@v7
+
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          multi-thread: ${{ matrix.ithread }}
+          perl-version: ${{ matrix.perl }}
+
+      - run: perl -v
+
+      - run: cpanm --installdeps -n .
+
+      - if: ${{ matrix.cover }}
+        run: cpanm -n Devel::Cover::Report::Coveralls
+
+      - run: perl Makefile.PL
+
+      - if: ${{ !matrix.cover }}
+        run: make test
+
+      - if: ${{ matrix.cover }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cover -ignore_re '\.h$' -report Coveralls -test
+
+      - if: ${{ matrix.xt }}
+        run: |
+          cpanm -n Test::PerlTidy Test::Pod Test::Pod::Coverage
+          prove -blv xt

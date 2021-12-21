@@ -1,0 +1,16 @@
+name: Continuous Integration
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Ubuntu Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: "actions/setup-python@v2"
+        with:
+          python-version: "3.8"
+      - name: Install git-email
+        run: sudo add-apt-repository ppa:git-core/ppa && sudo apt-get update && sudo apt-get install -qy git-email
+      - name: Run the test suite
+        run: testing/run_tests.sh

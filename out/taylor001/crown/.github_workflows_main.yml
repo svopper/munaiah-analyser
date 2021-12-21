@@ -1,0 +1,137 @@
+name: build_and_test
+
+on: [push, pull_request]
+
+jobs:
+  android-arm:
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: prepare
+      run: |
+        sudo apt-get update
+        sudo apt-get install libc6-dev-i386
+    - name: android-arm-make-debug
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm-debug
+    - name: android-arm-make-development
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm-development
+    - name: android-arm-make-release
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm-release
+    - name: android-arm64-make-debug
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm64-debug
+    - name: android-arm64-make-development
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm64-development
+    - name: android-arm64-make-release
+      run: |
+        export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk-bundle
+        export ANDROID_NDK_ABI=23
+        make MAKE_JOBS=2 android-arm64-release
+  linux:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: prepare
+      run: |
+        sudo apt-get update
+        sudo apt-get install mesa-common-dev libgl1-mesa-dev libpulse-dev libxrandr-dev
+        sudo apt-get install libgtk-3-dev
+        sudo add-apt-repository ppa:vala-team
+        sudo apt-get install valac libgee-0.8-dev
+    - name: linux-make-debug64
+      run: |
+        make MAKE_JOBS=2 linux-debug64
+    - name: linux-test-debug64
+      run: |
+        cd ./build/linux64/bin && ./crown-debug --run-unit-tests
+    - name: linux-make-development64
+      run: |
+        make MAKE_JOBS=2 linux-development64
+    - name: linux-test-development64
+      run: |
+        cd ./build/linux64/bin && ./crown-development --run-unit-tests
+    - name: linux-make-release64
+      run: |
+        make MAKE_JOBS=2 linux-release64
+    - name: linux-test-release64
+      run: |
+        cd ./build/linux64/bin && ./crown-release --run-unit-tests
+    - name: linux-make-level-editor-debug64
+      run: |
+        make MAKE_JOBS=2 level-editor-linux-debug64
+    - name: linux-make-level-editor-release64
+      run: |
+        make MAKE_JOBS=2 level-editor-linux-release64
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: luajit
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        cd "3rdparty\luajit\src"
+        .\msvcbuild.bat
+    - name: luajit-copy-libs
+      shell: cmd
+      run: |
+        md "build\windows64\bin"
+        cp -r 3rdparty/luajit/src/jit 3rdparty/luajit/src/luajit.exe 3rdparty/luajit/src/lua51.dll 3rdparty/luajit/src/lua51.lib build/windows64/bin
+    - name: windows-generate-projects
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        3rdparty\bx\tools\bin\windows\genie --file=scripts\genie.lua --with-luajit --with-tools --no-level-editor vs2019
+    - name: windows-make-debug64
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        devenv build/projects/vs2019/crown.sln /Build "debug|x64"
+    - name: windows-test-debug64
+      run: |
+        ./build/windows64/bin/crown-debug --run-unit-tests
+    - name: windows-make-development64
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        devenv build/projects/vs2019/crown.sln /Build "development|x64"
+    - name: windows-test-development64
+      run: |
+        ./build/windows64/bin/crown-development --run-unit-tests
+    - name: windows-make-release64
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+        devenv build/projects/vs2019/crown.sln /Build "release|x64"
+    - name: windows-test-release64
+      run: |
+        ./build/windows64/bin/crown-release --run-unit-tests
+    - uses: msys2/setup-msys2@v2
+    - name: mingw-prepare
+      shell: msys2 {0}
+      run: |
+        pacman --noconfirm -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config mingw-w64-x86_64-gtk3 mingw-w64-x86_64-vala mingw-w64-x86_64-libgee
+    - name: mingw-make-level-editor-debug64
+      shell: msys2 {0}
+      run: |
+        export MINGW=/mingw64
+        make MAKE_JOBS=2 level-editor-mingw-debug64
+    - name: mingw-make-level-editor-release64
+      shell: msys2 {0}
+      run: |
+        export MINGW=/mingw64
+        make MAKE_JOBS=2 level-editor-mingw-release64

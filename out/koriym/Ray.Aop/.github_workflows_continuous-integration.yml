@@ -1,0 +1,68 @@
+name: "Continuous Integration"
+
+on:
+  ["pull_request", "push", "workflow_dispatch"]
+
+jobs:
+  phpunit:
+    name: "PHPUnit"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+          - "7.2"
+          - "7.3"
+          - "7.4"
+          - "8.0"
+        deps:
+          - "normal"
+        report-coverage:
+          - "nothing"
+        include:
+          - deps: "lowest"
+            php-version: "8.0"
+          - report-coverage: true
+            php-version: "8.0"
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v1
+
+      - name: "Setup PHP ${{ matrix.php-version }}"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: "pcov"
+          ini-values: "zend.assertions=1"
+
+      - name: "Get composer cache directory"
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: "Cache composer dependencies"
+        uses: actions/cache@v2
+        with:
+          path: "${{ steps.composer-cache.outputs.dir }}"
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: "Install dependencies with Composer"
+        run: "composer install --no-interaction --no-progress --prefer-dist"
+
+      - name: "Update lowest dependencies with Composer"
+        run: "composer update --prefer-dist --prefer-lowest"
+        if: "${{ matrix.deps == 'lowest' }}"
+
+      - name: "Run PHPUnit"
+        run: "./vendor/bin/phpunit --coverage-clover=coverage.xml"
+        if: "${{ matrix.report-coverage}}"
+
+      - name: "Upload coverage report"
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+        if: "${{ matrix.report-coverage}}"
+
+      - name: "Run demo"
+        run: "php ./demo/run.php"

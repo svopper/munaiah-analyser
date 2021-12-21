@@ -1,0 +1,32 @@
+name: Hesburgh API Gem CI
+
+on:
+  push:
+    branches-ignore: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ 2.1 ]
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+    # Setup ruby environment
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }} 
+    
+    # Install dependencies
+      - name: Run bundle install
+        run: bundle install
+
+    # Run test suite
+      - name: Run rspec
+        run: bundle exec rspec spec

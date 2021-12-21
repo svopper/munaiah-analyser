@@ -1,0 +1,125 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        PLONE_VERSION: [ 4.3, 5.1, 5.2 ]
+    services:
+      libreoffice:
+        image: xcgd/libreoffice:latest
+        ports:
+          - 2002:8997
+        volumes:
+          - /tmp:/tmp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 2
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+      - name: Setup Env
+        run: |
+          mkdir -p -m 777 /tmp/appy/
+          sudo apt update -qq -y
+          sudo apt-get install -qq -y libreoffice libreoffice-script-provider-python
+          sudo apt-get autoremove -qq -y
+          sudo apt-get autoclean -qq -y
+          mkdir -p buildout-cache/{eggs,downloads}
+          pip install -r requirements.txt
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Cache eggs
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-eggs
+        with:
+          path: ./buildout-cache/eggs ./eggs
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.PLONE_VERSION }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.PLONE_VERSION }}
+      - name: buildout
+        run: |
+          sed -ie "s#plone-5#plone-${{matrix.PLONE_VERSION}}#" test-ci.cfg
+          pip install -r requirements.txt coverage==5.3.1
+          buildout -c test-ci.cfg annotate
+          buildout -c test-ci.cfg
+          bin/translation-manage -c
+      - name: code-analysis
+        run: |
+          bin/code-analysis
+      - name: test
+        run: |
+          docker ps -a
+          bin/test --test=\!"robot"
+  coverage:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        PLONE_VERSION: [5.2]
+    services:
+      libreoffice:
+        image: xcgd/libreoffice:latest
+        ports:
+          - 2002:8997
+        volumes:
+          - /tmp:/tmp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 2
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+      - name: Setup Env
+        run: |
+          mkdir -p -m 777 /tmp/appy/
+          sudo apt update -qq -y
+          sudo apt-get install -qq -y libreoffice libreoffice-script-provider-python
+          sudo apt-get autoremove -qq -y
+          sudo apt-get autoclean -qq -y
+          mkdir -p buildout-cache/{eggs,downloads}
+          pip install -r requirements.txt
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Cache eggs
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-eggs
+        with:
+          path: ./buildout-cache/eggs ./eggs
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.PLONE_VERSION }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.PLONE_VERSION }}
+      - name: buildout
+        run: |
+          sed -ie "s#plone-5#plone-${{matrix.PLONE_VERSION}}#" test-ci.cfg
+          pip install -r requirements.txt coverage==5.3.1
+          buildout -c test-ci.cfg annotate
+          buildout -c test-ci.cfg
+          bin/translation-manage -c
+      - name: test coverage
+        run: |
+          bin/coverage run bin/test --test=\!"robot"
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install Coveralls
+        run: |
+          pip3 install -U pip setuptools --no-cache-dir
+          pip3 install -U "coveralls>=3.0.0" coverage==5.3.1 --no-cache-dir
+      - name: Publish to Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          coveralls --service=github

@@ -1,0 +1,60 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Build OpenGraph.Net
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ '**' ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build_and_test:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        dotnet-version: ['5.0.x']
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Runs a single command using the runners shell
+      - name: Setup .Net Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      
+      - name: Install Dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+        
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
+  publish:
+    needs: build_and_test
+    runs-on: windows-latest
+    env:
+      NUGET_KEY: ${{ secrets.NUGET_KEY }}
+      GITHUB_WORKSPACE: $GITHUB_WORKSPACE
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: pack
+        run: dotnet pack -c Release --include-symbols -o pack
+
+      - name: publish
+        run: |
+          dotnet nuget push $env:GITHUB_WORKSPACE\pack\*.nupkg -k "$env:NUGET_KEY" -s https://api.nuget.org/v3/index.json

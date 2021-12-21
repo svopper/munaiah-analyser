@@ -1,0 +1,46 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron:  '0 0 * * *' # once a day
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+
+      - name: Build and send apks to telegram
+        run: |
+          if [[ $(git rev-list --after="24 hours" main) ]]; then
+            # TODO: Clean up the duplication here
+            ./gradlew assembleMinApi17Nightly
+            apk_dir="$(find . -type f -iname *.apk)"
+            curl -F document=@"$apk_dir" https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument?chat_id=${{ secrets.TELEGRAM_TO }}
+            rm "$apk_dir"
+            ./gradlew assembleMinApi21Nightly
+            apk_dir="$(find . -type f -iname *.apk)"
+            curl -F document=@"$apk_dir" https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument?chat_id=${{ secrets.TELEGRAM_TO }}
+          fi
+
+      - name: Update the runtime dependencies report
+        run: |
+          ./gradlew PersianCalendar:dependencies --configuration minApi17ReleaseRuntimeClasspath | grep -e '--- ' > PersianCalendar/runtime-dependencies-report.txt
+          ./gradlew PersianCalendar:dependencies --configuration minApi21ReleaseRuntimeClasspath | grep -e '--- ' > PersianCalendar/runtime-dependencies-report-compose.txt
+
+      - name: Add and commit the report
+        uses: EndBug/add-and-commit@2d7c2e89fcb436f8e139cc80813bd030bdd40c4b
+        with:
+          default_author: github_actions
+          message: 'Update the runtime dependencies report'
+          add: PersianCalendar/*.txt

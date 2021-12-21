@@ -1,0 +1,61 @@
+name: Barst compilation
+
+on: [push, pull_request]
+
+jobs:
+  windows_test:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Compile barst
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+        devenv /upgrade Barst.sln
+        msbuild Barst.sln /p:Configuration=Release;Platform=x64
+        msbuild Barst.sln /p:Configuration=Release;Platform=Win32
+    - name: Upload x86
+      uses: actions/upload-artifact@master
+      with:
+        name: barst.exe
+        path: Release/Barst.exe
+    - name: Upload x64
+      uses: actions/upload-artifact@master
+      with:
+        name: barst_x64.exe
+        path: x64/Release/Barst.exe
+
+  docs:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install doxygen
+      run: |
+        sudo apt update
+        sudo apt -y install doxygen
+    - name: Generate docs
+      run: doxygen docs/Doxyfile
+    - name: gh-pages upload
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cp -r docs/build/html ~/docs_temp
+
+        git config --global user.email "moiein2000@gmail.com"
+        git config --global user.name "Matthew Einhorn"
+        git remote rm origin || true
+        git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/matham/barst.git"
+
+        git checkout --orphan gh-pages
+        cp -r .git ~/docs_git
+        cd ..
+        rm -rf barst
+        mkdir barst
+        cd barst
+        cp -r ~/docs_git .git
+        cp -r ~/docs_temp/* .
+        touch .nojekyll
+
+        git add .
+        git commit -a -m "Docs for git-$GITHUB_SHA"
+        git push origin gh-pages -f

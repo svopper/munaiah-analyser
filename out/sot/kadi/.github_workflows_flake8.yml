@@ -1,0 +1,21 @@
+name: Python flake8 check
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # Note: only check files in Ska.engarchive package.  Many other files in
+        # the repo are not maintained as PEP8 compliant.
+        flake8 . --count --exclude=docs,validate --ignore=E402,W503,W504,F541 --max-line-length=100 --show-source --statistics

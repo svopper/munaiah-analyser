@@ -1,0 +1,27 @@
+name: lint_python
+on:
+  pull_request:
+  push:
+  #  branches: [master]
+jobs:
+  lint_python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [2.7, 3.8]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install codespell flake8 isort
+      - if: matrix.python-version != 2.7
+        run: |
+          pip install --quiet black
+          black . --diff --skip-string-normalization || true
+      - run: codespell --ignore-words-list="gonna,process'" --quiet-level=2  # --skip=""
+      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - run: isort --recursive . || true
+      - run: pip install -r requirements.txt
+      - run: nosetests tests

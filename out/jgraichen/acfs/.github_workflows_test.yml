@@ -1,0 +1,27 @@
+name: Test
+on: push
+jobs:
+  test:
+    name: "Ruby: ${{ matrix.ruby }} Rails: ${{ matrix.rails }}"
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.0", "2.7", "2.6", "2.5"]
+        rails: ["6.1", "6.0", "5.2"]
+        exclude:
+          - ruby: "3.0"
+            rails: "5.2"
+
+    env:
+      BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - run: bundle exec rspec --color

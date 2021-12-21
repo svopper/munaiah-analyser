@@ -1,0 +1,29 @@
+name: Update locales
+on:
+  schedule:
+    - cron: '0 8 * * 1-5' #  At 8:00 on every Monday
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Run update scripts
+        run: |
+          pip install toml
+          python app/scripts/bugzilla_query.py
+          python app/scripts/update_sources.py
+
+      - run : git config --global user.email 'flodolo@users.noreply.github.com'
+      - uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "Update locales"
+          branch-suffix: "timestamp"
+          title: "Update locales"

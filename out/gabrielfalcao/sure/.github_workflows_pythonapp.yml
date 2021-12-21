@@ -1,0 +1,34 @@
+name: Sure Tests
+on: [push, pull_request]
+
+jobs:
+  python:
+    name: "Python"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python:
+          - 3.6.5
+          - 3.7.3
+          - 3.8.6
+          - 3.9.0
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install python version
+      uses: gabrielfalcao/pyenv-action@v7
+      with:
+        default: "${{ matrix.python }}"
+        command: pip install -U pip setuptools
+
+    - name: Install dependencies
+      run: pip install -r development.txt
+
+    - name: Install sure
+      run: pip install -e .
+
+    - name: Run tests with nose
+      run: nosetests --verbosity 2
+
+    - name: Test with pytest
+      run: pytest -vv

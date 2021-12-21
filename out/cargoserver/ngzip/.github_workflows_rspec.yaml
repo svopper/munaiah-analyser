@@ -1,0 +1,16 @@
+env:
+  RUBY_VERSION: 2.6.6
+name: Rspec tests
+on: [push,pull_request]
+jobs:
+  rspec-tests:
+    name: RSpec
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - name: Run tests
+        run: bundler exec rake

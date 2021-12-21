@@ -1,0 +1,30 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.php'
+      - composer.lock
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      XDEBUG_MODE: coverage
+    steps:
+    - uses: actions/checkout@v1
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v2
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    - name: Install dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: composer install --prefer-dist --no-progress
+    - name: Run test suite
+      run: php vendor/bin/phpunit --colors
+    - name: Uploading code coverage
+      run: php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover.xml

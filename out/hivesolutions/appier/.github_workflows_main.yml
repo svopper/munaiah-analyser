@@ -1,0 +1,41 @@
+name: Main Workflow
+on: [push]
+jobs:
+  build:
+    name: Build
+    strategy:
+      matrix:
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9, rc]
+    runs-on: ubuntu-latest
+    container: python:${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - run: python --version
+      - run: |
+          pip install -r requirements.txt
+          pip install -r extra.txt
+        if: matrix.python-version != '2.7'
+      - run: |
+          pip install -r requirements.py2.txt
+          pip install -r extra.py2.txt
+        if: matrix.python-version == '2.7'
+      - run: ADAPTER=tiny HTTPBIN=httpbin.bemisc.com python setup.py test
+  build-pypy:
+    name: Build PyPy
+    strategy:
+      matrix:
+        python-version: [2.7, 3.6]
+    runs-on: ubuntu-latest
+    container: pypy:${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - run: pypy --version
+      - run: |
+          pip install -r requirements.txt
+          pip install -r extra.txt
+        if: matrix.python-version != '2.7'
+      - run: |
+          pip install -r requirements.py2.txt
+          pip install -r extra.py2.txt
+        if: matrix.python-version == '2.7'
+      - run: ADAPTER=tiny HTTPBIN=httpbin.bemisc.com pypy setup.py test

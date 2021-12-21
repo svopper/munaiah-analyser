@@ -1,0 +1,118 @@
+name: GitHub-CI
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - '**.py'
+  pull_request:
+    branches: [ master ]
+    paths:
+    - '**.py'
+
+jobs:
+
+  ubuntu:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: ./brink.sh deps
+
+    - name: Lint
+      run: ./brink.sh lint
+
+    - name: Rename build to unicode
+      run: mv build-keycert build-keycert-ț
+
+    - name: Test
+      run: ./brink.sh test
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        CHEVAH_BUILD: 'build-keycert-ț'
+
+    - name: Rename build from unicode for cache
+      run: mv build-keycert-ț build-keycert
+
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: ./brink.sh deps
+
+    - name: Test
+      run: ./brink.sh test
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: sh ./brink.sh deps
+
+    - name: Test
+      run: sh ./brink.sh test
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+
+  keys-interop:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { test_type: load_dsa }
+          - { test_type: load_rsa }
+          - { test_type: load_eced }
+          - { test_type: generate }
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build-keycert
+        key: ${{ runner.os }}-${{ hashFiles('setup.py') }}
+
+    - name: Deps
+      run: |
+        sudo apt-get --quiet install putty-tools
+        ./brink.sh deps
+
+    - name: Test
+      run: ./brink.sh test_interop_${{ matrix.config.test_type }}

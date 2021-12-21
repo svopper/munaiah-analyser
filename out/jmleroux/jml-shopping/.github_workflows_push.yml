@@ -1,0 +1,26 @@
+name: docker-compose-actions-workflow
+on: push
+jobs:
+    api-tests:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/cache@v2
+                name: Cache composer files
+                with:
+                    path: ~/.composer
+                    key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                    restore-keys: |
+                        ${{ runner.os }}-composer-
+            -   name: Change composer cache owner
+                run: |
+                    sudo chown -R 1000:1000 ~/.composer
+                    sudo chown -R 1000:1000 ..
+            -   name: Vendor
+                run: make vendor
+            -   name: Database
+                run: APP_ENV=test make database
+            -   name: Test
+                run: |
+                    APP_ENV=test docker-compose run -e PHP_XDEBUG_ENABLED=0 --rm fpm ./vendor/bin/phpspec run
+                    APP_ENV=test docker-compose run -e PHP_XDEBUG_ENABLED=0 -e SYMFONY_DEPRECATIONS_HELPER=disabled --rm fpm ./vendor/bin/simple-phpunit ${path}

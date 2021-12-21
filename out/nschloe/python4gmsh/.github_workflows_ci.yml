@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - uses: actions/checkout@v2
+      - run: |
+          pip install sphinx sphinx-autodoc-typehints
+          sphinx-build -M html doc/ build/
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Run pre-commit
+        uses: pre-commit/action@v2.0.3
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v2
+      # install gmsh from system -- not sure why this is necessary
+      - name: Install gmsh
+        run: |
+          sudo apt-get install -y python3-gmsh
+      - name: Test with tox
+        run: |
+          pip install tox
+          tox -- --cov pygmsh --cov-report xml --cov-report term
+      - uses: codecov/codecov-action@v1
+        if: ${{ matrix.python-version == '3.9' }}

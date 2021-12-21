@@ -1,0 +1,44 @@
+name: Zooni CI
+on:
+  pull_request:
+  push: { branches: master }
+env:
+  DATABASE_URL: postgresql://talk:password@localhost/gh_ci_test
+  PANOPTES_DATABASE_URL: postgresql://talk:password@localhost/gh_ci_panoptes_test
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11-alpine
+        env:
+          POSTGRES_USER: talk
+          POSTGRES_PASSWORD: password
+        ports: ['5432:5432']
+        options:
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.5
+          bundler-cache: true
+      - name: Install PG Client
+        run: |
+          sudo apt-get -yqq install libpq-dev
+      - name: Setup Databases
+        run: |
+          RAILS_ENV=test bundle exec rake db:create
+          RAILS_ENV=test bundle exec rake db:schema:load
+          RAILS_ENV=panoptes_test bundle exec rake db:create
+          RAILS_ENV=test bundle exec rake panoptes:db:create_tables
+          RAILS_ENV=test bundle exec rake panoptes:db:setup
+      - name: Run tests
+        run: bundle exec rspec
+        env:
+           RAILS_ENV: test

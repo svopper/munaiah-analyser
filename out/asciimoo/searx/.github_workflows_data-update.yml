@@ -1,0 +1,66 @@
+name: "Update searx.data"
+on:
+  schedule:
+    - cron: "05 06 1 * *"
+  workflow_dispatch:
+
+jobs:
+  updateData:
+    name: Update data - ${{ matrix.fetch }}
+    runs-on: ubuntu-20.04
+    if: ${{ github.repository_owner == 'searx'}}
+    strategy:
+      matrix:
+        fetch:
+          - update_ahmia_blacklist.py
+          - update_currencies.py
+          - update_external_bangs.py
+          - update_firefox_version.py
+          - update_languages.py
+          - update_wikidata_units.py
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Ubuntu packages
+        run: |
+          sudo ./utils/searx.sh install packages
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+
+      - name: Install Python dependencies
+        run: |
+          make V=1 install
+
+      - name: Fetch data
+        env:
+          FETCH_SCRIPT: ./searx_extra/update/${{ matrix.fetch }}
+        run: |
+          V=1 ./manage pyenv.cmd python "$FETCH_SCRIPT"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.DATA_PR_TOKEN }}
+          commit-message: Update searx.data - ${{ matrix.fetch }}
+          committer: searx-bot <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: update_data_${{ matrix.fetch }}
+          delete-branch: true
+          draft: false
+          title: 'Update searx.data - ${{ matrix.fetch }}'
+          body: |
+            Update searx.data - ${{ matrix.fetch }}
+          labels: |
+            data
+
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"

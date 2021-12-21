@@ -1,0 +1,201 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  main:
+    strategy:
+      matrix:
+        compiler: [ gcc, clang ]
+    runs-on: ubuntu-20.04
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Local Python fix
+      run: |
+        # Hack to get setup-python to work on act
+        # (see https://github.com/nektos/act/issues/251)
+        if [ ! -f "/etc/lsb-release" ]; then
+          echo "DISTRIB_RELEASE=20.04" > /etc/lsb-release
+        fi
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Cache dependencies
+      uses: actions/cache@v1.0.3
+      id: cache-dependencies
+      with:
+        path: "~/.cache"
+        key: dependencies-v1
+    - name: Install dependencies
+      env:
+        CACHE_HIT: ${{ steps.cache-dependencies.outputs.cache-hit }}
+        PKGS: "libmumps-dev libarpack2-dev libhypre-dev libparmetis-dev libmetis-dev lcov     \
+               ibverbs-providers libarpack2 libcaf-openmpi-3 libcoarrays-dev libparmetis4.0   \
+               libcoarrays-openmpi-dev libcombblas1.16.0 libcommon-sense-perl libevent-dev    \
+               libevent-extra-2.1-7 libevent-openssl-2.1-7 libfabric1 libgd-perl              \
+               libhwloc-dev libhwloc-plugins libhwloc15 libhypre libibverbs-dev libibverbs1   \
+               libjson-perl libjson-xs-perl libmetis5 libmumps-5.2.1 libnl-3-200              \
+               libnl-3-dev libnl-route-3-200 libnl-route-3-dev libnuma-dev libopenmpi-dev     \
+               libopenmpi3 libperlio-gzip-perl libpmix2 libpsm-infinipath1 libpsm2-2          \
+               librdmacm1 libscalapack-mpi-dev libscalapack-openmpi-dev                       \
+               libscalapack-openmpi2.1 libsuperlu-dev libsuperlu-dist6 libsuperlu5            \
+               libtypes-serialiser-perl libxnvctrl0 mpi-default-bin mpi-default-dev           \
+               ocl-icd-libopencl1 openmpi-bin openmpi-common"
+      run: |
+        if [[ "$CACHE_HIT" == "true" ]]; then
+          mv ~/.cache/.local ~/.local
+          sudo cp --force --recursive ~/.cache/lib/* /lib
+          rm -rf ~/.cache/lib
+          sudo cp --force --recursive ~/.cache/* /
+          sudo update-alternatives --install /usr/include/x86_64-linux-gnu/mpi mpi-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openmpi/include 0
+          sudo update-alternatives --install /usr/lib/x86_64-linux-gnu/libpsm_infinipath.so.1 libpsm_infinipath.so.1 /usr/lib/libpsm1/libpsm_infinipath.so.1.16 0
+        else
+          sudo apt-get update && sudo apt-get install -yq `echo $PKGS`
+          mkdir -p ~/.cache
+          for pkg in `echo $PKGS`; do
+              for dep in $pkg; do
+                  dpkg -L $dep | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/.cache/
+              done
+          done
+          pip install --user mpi4py numpy scipy
+          cp -R ~/.local ~/.cache
+          rm -rf ~/.cache/pip
+        fi
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 0
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 0
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 0
+        sudo update-alternatives --set g++ /usr/bin/g++-10
+        sudo update-alternatives --set gcc /usr/bin/gcc-10
+        sudo update-alternatives --set gfortran /usr/bin/gfortran-10
+    - name: Build and test with MUMPS and single-precision complex scalars
+      env:
+        CC: ${{ matrix.compiler }}
+      run: |
+        if [ "$CC" = "clang" ]; then
+          export OMPI_CC=clang && export OMPI_CXX=clang++;
+          echo -e "MPICXX ?= mpicxx.openmpi \nMPICC ?= mpicc.openmpi\n" | cat - Make.inc/Makefile.Actions > Makefile.inc
+        else
+          echo -e "MPICXX ?= mpicxx.openmpi -fprofile-arcs -ftest-coverage\nMPICC ?= mpicc.openmpi -fprofile-arcs -ftest-coverage\n" | cat - Make.inc/Makefile.Actions > Makefile.inc
+        fi
+        export HPDDMFLAGS="-DFORCE_SINGLE -DFORCE_COMPLEX"
+        make python
+        make test_c test_cpp test_python
+        if [ "$CC" = "gcc" ]; then
+          lcov --directory . --capture --output-file coverage1.info
+        fi
+        make clean
+    - name: Build and test with BoomerAMG
+      env:
+        CC: ${{ matrix.compiler }}
+      run: |
+        if [ "$CC" = "clang" ]; then export OMPI_CC=clang && export OMPI_CXX=clang++; fi
+        export HPDDMFLAGS="-DGENERAL_CO -DHPDDM_NUMBERING=\'F\'"
+        export SOLVER=HYPRE
+        make python
+        make test_c test_cpp test_python test_bin/driver test_bin/custom_operator_c test_bin/schwarzFromFile_cpp
+        if [ "$CC" = "gcc" ]; then
+          export OMPI_FC=gfortran
+          make test_fortran
+        fi
+        if [ "$CC" = "gcc" ]; then
+          lcov --directory . --capture --output-file coverage2.info
+        fi
+        make clean
+    - name: Build and test with mixed-precision arithmetic
+      env:
+        CC: ${{ matrix.compiler }}
+      run: |
+        if [ "$CC" = "clang" ]; then export OMPI_CC=clang && export OMPI_CXX=clang++; fi
+        export HPDDMFLAGS="-DHPDDM_NUMBERING=\'F\' -DHPDDM_MIXED_PRECISION=1"
+        make test_cpp
+        if [ "$CC" = "gcc" ]; then
+          lcov --directory . --capture --output-file coverage3.info
+        fi
+        make clean
+      if: matrix.compiler == 'gcc'
+    - name: Fetch PETSc and data files
+      run: |
+        export BRANCH=`git ls-remote --heads https://gitlab.com/petsc/petsc.git "refs/heads/jolivet/*hpddm*" | tail -n 1 | cut -d'/' -f3-`
+        if [ "$BRANCH" = "" ]; then export BRANCH=`git ls-remote --heads https://gitlab.com/petsc/petsc.git "refs/heads/jolivet/*htool*" | tail -n 1 | cut -d'/' -f3-`; fi
+        if [ "$BRANCH" = "" ]; then export BRANCH=`git ls-remote --heads https://gitlab.com/petsc/petsc.git "refs/heads/jolivet/*feature*" | tail -n 1 | cut -d'/' -f3-`; fi
+        if [ "$BRANCH" = "" ]; then export BRANCH="main"; fi
+        cd .. && git clone --depth 1 -b ${BRANCH} --single-branch https://gitlab.com/petsc/petsc.git && cd petsc
+        wget -nv http://jolivet.perso.enseeiht.fr/petsc_datafiles.tar.gz && tar xzf petsc_datafiles.tar.gz
+    - name: Build and test with PETSc and SLEPc
+      env:
+        CC: ${{ matrix.compiler }}
+      run: |
+        if [ "$CC" = "clang" ]; then export OMPI_CC=clang && export OMPI_CXX=clang++;
+        else export COVERAGE_FLAGS="-fprofile-arcs -ftest-coverage"; fi
+        cd ../petsc
+        export REPOSITORY_NAME="$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
+        bash ../${REPOSITORY_NAME}/.github/workflows/aldaas2021robust.sh
+        export PETSC_DIR=${PWD} && export DATAFILESPATH=${PWD}/datafiles
+        export PETSC_ARCH=arch-ci
+        export CXXPPFLAGS="-Wall -Wpedantic -Werror -Wno-c99-extensions -Wno-sign-compare"
+        export TYPE=double
+        export INT64=0
+        export SUBSOLVER=PETSC
+        export LD_LIBRARY_PATH_0=${LD_LIBRARY_PATH}
+        sed -i -e 's=$(PETSC_COMPILE.cxx) $(abspath $<) -o $@=$(PETSC_COMPILE.cxx) $(subst impls/hpddm/,,$(subst petsc/src/ksp,'"${REPOSITORY_NAME}"'/interface/petsc,$(abspath $<))) -o $(subst impls/hpddm/,,$(subst obj/ksp,../../'"${REPOSITORY_NAME}"'/interface/petsc,$@))=;s=$(call quiet,CLINKER) $(sl_linker_args) -o $@ $^ $(PETSC_EXTERNAL_LIB_BASIC)=$(call quiet,CLINKER) $(sl_linker_args) -o $@ $(filter-out %/hpddm/hpddm.o,$^) $(subst impls/hpddm/,,$(subst obj/ksp,../../'"${REPOSITORY_NAME}"'/interface/petsc,$(filter %/hpddm/hpddm.o,$^))) $(PETSC_EXTERNAL_LIB_BASIC)=' gmakefile
+        sed -i -e 's=starttime: pre-clean $(libpetscall)=starttime: pre-clean=;s=$(testexe.c) $(testexe.cu) : $(TESTDIR)/% : $(TESTDIR)/%.o $$^ $(libpetscall)=$(testexe.c) $(testexe.cu) : $(TESTDIR)/% : $(TESTDIR)/%.o $$^=;s=$(call quiet,CLINKER) -o $@ $^ $(PETSC_TEST_LIB=$(call quiet,CLINKER) -o $@ $^ $(libpetscall) $(PETSC_TEST_LIB=g' gmakefile.test
+        sed -i -e 's=\( SETERRQ.*\);=\1; // LCOV_EXCL_LINE=g' src/ksp/*/impls/hpddm/hpddm.cxx
+        sed -i -e '1N;$!N;s=\(.*{\)\n\(.*PetscInfo.*\)\n\(.*}\)=\1\n\2 // LCOV_EXCL_LINE\n\3=;P;D' src/ksp/*/impls/hpddm/hpddm.cxx
+        diff src/ksp/ksp/impls/hpddm/hpddm.cxx ../${REPOSITORY_NAME}/interface/petsc/ksp/hpddm.cxx || (echo KSPHPDDM source file has diverged; exit 1)
+        diff src/ksp/pc/impls/hpddm/hpddm.cxx ../${REPOSITORY_NAME}/interface/petsc/pc/hpddm.cxx || (echo PCHPDDM source file has diverged; exit 1)
+        for PRECISION in single double
+        do
+          for TYPE in complex real
+          do
+            for INT64 in 1 0
+            do
+              if [ "$INT64" = "1" ] && { { [ "$TYPE" = "double" ] && [ "$PRECISION" = "complex" ]; } || { [ "$TYPE" = "single" ] && [ "$PRECISION" = "real" ]; } }; then continue; fi
+              unset HPDDMFLAGS
+              export EXTERNALPACKAGES="--with-scalapack-lib=/usr/lib/x86_64-linux-gnu/libscalapack-openmpi.so"
+              if [ "$PRECISION" = "double" ]; then
+                export EIGENSOLVER=SLEPC
+              else
+                unset EIGENSOLVER
+              fi
+              if [ "$INT64" = "0" ]; then
+                if { [ "$PRECISION" != "double" ] || [ "$TYPE" != "real" ] || [ "$CC" != "gcc" ]; }; then export EXTERNALPACKAGES="${EXTERNALPACKAGES} --with-mumps-include=/usr/include --with-mumps-lib=[/usr/lib/x86_64-linux-gnu/libcmumps.so,/usr/lib/x86_64-linux-gnu/libdmumps.so,/usr/lib/x86_64-linux-gnu/libzmumps.so,/usr/lib/x86_64-linux-gnu/libsmumps.so,/usr/lib/x86_64-linux-gnu/libpord.so,/usr/lib/x86_64-linux-gnu/libmumps_common.so]"; fi
+                if [ "$PRECISION" = "double" ]; then
+                  export EXTERNALPACKAGES="${EXTERNALPACKAGES} --with-metis-include=/usr/include --with-metis-lib=/usr/lib/x86_64-linux-gnu/libmetis.so --with-parmetis-include=/usr/include --with-parmetis-lib=/usr/lib/libparmetis.so --download-htool"
+                  if [ "$TYPE" = "real" ]; then
+                    export EXTERNALPACKAGES="${EXTERNALPACKAGES} --download-triangle --download-suitesparse"
+                    if [ "$CC" = "gcc" ]; then export EXTERNALPACKAGES="${EXTERNALPACKAGES} --download-hwloc --download-mumps --with-openmp"; fi
+                  fi
+                fi
+              fi
+              ./configure --with-fortran-bindings=0 --with-cc=mpicc.openmpi --with-cxx=mpicxx.openmpi --with-fc=mpif90.openmpi --with-mpiexec=mpirun.openmpi --with-x=0 --download-slepc --download-hpddm=../${REPOSITORY_NAME} --download-hpddm-commit=HEAD 'CXXPPFLAGS=${CXXPPFLAGS}' --with-64-bit-indices=${INT64} --with-scalar-type=${TYPE} --with-precision=${PRECISION} ${EXTERNALPACKAGES}
+              [ -z "`diff -rq ${PETSC_ARCH}/include ../${REPOSITORY_NAME}/include | grep -v Only`" ] || exit 1
+              rm -rf ${PETSC_ARCH}/include/HPDDM* && sed -i -e 's@petsc/arch-ci/externalpackages/git.hpddm@${REPOSITORY_NAME}@g' -e 's@hpddm_petsc.cpp@hpddm_petsc.cpp ${COVERAGE_FLAGS}@' ${PETSC_ARCH}/lib/petsc/conf/petscrules
+              make all "CXX=mpicxx.openmpi `echo ${COVERAGE_FLAGS}` -I`pwd`/../`echo ${REPOSITORY_NAME}`/include" "CLINKER=mpicc.openmpi `echo ${COVERAGE_FLAGS}`" || (cat ${PETSC_ARCH}/externalpackages/git.slepc/${PETSC_ARCH}/lib/slepc/conf/configure.log 2> /dev/null; cat ${PETSC_ARCH}/lib/petsc/conf/hpddm.log 2> /dev/null; exit 1)
+              cat ${PETSC_ARCH}/lib/petsc/conf/hpddm.log
+              make -f gmakefile test 'query=requires' 'queryval=*hpddm*' 'PETSCMPIEXEC=mpirun.openmpi --oversubscribe --mca btl_base_warn_component_unused 0' "CC=mpicc.openmpi `echo ${COVERAGE_FLAGS}`" "CLINKER=mpicc.openmpi `echo ${COVERAGE_FLAGS}`" EXTRA_OPTIONS='-malloc_dump' check-test-errors
+              if [ "$PRECISION" = "single" ]; then export HPDDMFLAGS="-DFORCE_SINGLE"; fi
+              if [ "$TYPE" = "complex" ]; then export HPDDMFLAGS="${HPDDMFLAGS} -DFORCE_COMPLEX"; fi
+              cd ../${REPOSITORY_NAME}
+              export LD_LIBRARY_PATH=${LD_LIBRARY_PATH_0}:${PETSC_DIR}/${PETSC_ARCH}/lib
+              make cpp
+              if [ "$CC" = "gcc" ]; then
+                make test_cpp
+                lcov --directory . --directory ../petsc --capture --output-file coverage_${PRECISION}_${TYPE}_${INT64}.info
+              fi
+              make clean
+              cd ../petsc && rm -rf ${PETSC_ARCH}
+            done
+          done
+        done
+    - name: Merge and upload coverage reports
+      run: |
+        find . -name "coverage*.info" -exec echo -a {} \; | xargs lcov -o coverage.info
+        lcov --remove coverage.info '/usr/*' '*petsc/arch*' --output-file coverage.info
+        bash <(curl -s https://codecov.io/bash) -f coverage.info;
+      if: matrix.compiler == 'gcc'

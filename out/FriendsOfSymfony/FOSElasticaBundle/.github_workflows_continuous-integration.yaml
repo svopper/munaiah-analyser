@@ -1,0 +1,86 @@
+name: 'Continuous integration'
+on: ['push', 'pull_request']
+jobs:
+  cs:
+    runs-on: 'ubuntu-latest'
+    name: 'Coding style'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v2'
+
+      - name: 'Setup PHP'
+        uses: 'shivammathur/setup-php@v2'
+        with:
+          php-version: '7.4'
+          coverage: 'none'
+          extensions: 'json, mbstring, tokenizer'
+          tools: 'composer-normalize, php-cs-fixer:3.0.0'
+
+      - name: 'Display tools versions'
+        run: |
+          composer-normalize --version
+          php-cs-fixer --version
+
+      - name: 'Check PHP code'
+        run: 'php-cs-fixer fix --diff --dry-run --allow-risky=yes --using-cache=no'
+
+      - name: 'Check composer.json'
+        run: 'composer-normalize --diff --dry-run --no-update-lock'
+        if: 'always()'
+
+  phpunit:
+    runs-on: 'ubuntu-20.04'
+    name: 'PHPUnit (PHP ${{ matrix.php }}, ES ${{ matrix.elasticsearch }})'
+    timeout-minutes: 10
+    env:
+      SYMFONY_REQUIRE: "${{ matrix.symfony_require }}"
+    strategy:
+      matrix:
+        include:
+          - php: '7.4'
+            elasticsearch: '7.0.0'
+            dependencies: 'lowest'
+            symfony_require: '4.4.*'
+          - php: '7.4'
+            elasticsearch: '7.9.0'
+            dependencies: 'highest'
+            symfony_require: '5.3.*'
+          - php: '8.0'
+            elasticsearch: '7.11.0'
+            dependencies: 'highest'
+            symfony_require: '5.3.*'
+      fail-fast: false
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@v2'
+
+      - name: 'Setup PHP'
+        uses: 'shivammathur/setup-php@v2'
+        with:
+          php-version: '${{ matrix.php }}'
+          coverage: 'none'
+          tools: 'pecl, composer:v2'
+          extensions: 'curl, json, mbstring, mongodb-1.9.0, openssl'
+
+      - name: "Globally install symfony/flex"
+        run: "composer global require --no-progress --no-scripts --no-plugins symfony/flex"
+
+      - name: "Install Composer dependencies (${{ matrix.dependencies }})"
+        uses: "ramsey/composer-install@v1"
+        with:
+            dependency-versions: "${{ matrix.dependencies }}"
+            composer-options: "--prefer-dist --prefer-stable"
+
+      - name: 'Setup Elasticsearch'
+        run: |
+          sudo swapoff -a
+          sudo sysctl -w vm.swappiness=1
+          sudo sysctl -w fs.file-max=262144
+          sudo sysctl -w vm.max_map_count=262144
+          docker network create elastic
+          docker run -d --name=elasticsearch --network=elastic -p 9200:9200 -e discovery.type=single-node -e node.name=es docker.elastic.co/elasticsearch/elasticsearch:${{ matrix.elasticsearch }} sh -c "./bin/elasticsearch-plugin install --batch ingest-attachment && /usr/local/bin/docker-entrypoint.sh"
+          docker run --rm --network=elastic curlimages/curl --max-time 120 --retry-max-time 120 --retry 120 --retry-delay 5 --retry-all-errors --show-error --silent http://elasticsearch:9200
+
+      - name: 'Run unit tests'
+        run: |
+          vendor/bin/phpunit

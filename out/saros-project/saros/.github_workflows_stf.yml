@@ -1,0 +1,38 @@
+name: STF Tests
+
+on:
+  push:
+    branches:
+      - 'pr/stf/**'
+      - 'master'
+
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'eclipse/**'
+      - 'stf/**'
+      - 'stf.test/**'
+
+  workflow_dispatch:
+    inputs:
+      arguments:
+        description: "run_stf.sh arguments"
+
+jobs:
+  stf:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Run STF Tests
+      run: ./run_stf.sh --ci --aggregate ${{ github.event.inputs.arguments }}
+
+    - name: Upload STF results
+      uses: actions/upload-artifact@v1
+      if: always()
+      with:
+        name: stf-test-results
+        path: test_results
+

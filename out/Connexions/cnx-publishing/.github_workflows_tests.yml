@@ -1,0 +1,37 @@
+---
+name: tests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+jobs:
+  tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: ["2.7"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Lint
+        run: |
+          pip install -r requirements/lint.txt
+          flake8 --exclude=cnxpublishing/tests *.py cnxpublishing/
+          flake8 --max-line-length=200 cnxpublishing/tests
+      - name: Test
+        run: |
+          docker-compose build
+          docker-compose up -d
+          sleep 10
+          docker-compose exec -T db psql -U postgres -d postgres -c "CREATE USER cnxarchive WITH SUPERUSER PASSWORD 'cnxarchive';"
+          docker-compose exec -T db createdb -U postgres -O cnxarchive cnxarchive-testing
+          ci_env=`bash <(curl -s https://codecov.io/env)`
+          docker-compose run $ci_env test bin/test

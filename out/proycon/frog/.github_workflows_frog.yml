@@ -1,0 +1,211 @@
+name: C/C++ CI
+
+on:
+  schedule:
+    - cron: "0 23 * * 6"
+
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - '.github/**'
+
+  pull_request:
+    branches: [master]
+
+jobs:
+  notification:
+    runs-on: ubuntu-latest
+    name: Notify start to IRC/gitlama
+    steps:
+      - name: IRC notification
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GitHub
+          message: |-
+            ${{ github.actor }} started a build of Frog
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [g++, clang++]
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v2
+      - name: Install Build Environment
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install pkg-config autoconf-archive
+             else
+                brew upgrade;
+                brew install pkg-config
+                brew install autoconf-archive
+                brew install autoconf
+                brew install automake
+             fi
+      - name: Install Dependencies
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install libicu-dev libxml2-dev libbz2-dev
+                sudo apt-get install zlib1g-dev libtar-dev libexttextcat-dev
+                sudo apt-get install expect cppcheck
+             else
+                brew install libxml2
+                brew install bzip2
+                brew install zlib
+                brew install libtar
+                brew install libtextcat
+                brew install telnet
+                brew install cppcheck
+             fi
+      - name: install TiccUtils
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/ticcutils;
+          cd ticcutils;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install libfolia
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/libfolia;
+          cd libfolia;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install uctodata
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/uctodata;
+          cd uctodata;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install ucto
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/ucto;
+          cd ucto;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install timbl
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/timbl;
+          cd timbl;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install mbt
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/mbt;
+          cd mbt;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: install frogdata
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/LanguageMachines/frogdata;
+          cd frogdata;
+          bash bootstrap.sh;
+          ./configure;
+          make;
+          sudo make install;
+          cd ..;
+
+      - name: bootstrap
+        run: sh bootstrap.sh
+      - name: configure
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: ./configure
+      - name: compiler-id
+        id: compiler
+        run: |
+          id=$(echo ${{matrix.compiler}} | cut -d\+ -f1)
+          echo "::set-output name=id::$id"
+      - name: Static Code-check
+        run: cppcheck --enable=all --quiet --error-exitcode=0 .
+      - name: make
+        run: make
+      - name: install
+        run: sudo make install
+      - name: check
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib make check
+        continue-on-error: true
+
+      - name: frogtests
+        run: |
+          git clone --depth=1 --single-branch https://github.com/LanguageMachines/frogtests.git;
+          cd frogtests;
+          frog_bin=/usr/local/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib ./testaction.sh;
+          TEST_STAT=$(cat status.tmp)
+          echo "test_status=$TEST_STAT" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: show log on failure
+        if: ${{ env.test_status != '0' }}
+        run: |
+          cat frogtests/testxmlin.diff
+
+      - name: Notify IRC of failure
+
+        if: ${{ env.test_status != '0' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            Building Frog with ${{ matrix.compiler }} by ${{ github.actor }} on ${{ matrix.os }}: FAILED
+
+      - name: Notify IRC of success
+        if: ${{ env.test_status == '0' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            Building Frog with ${{ matrix.compiler }} by ${{ github.actor }} on ${{ matrix.os }}: SUCCESS

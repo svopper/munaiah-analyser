@@ -1,0 +1,121 @@
+name: Build and test
+on: push
+jobs:
+  mysql:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        options: --health-cmd "mysqladmin ping -h localhost" --health-interval 20s --health-timeout 10s --health-retries 10
+        ports:
+          - "3306:3306"
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: ci
+          MYSQL_PASSWORD: password
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: 'zulu'
+      - name: Connect
+        run: mysql -h 127.0.0.1 --port 3306 -uroot -proot -e "show databases;"
+      - name: Create database
+        run: mysql -h 127.0.0.1 --port 3306 -uroot -proot -e "create database ci_test;"
+      - name: Build with testing
+        run: ./gradlew --stacktrace :embulk-output-mysql:check
+        env:
+          _JAVA_OPTIONS: "-Xmx2048m -Xms512m"
+          EMBULK_OUTPUT_MYSQL_TEST_CONFIG: "${{ github.workspace }}/ci/mysql.yml"
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: mysql
+          path: embulk-output-mysql/build/reports/tests/test
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:9.4
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+          - "5432:5432"
+        env:
+          POSTGRES_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: 'zulu'
+      - name: Connect
+        run: psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -c "\l"
+        env:
+          PGPASSWORD: postgres
+      - name: Create database
+        run: psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -c "create database ci_test;"
+        env:
+          PGPASSWORD: postgres
+      - name: Build with testing
+        run: ./gradlew --stacktrace :embulk-output-postgresql:check
+        env:
+          _JAVA_OPTIONS: "-Xmx2048m -Xms512m"
+          EMBULK_OUTPUT_POSTGRESQL_TEST_CONFIG: "${{ github.workspace }}/ci/postgresql.yml"
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: postgresql
+          path: embulk-output-postgresql/build/reports/tests/test
+  redshift:
+    runs-on: ubuntu-latest
+    # Testing embulk-output-redshift emulated with PostgreSQL.
+    services:
+      postgres:
+        image: postgres:9.4
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+          - "5439:5432"
+        env:
+          POSTGRES_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: 'zulu'
+      - name: Connect
+        run: psql -h 127.0.0.1 -p 5439 -U postgres -d postgres -c "\l"
+        env:
+          PGPASSWORD: postgres
+      - name: Create database
+        run: psql -h 127.0.0.1 -p 5439 -U postgres -d postgres -c "create database ci_test;"
+        env:
+          PGPASSWORD: postgres
+      - name: Build with testing
+        run: ./gradlew --stacktrace :embulk-output-redshift:check
+        env:
+          _JAVA_OPTIONS: "-Xmx2048m -Xms512m"
+          EMBULK_OUTPUT_REDSHIFT_TEST_CONFIG: "${{ github.workspace }}/ci/redshift.yml"
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: redshift
+          path: embulk-output-redshift/build/reports/tests/test
+          if-no-files-found: ignore
+  sqlserver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: 'zulu'
+      - name: Build-only
+        run: ./gradlew --stacktrace :embulk-output-sqlserver:compileJava :embulk-output-sqlserver:compileTestJava

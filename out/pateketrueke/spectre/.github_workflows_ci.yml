@@ -1,0 +1,17 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        uses: php-actions/composer@master
+        with:
+          php_version: 8.0
+
+      - run: ANSICON=true TERM_SIZE="80 25" bin/spectre spec

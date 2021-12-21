@@ -1,0 +1,67 @@
+name: Lint and test
+on: ["push", "pull_request"]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install flake8
+      run: pip install flake8 flake8-import-order
+    - name: Flake8
+      run: flake8 biomaj2galaxy test --ignore=E501,W504
+
+  py_test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Python install
+      run: |
+        pip install -U pip setuptools nose ephemeris
+        python setup.py install
+    - name: Launch containers
+      run: |
+        export BM2G_GLOBAL_CONFIG_PATH=`pwd`/test-data/bm2g.yml
+        GAL_DOCKER=$(docker run -d -p 8080:80 -e GALAXY_CONFIG_ALLOW_LIBRARY_PATH_PASTE=True -v `pwd`/test-data/:/data/ quay.io/bgruening/galaxy:20.09)
+        galaxy-wait -g http://localhost:8080 --timeout 300
+        docker exec -i $GAL_DOCKER install-tools /data/tools.yml
+        docker exec -i $GAL_DOCKER supervisorctl restart galaxy:
+        echo "-------------"
+        echo "Now running tests, which are expected to fail, don't worry..."
+        echo "-------------"
+        python setup.py nosetests || true # it will probably fail the first time, who cares?
+        docker exec -i $GAL_DOCKER supervisorctl restart galaxy:
+    - name: Run tests
+      run: |
+        export BM2G_GLOBAL_CONFIG_PATH=`pwd`/test-data/bm2g.yml
+        python setup.py nosetests
+
+  pypi:
+    runs-on: ubuntu-latest
+    needs: [lint, py_test]
+    name: Deploy release to Pypi
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Python install
+      run: pip install -U pip setuptools nose build
+    - name: Build a binary wheel and a source tarball
+      run: python -m build --sdist --wheel --outdir dist/ .
+    - name: Publish distribution 📦 to PyPI
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.pypi_password }}

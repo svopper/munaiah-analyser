@@ -1,0 +1,120 @@
+name: Python CI/CD
+
+on:
+  push:
+  pull_request:
+  release:
+    types:
+      - published
+
+jobs:
+
+  # sdist can be built from any os and against any python version
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version:
+          - 3.8
+
+    steps:
+
+      - uses: actions/checkout@master
+      - run: git fetch --prune --unshallow
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install sdist dependencies
+        run: pip install setuptools_scm cmake_build_extension
+
+      - name: Build sdist
+        run: python setup.py sdist
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            coinor-libipopt-dev \
+            libeigen3-dev \
+            swig \
+            libxml2-dev \
+            libassimp-dev
+
+      - name: Install sdist
+        run: pip -v install dist/*.tar.gz
+
+      - name: Test import
+        run: python -c 'import idyntree.bindings'
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  build_wheels:
+    name: Build wheels [${{ matrix.os }}]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - 3.8
+        os:
+          - ubuntu-20.04
+          #- macos-latest
+          #- windows-latest
+
+    steps:
+
+      - uses: actions/checkout@master
+      - run: git fetch --prune --unshallow
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install cibuildwheel
+        run: pip install cibuildwheel
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_BUILD: cp37-*_x86_64 cp38-*_x86_64 cp39-*_x86_64
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_24
+          CIBW_ENVIRONMENT_LINUX: AUDITWHEEL_PLAT=manylinux_2_24_x86_64
+          CIBW_BEFORE_BUILD_LINUX: "apt-get update && apt-get install -y libeigen3-dev libassimp-dev libxml2-dev coinor-libipopt-dev"
+          CIBW_TEST_COMMAND: "python -c 'import idyntree.bindings'"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  upload_pypi:
+    needs:
+      - build_sdist
+      - build_wheels
+    runs-on: ubuntu-latest
+    # Devel branch produces pre-releases
+    # Master branch produces stable releases linked to GitHub releases
+    if: |
+      github.repository == 'robotology/idyntree' &&
+      ((github.event_name == 'release' && github.event.action == 'published') ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/devel'))
+
+    steps:
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

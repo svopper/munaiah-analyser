@@ -1,0 +1,24 @@
+name: Unit Tests
+on: [push]
+jobs:
+  run:
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ 'ubuntu-latest', 'windows-latest' ]
+        php-versions: [ '8.0' ]
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v2
+      - name: Setup PHP 8.0
+        if: ${{ matrix.php-versions == '8.0' }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: none
+          extensions: mbstring, intl
+      - name: Run PHPUnit
+        run: |
+          composer install
+          php vendor/bin/phpunit tests --bootstrap vendor/autoload.php

@@ -1,0 +1,45 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java#apache-maven-with-a-settings-path
+
+name: Maven Package
+
+on:
+  push:
+    branches: ['dev', 'release']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.ref }}
+      PUBLISH_USERNAME: ${{ secrets.PUBLISH_USERNAME }}
+      PUBLISH_PASSWORD: ${{ secrets.PUBLISH_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+      - name: Build with Gradle
+        run: chmod +x gradlew && ./gradlew build
+        working-directory: .
+
+      - name: Publish Core  to ODFI OSS
+        run: chmod +x gradlew && ./gradlew :ooxoo-core:publish
+        working-directory: .
+
+      - name: Publish Generator ODFI OSS
+        run: chmod +x gradlew && ./gradlew :ooxoo-generator:publish
+        working-directory: .
+
+      - name: Publish Plugin to ODFI OSS
+        run: chmod +x gradlew && ./gradlew :gradle-ooxoo-plugin:publish
+        working-directory: .
+
+      - name: Publish DB to ODFI OSS
+        run: chmod +x gradlew && ./gradlew :ooxoo-db:publish
+        working-directory: .

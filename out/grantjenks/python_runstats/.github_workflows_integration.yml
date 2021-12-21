@@ -1,0 +1,94 @@
+name: integration
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 6
+      matrix:
+        check: [bluecheck, doc8, docs, isortcheck, flake8, mypy, pylint, rstcheck]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install tox
+    - name: Run checks with tox
+      run: |
+        tox -e ${{ matrix.check }}
+
+  tests:
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install tox
+        run: |
+          pip install --upgrade pip
+          pip install tox
+
+      - name: Test with tox
+        run: tox -e py
+
+      - name: Install cython and pytest
+        run: pip install cython pytest pytest-cov pytest-xdist
+
+      - name: Build Cython extension
+        run: python setup.py build_ext --inplace
+
+      - name: Test with pytest
+        run: pytest
+
+      - name: Run benchmark
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pip install -e .
+          python tests/benchmark.py
+
+  builds:
+    needs: tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-2019, macos-10.15]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==1.11.1.post1
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BEFORE_BUILD: pip install cython
+          CIBW_TEST_REQUIRES: pytest pytest-cov pytest-xdist
+          CIBW_TEST_COMMAND: pytest {project}/tests && python {project}/tests/benchmark.py
+          CIBW_SKIP: pp*

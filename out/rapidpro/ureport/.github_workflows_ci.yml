@@ -1,0 +1,58 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    name: Test
+    strategy:
+      matrix:
+        pg-version: ['11', '12']
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+
+    - name: Install PostgreSQL
+      uses: harmon758/postgresql-action@v1
+      with:
+        postgresql version: ${{ matrix.pg-version }}
+        postgresql db: ureport
+        postgresql user: ureport
+        postgresql password: nyaruka
+
+    - name: Install Redis
+      uses: zhulik/redis-action@v1.0.0
+      with:
+        redis version: '5'
+
+    - name: Install Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.9.x'
+
+    - name: Initialize environment
+      run: |
+        pip install --upgrade pip poetry
+        poetry install --no-root
+        poetry run pip install codecov
+        sudo npm install -g coffee-script less
+        ln -s ${{ github.workspace }}/ureport/settings.py.postgres ${{ github.workspace }}/ureport/settings.py
+
+        poetry run pip show smartmin | awk '/Location:/ { print $2 "/smartmin  ${{ github.workspace }}/smartmin" }' | xargs ln -s
+        poetry run pip show rapidpro-dash | awk '/Location:/ { print $2 "/dash ${{ github.workspace }}/dash" }' | xargs ln -s
+
+    - name: Run pre-test checks
+      run: |
+        sudo apt-get install gettext
+        poetry run ./code_check.py --debug
+
+    - name: Run tests
+      run: |
+        poetry run coverage run manage.py test --verbosity=2 --noinput
+        poetry run coverage xml
+
+    - name: Upload coverage
+      if: success()
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true

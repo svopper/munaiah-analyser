@@ -1,0 +1,41 @@
+name: Continuous Integration
+
+on: 
+  push: 
+    paths-ignore:
+      - ".github/**"
+      - ".VERSION"
+  pull_request:
+    paths-ignore:
+      - ".github/**"
+      - ".VERSION"
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        ruby: [2.6, 2.7, '3.0']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2.3.5
+
+      - name: Install required ruby version
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs 'bundle install' and caches gems
+
+      - name: Run rspec with coverage
+        run: |
+          COVERAGE=true bundle exec rspec
+
+      - name: Run rubocop
+        run: |
+          bundle exec rubocop --parallel
+
+      - name: Run Skunk on Project
+        run: |
+          gem install skunk
+          skunk lib/ 

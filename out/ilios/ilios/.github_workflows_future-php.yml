@@ -1,0 +1,30 @@
+name: Future PHP Versions
+
+on:
+  schedule:
+    - cron: '33 1 * * 1' # weekly, on Monday morning
+
+env:
+  MAILER_DSN: null://null
+  ILIOS_LOCALE: en
+  ILIOS_SECRET: ThisTokenIsNotSoSecretChangeIt
+  ILIOS_FILE_SYSTEM_STORAGE_PATH: /tmp
+  SYMFONY_DEPRECATIONS_HELPER: disabled=1
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use PHP 8.1
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        php-version: 8.1
+        coverage: none
+        tools: pecl
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: Run Tests
+      run: vendor/bin/phpunit

@@ -1,0 +1,45 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "0 7 */3 * *"
+    
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2.3.1
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Cache Gradle Home files
+        uses: actions/cache@v2.1.6
+        continue-on-error: true
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-home-examples-${{ hashFiles('**/*.gradle') }}
+
+      - name: Build ConnectBot
+        run: ./gradlew build
+
+      - name: Run instrument tests
+        uses: Doist/android-emulator-runner@8bb10a5eafb6726dff58df91c0c9b74798cc44ec
+        with:
+          api-level: 28
+          target: default
+          arch: x86_64
+          profile: Nexus 4
+          script: ./gradlew connectedCheck --continue

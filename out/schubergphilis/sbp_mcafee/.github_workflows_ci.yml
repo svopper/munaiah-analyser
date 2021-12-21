@@ -1,0 +1,63 @@
+---
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@master
+      - name: Run Chef Delivery
+        uses: actionshub/chef-delivery@master
+        env:
+          CHEF_LICENSE: accept-no-persist
+
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@master
+      - name: Run yaml Lint
+        uses: actionshub/yamllint@master
+
+  mdl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@master
+      - name: Run Markdown Lint
+        uses: actionshub/markdownlint@1.2.0
+
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: [mdl, yamllint, delivery]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@master
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.3.0
+        with:
+          ssh-private-key: ${{ secrets.CI_SSH_PRIVATE_KEY }}
+      - name: Install Chef
+        uses: actionshub/chef-install@master
+      - name: Release
+        run: |
+          if git tag | grep -q v$(grep "^version" metadata.rb | awk '{print $2}' | sed s/\'//g); then
+            echo "Cookbook version is already tagged, skipping job"
+            exit 0
+          fi
+          git config --global user.email "cookbooks@schubergphilis.com"
+          git config --global user.name "SBP Cookbooks CI"
+          echo "$SUPERMARKET_PEM" > supermarket.pem
+          chef exec stove
+        env:
+          CHEF_LICENSE: accept-no-persist
+          STOVE_CONFIG: .stove
+          SUPERMARKET_PEM: ${{ secrets.SUPERMARKET_PEM }}

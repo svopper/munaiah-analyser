@@ -1,0 +1,25 @@
+name: Create Tag & Release
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false
+      - name: Release New Version
+        id: release
+        run: |
+          npm ci
+          npm run release
+        env:
+          CI: true
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GIT_AUTHOR_NAME: themeisle[bot]
+          GIT_AUTHOR_EMAIL: ${{ secrets.BOT_EMAIL }}
+          GIT_COMMITTER_NAME: themeisle[bot]
+          GIT_COMMITTER_EMAIL: ${{ secrets.BOT_EMAIL }}

@@ -1,0 +1,22 @@
+name: Tweet on @chaplin_staging
+
+on:
+  schedule:
+    # 01:00 JST
+    - cron: '0 16 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+      - run: npm install
+      - run: npm run tweet
+        env:
+          STAGING_TWITTER_CONSUMER_KEY: ${{ secrets.STAGING_TWITTER_CONSUMER_KEY }}
+          STAGING_TWITTER_CONSUMER_SECRET: ${{ secrets.STAGING_TWITTER_CONSUMER_SECRET }}
+          STAGING_TWITTER_ACCESS_TOKEN_KEY: ${{ secrets.STAGING_TWITTER_ACCESS_TOKEN_KEY }}
+          STAGING_TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.STAGING_TWITTER_ACCESS_TOKEN_SECRET }}

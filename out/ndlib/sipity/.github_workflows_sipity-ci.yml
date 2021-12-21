@@ -1,0 +1,28 @@
+name: sipity-ci
+on:
+  push:
+jobs:
+  test-sipity:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6.6
+
+    - name: Install bundler
+      run: gem install bundler -v 1.17.3
+
+    - name: Install bundled dependencies
+      run: bundle install --without development debug doc
+
+    - name: start mysql DB
+      run: sudo service mysql start
+
+    - name: create sipity_test DB
+      run:  mysql -e "CREATE DATABASE sipity_test;" -uroot -proot
+
+    - name: Run CI tests
+      run: bundle exec rake spec:ci RAILS_ENV=test debug=true

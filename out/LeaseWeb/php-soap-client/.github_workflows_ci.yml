@@ -1,0 +1,50 @@
+name: Build leaseweb/php-soap-client
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+    - name: Run test suite
+      run: vendor/bin/phpunit --coverage-text
+    - name: Create phar archive
+      run: |
+        wget https://github.com/box-project/box/releases/download/3.8.5/box.phar
+        mkdir -p build
+        php -d phar.readonly=0 box.phar compile
+    - uses: actions/upload-artifact@master
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        name: soap_client.phar
+        path: build/soap_client.phar
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@master
+        with:
+          name: soap_client.phar
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: php-soap-client ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset soap_client.phar
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: soap_client.phar/soap_client.phar
+          asset_name: soap_client.phar
+          asset_content_type: application/octet-stream

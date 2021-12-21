@@ -1,0 +1,146 @@
+name: Packaging (Debian, Windows and macOS)
+
+on: [push, pull_request]
+
+jobs:
+
+  debian:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          sudo sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list
+          sudo apt update
+          sudo apt build-dep .
+
+      - name: Build Debian package
+        run: |
+          # Generate tarball
+          python setup.py sdist
+          mk-origtargz dist/nicotine-plus-*.tar.gz
+
+          # Build source package
+          debuild -S -sa -us -uc
+
+          # Build binary
+          debuild -b -sa -us -uc
+
+      - name: Prepare artifacts
+        run: |
+          mkdir ../build/
+          cp -Lr ../nicotine_* ../build/
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: debian-package
+          path: ../build/
+
+  flatpak:
+    runs-on: ubuntu-20.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-20.08
+      options: --privileged
+    steps:
+    - uses: actions/checkout@v2
+    - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3
+      with:
+        bundle: flatpak-package.flatpak
+        manifest-path: packaging/flatpak/org.nicotine_plus.Nicotine.yaml
+        run-tests: true
+        cache-key: flatpak-builder-${{ github.sha }}
+
+  windows:
+    runs-on: windows-2016
+    strategy:
+      matrix:
+        include: [
+          { msystem: MINGW64, arch: x86_64, gtk: 3 },
+          { msystem: MINGW32, arch: i686, gtk: 3 }
+        ]
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      ARCH: ${{ matrix.arch }}
+      NICOTINE_GTK_VERSION: ${{ matrix.gtk }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+
+      - name: Install build dependencies
+        run: |
+          pacman --noconfirm -S --needed mingw-w64-$ARCH-python
+          python3 packaging/windows/dependencies_core.py
+          python3 packaging/windows/dependencies_packaging.py
+
+      - name: Build installer
+        run: |
+          pyinstaller packaging/windows/nicotine.spec
+          python3 packaging/windows/create_installer.py
+          mkdir installer
+          cp -r packaging/windows/Nicotine*.exe installer/
+
+      - name: Archive installer artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-${{ matrix.arch }}-installer
+          path: installer
+
+      - name: Archive package artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-${{ matrix.arch }}-package
+          path: dist
+
+  macos:
+    runs-on: macos-10.15
+    env:
+      NICOTINE_GTK_VERSION: 3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          python3 packaging/macos/dependencies_core.py
+          python3 packaging/macos/dependencies_packaging.py
+
+      - name: Freeze application
+        run: |
+          pyinstaller packaging/macos/nicotine.spec
+          rm -rf dist/Nicotine+/
+
+      - name: Ad-hoc signing
+        run: |
+          codesign --deep --entitlements packaging/macos/entitlements.plist --options runtime --sign - dist/Nicotine+.app
+
+      - name: Generate .dmg
+        run: |
+          python3 packaging/macos/create_dmg.py
+
+      - name: Archive installer artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos-installer
+          path: dmg

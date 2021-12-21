@@ -1,0 +1,25 @@
+name: windows
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        ruby: [ 'mingw', 'mswin', '2.7', '2.6', '2.5' ]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Build package
+      run: bundle exec rake build
+    - name: Install package
+      run: |
+        gem install pkg/curses-*.gem
+        ruby -r curses -e 'puts Curses::VERSION'

@@ -1,0 +1,53 @@
+name: Linting and Tests
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs: 
+  check-code-style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - run: python -m pip install tox
+      - run: tox -e check_codestyle
+  
+  check-types-mypy:
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - run: python -m pip install tox  
+      - run: tox -e check_types
+
+  run-unit-tests:
+    name: Unit tests
+    needs: [check-code-style, check-types-mypy]
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - run: python -m pip install -e .
+      - run: trial tests
+
+  run-unit-tests-olddeps:
+    name: Unit tests (old dependencies)
+    needs: [ check-code-style, check-types-mypy ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - name: Install old dependencies
+        run: pip install -r <(./scripts-dev/old_deps.py)
+      - name: Install Sygnal
+        run: python -m pip install -e .
+      - run: trial tests

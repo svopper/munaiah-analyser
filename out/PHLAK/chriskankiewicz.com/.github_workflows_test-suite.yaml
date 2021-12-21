@@ -1,0 +1,113 @@
+name: ChrisKankiewicz.com Test Suite
+on: [push]
+
+jobs:
+  coding-standards:
+    name: Coding Standards
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install PHP Dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: composer update
+
+      - name: Verify Coding Standards
+        run: vendor/bin/php-cs-fixer fix --diff --dry-run
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install PHP Dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: composer update
+
+      - name: Run Static Analysis
+        run: vendor/bin/phpstan analyze
+
+  tests:
+    name: Tests
+    runs-on: 'ubuntu-latest'
+
+    env:
+      DB_DATABASE: app
+      DB_USERNAME: root
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+            MYSQL_ALLOW_EMPTY_PASSWORD: yes
+            MYSQL_DATABASE: ${{ env.DB_DATABASE }}
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      matrix:
+        php-versions: ['8.0']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: intl, json, mbstring, openssl
+          coverage: xdebug
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache PHP Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Cache JavaScript Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install PHP Dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: composer update
+
+      - name: Install JavaScript Dependencies
+        env:
+          FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN}}
+        run: |
+          npm config set "@fortawesome:registry" https://npm.fontawesome.com/
+          npm config set "//npm.fontawesome.com/:_authToken" $FONT_AWESOME_TOKEN
+          npm ci
+
+      - name: Lint JavaScript Files
+        run: npx eslint resources/js/**/*.{js,vue}
+
+      - name: Compile Assets
+        run: npm run production --verbose
+
+      - name: Run Tests
+        env:
+          APP_DEBUG: true
+          APP_ENV: testing
+          APP_KEY: ${{ secrets.APP_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: vendor/bin/phpunit --coverage-text

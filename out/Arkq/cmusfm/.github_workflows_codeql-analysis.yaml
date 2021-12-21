@@ -1,0 +1,43 @@
+name: CodeQL Analysis
+on:
+  push:
+  pull_request:
+    branches: [ master ]
+jobs:
+  analyze:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: [ 'cpp' ]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install --yes --quiet --no-install-recommends \
+          libcurl4-openssl-dev \
+          libnotify-dev
+    - uses: actions/checkout@v2
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+        queries: security-and-quality
+    - name: Create Build Environment
+      run: |
+        mkdir -p ${{ github.workspace }}/build
+        autoreconf --install
+    - name: Configure GNU Automake
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        ${{ github.workspace }}/configure \
+          --enable-libnotify
+    - name: Build
+      working-directory: ${{ github.workspace }}/build
+      run: make
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1

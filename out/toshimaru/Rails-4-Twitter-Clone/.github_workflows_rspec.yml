@@ -1,0 +1,29 @@
+name: RSpec
+on: [push, pull_request]
+jobs:
+  rspec:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: [2.6, 2.7, 3.0]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby ${{ matrix.ruby }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Setup webpacker
+      run: |
+        yarn install
+        bin/webpack
+    - name: Run RSpec
+      run: bundle exec rspec
+  docker-compose-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: DOCKER_BUILDKIT=1 docker-compose build --parallel
+    - run: docker-compose run web bin/webpack
+    - run: docker-compose run web bundle exec rspec

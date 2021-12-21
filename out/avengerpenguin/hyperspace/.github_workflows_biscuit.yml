@@ -1,0 +1,13 @@
+name: biscuit
+
+on: [push]
+
+jobs:
+  biscuit:
+    runs-on: ubuntu-latest
+    name: Biscuit Checks
+    steps:
+      - uses: actions/checkout@v1
+      - name: Biscuit Checks
+        id: biscuit
+        uses: avengerpenguin/biscuit@main

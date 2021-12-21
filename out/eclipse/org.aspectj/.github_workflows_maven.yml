@@ -1,0 +1,42 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Build AspectJ
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ 11, 14, 17 ]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+
+      - name: Print tool versions
+        run: |
+          java -version
+          ./mvnw -B --version
+          ant -version
+
+      - name: Compile + package code
+        run: ./mvnw -B --file pom.xml -DskipTests package
+
+      - name: Run Tests
+        # Tests in module ajde call Swing/AWT classes. Without frame buffer they throw
+        # HeadlessException: No X11 DISPLAY variable was set, but this program performed an operation which requires it.
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: ./mvnw -B --file pom.xml -Daspectj.tests.verbose=false verify

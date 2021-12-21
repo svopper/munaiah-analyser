@@ -1,0 +1,31 @@
+name: build
+on:
+  - pull_request
+  - push
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.0
+          coverage: xdebug
+          extensions: mbstring, simplexml
+      - name: Check environment
+        run: |
+          php --version
+          composer --version
+      - name: Fetch sources
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          composer config --global github-oauth.github.com ${{secrets.GITHUB_TOKEN}}
+          composer install --no-interaction
+      - name: Run tests
+        run: composer run test
+      - name: Collect code coverage
+        env:
+          COVERALLS_REPO_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        if: success()
+        run: composer run coverage

@@ -1,0 +1,111 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - '.github/workflows/*'
+
+  pull_request:
+    branches: [master]
+
+jobs:
+  notification:
+    runs-on: ubuntu-latest
+    name: Notifications
+    steps:
+      - name: IRC notification
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GitHub
+          message: |-
+            ${{ github.actor }} started a build of ticcutils
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [g++, clang++]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: webiny/action-post-run@1.0.0
+        id: post-run-command
+        with:
+          command: echo "this thing works!"
+      - name: Install Build Environment
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install pkg-config autoconf-archive
+             else
+                brew upgrade;
+                brew install pkg-config;
+                brew install autoconf-archive;
+                brew install autoconf;
+                brew install automake;
+             fi
+      - name: Install Dependencies
+        run: |
+             if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo apt-get install libicu-dev libxml2-dev libbz2-dev;
+                sudo apt-get install zlib1g-dev libtar-dev cppcheck
+             else
+                brew install libxml2;
+                brew install bzip2;
+                brew install zlib;
+                brew install libtar
+                brew install cppcheck
+             fi
+      - name: bootstrap
+        run: sh bootstrap.sh
+      - name: configure
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: ./configure
+      - name: Static Code-check
+        run: cppcheck --enable=all --quiet --error-exitcode=0 .
+      - name: make
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: make
+      - name: install
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: sudo make install
+      - id: compiler
+        run: |
+          id=$(echo ${{matrix.compiler}} | cut -d\+ -f1)
+          echo "::set-output name=id::$id"
+      - run: echo "${{steps.compiler.outputs.id}}"
+      - name: make check
+        id: check
+        env:
+          CXX: ${{ matrix.compiler }}
+          LD_LIBRARY_PATH: $LD_LIBRARY_PATH:/usr/local/lib
+        run: make check
+        continue-on-error: true
+      - name: show log
+        run: cat src/test-suite.log
+      - name: Notify IRC of failure
+        if: ${{ steps.check.outcome != 'success' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            ${{ github.event.repository.name }} build by ${{ github.actor }} on ${{ matrix.os }}: FAIL
+      - name: Notify IRC of succes
+        if: ${{ steps.check.outcome == 'success' }}
+        uses: Gottox/irc-message-action@v1
+        with:
+          server: irc.uvt.nl
+          channel: '#gitlama'
+          nickname: GH-${{ runner.os }}-${{ steps.compiler.outputs.id }}
+          message: |-
+            ${{ github.event.repository.name }} build by ${{ github.actor }} on ${{ matrix.os }}: SUCCESS

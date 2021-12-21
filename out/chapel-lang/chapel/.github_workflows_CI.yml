@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  NIGHTLY_TEST_SETTINGS: true
+  # store the dependencies in one place
+  CHPL_APT_DEPS: gcc g++ m4 perl python3 python3-pip python3-venv python3-dev bash make mawk git pkg-config cmake llvm-11-dev llvm-11 llvm-11-tools clang-11 libclang-11-dev libclang-cpp11-dev libedit-dev
+
+jobs:
+  make_check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: install deps
+      run: sudo apt-get install $CHPL_APT_DEPS
+    - name: make check
+      run: |
+        ./util/buildRelease/smokeTest chpl
+
+  make_doc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: install deps
+      run: sudo apt-get install cmake doxygen
+    - name: make libchplcomp-docs
+      run: |
+        make libchplcomp-docs
+    - name: make check-chpldoc && make docs
+      # Uses a quickstart config to keep it from running too long
+      run: |
+        ./util/buildRelease/smokeTest quickstart docs
+    - name: upload docs
+      uses: actions/upload-artifact@v2
+      with:
+        name: documentation
+        path: doc/html
+
+  make_mason:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: make mason
+      # Use a quickstart config to keep it from running to long
+      # While there, run a make check in that config for more coverage
+      run: |
+        ./util/buildRelease/smokeTest quickstart mason chpl
+
+  check_compiler_next_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: install deps
+      run: sudo apt-get install $CHPL_APT_DEPS
+    - name: make test-libchplcomp
+      run: |
+        make test-libchplcomp -j`util/buildRelease/chpl-make-cpu_count`
+
+  check_annotations_rt_calls:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 100000
+    - name: install deps
+      run: sudo apt-get install cscope
+    - name: find bad runtime calls
+      run: |
+        ./util/devel/lookForBadRTCalls
+    - name: check annotations
+      run: |
+        CHPL_LLVM=none make test-venv
+        CHPL_LLVM=none CHPL_HOME=$PWD ./util/test/run-in-test-venv.bash ./util/test/check_annotations.py
+    - name: smokeTest lint
+      run: |
+        ./util/buildRelease/smokeTest lint

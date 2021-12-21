@@ -1,0 +1,37 @@
+name: test
+on: [push]
+jobs:
+  run-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: install valgrind
+        if: matrix.os == 'ubuntu-20.04'
+        run: sudo apt install valgrind
+
+      - name: run cmake
+        if: matrix.os == 'windows-latest'
+        run: cmake -B build -G "MinGW Makefiles"
+
+      - name: run cmake
+        if: matrix.os != 'windows-latest'
+        run: cmake -B build
+
+      - name: build and run tests
+        run: |
+          cd build
+          cmake --build .
+          ctest --output-on-failure
+          cmake --build . -t release_bin
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-${{ matrix.os }}
+          path: build/release_bin

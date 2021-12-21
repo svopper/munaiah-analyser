@@ -1,0 +1,47 @@
+name: PxCoco Release
+
+on:
+  push:
+    paths:
+      - PxCoco/**
+      - .github/workflows/PxCocoRelease.yml
+    tags:
+      - pxcoco/v.*
+
+jobs:
+  release:
+    name: Build and Release PxCoco
+    runs-on: windows-2019
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: 'Update version to Tag'
+        id: update-version
+        shell: powershell
+        env: 
+          BUILD_SOURCEBRANCH: ${{ github.ref }}
+        run: |
+          # Remove /refs/tags (10 chars) and pxcoco/v. (9 chars) from checkout string
+          Write-Host Source branch: $env:BUILD_SOURCEBRANCH
+          $ver = $env:BUILD_SOURCEBRANCH.remove(0,19)
+          Write-Host "::set-output name=version::$ver"
+          Write-Host Version: $ver
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v1.7.2
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          dotnet-version: '5.0.x'
+          source-url: 'https://nuget.pkg.github.com/chklauser/index.json'
+      - name: Install dependencies (Win)
+        run: dotnet restore PxCoco/PxCoco.csproj
+      - name: Build (Win)
+        run: dotnet build --configuration Release --no-restore PxCoco/PxCoco.csproj -p:Version=${{steps.update-version.outputs.version}}
+      - name: Pack (Win)
+        run: dotnet pack --no-restore --no-build --configuration Release PxCoco/PxCoco.csproj -p:Version=${{steps.update-version.outputs.version}}
+      - name: Push Package (Win)
+        run: dotnet nuget push PxCoco/bin/Release/PxCoco.${{steps.update-version.outputs.version}}.nupkg
+      - name: Push Symbols Package (Win)
+        run: dotnet nuget push PxCoco/bin/Release/PxCoco.${{steps.update-version.outputs.version}}.snupkg

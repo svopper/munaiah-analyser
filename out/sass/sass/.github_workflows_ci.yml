@@ -1,0 +1,88 @@
+name: CI
+
+env: {NODE_VERSION: 14}
+
+on:
+  push: {branches: [main, 'feature.*']}
+  pull_request:
+
+jobs:
+  static_analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with: {node-version: '${{ env.NODE_VERSION }}'}
+    - run: npm ci
+    - run: npx gts lint && npx tsc --noEmit
+
+  toc:
+    name: Tables of contents
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with: {node-version: '${{ env.NODE_VERSION }}'}
+    - run: npm ci
+    - run: npm run toc-check
+
+  link:
+    name: Link referents
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with: {node-version: '${{ env.NODE_VERSION }}'}
+    - run: npm ci
+    - run: npm run link-check
+
+  js_api_mirroring:
+    name: JS API mirroring
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with: {node-version: '${{ env.NODE_VERSION }}'}
+    - run: npm ci
+    - run: npm run js-api-doc-check
+
+  typedoc:
+    name: Typedoc build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with: {node-version: '${{ env.NODE_VERSION }}'}
+    - run: npm ci
+    - run: npm run typedoc
+
+  # Whenever anything changes in js-api-docs, redeploy the website so it picks
+  # up those changes.
+  heroku:
+    name: Deploy sass-lang.com
+    runs-on: ubuntu-latest
+    needs: [static_analysis, js_api_mirroring, typedoc]
+    if: |
+      github.event_name == 'push' &&
+      github.repository == 'sass/sass' &&
+      github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v2
+      with: {fetch-depth: 0}
+
+    - name: Find changed files in js-api-doc
+      id: changed-files
+      uses: tj-actions/changed-files@b86b537e2b78397b630cfb1a8d0aec1e03379737
+      with: {files: js-api-doc}
+
+    - name: Deploy
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: tool/github-action/deploy-heroku.sh
+      env: {HEROKU_TOKEN: "${{ secrets.HEROKU_TOKEN }}"}

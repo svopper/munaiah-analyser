@@ -1,0 +1,82 @@
+---
+name: 'Automatic Database Updator'
+
+on:
+  schedule:
+    - cron: '43 9 * * *'
+
+jobs:
+  update:
+    name: 'Update database'
+
+    runs-on: 'ubuntu-20.04'
+
+    steps:
+      - name: 'Check out the source'
+        uses: 'actions/checkout@v2'
+        with:
+          fetch-depth: 0
+
+      - name: 'Use PHP 8.0'
+        run: |
+          sudo update-alternatives --set php /usr/bin/php8.0
+          php -v
+
+      - name: 'Install dependencies'
+        run: |
+          composer install --prefer-dist
+
+      - name: 'Run Updator'
+        run: |
+          echo "::group::Remove old data"
+          rm -rf data/phone/*
+          echo "::endgroup::"
+
+          echo "::group::Update data (landline)"
+          php util/mkphone-kotei.php
+          echo "::endgroup::"
+
+          echo "::group::Update data (mobile phone)"
+          php util/mkphone-mobile.php
+          echo "::endgroup::"
+
+          echo "::group::Update data (IP phone)"
+          php util/mkphone-ip.php
+          echo "::endgroup::"
+
+          echo "::group::Update data (pocket bell)"
+          php util/mkphone-others-0x0-xxxx-xxxx.php
+          echo "::endgroup::"
+
+          echo "::group::Update data (freedial etc)"
+          php util/mkphone-others-0xx0-xxx-xxx.php
+          echo "::endgroup::"
+
+      - name: 'Check changed'
+        run: |
+          git add data/phone
+          git update-index -q --refresh
+          if [ -z "$(git diff-index --name-only HEAD --)" ]; then
+            echo "Nothing changed"
+            echo "changed=0" >> $GITHUB_ENV
+          else
+            echo "Something changed"
+            echo "changed=1" >> $GITHUB_ENV
+          fi
+
+      - name: 'Create Pull Request'
+        if: "${{ env.changed == '1' }}"
+        uses: 'peter-evans/create-pull-request@v3'
+        with:
+          assignees: 'fetus-hina'
+          author: 'AIZAWA Hina <hina@fetus.jp>'
+          body: 'This is an automated pull-request'
+          branch: 'autoupdate-database'
+          commit-message: 'Update database'
+          committer: 'GitHub <noreply@github.com>'
+          delete-branch: true
+          draft: false
+          labels: 'database'
+          reviewers: 'fetus-hina'
+          signoff: false
+          title: 'Update update'

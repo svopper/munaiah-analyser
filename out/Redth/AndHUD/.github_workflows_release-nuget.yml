@@ -1,0 +1,30 @@
+name: Release NuGet
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.0.100'
+    
+    - name: Build Project
+      run: ./build.ps1
+      shell: powershell
+        
+    - shell: pwsh
+      name: Publish NuGet Package
+      env:
+        API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push **/*.nupkg -k "$env:API_KEY" -s https://api.nuget.org/v3/index.json
+      

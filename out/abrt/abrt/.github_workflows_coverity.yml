@@ -1,0 +1,64 @@
+name: Coverity build
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+jobs:
+  build:
+    container: fedora:latest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v2
+
+      - name: Install build environment
+        run: |
+          dnf --assumeyes install dnf-plugins-core
+          dnf --assumeyes copr enable @abrt/devel
+          dnf --assumeyes install \
+            @c-development @development-tools @rpm-development-tools \
+            intltool wget
+
+      - name: Install build dependencies
+        run: ./autogen.sh sysdeps --install
+
+      - name: Configure build
+        run: ./autogen.sh
+
+      - name: Download Coverity build tool
+        env:
+          COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+        run: |
+          mkdir -p /tmp/coverity
+          wget \
+            --no-verbose \
+            --post-data "token=${COVERITY_SCAN_TOKEN}&project=abrt%2Fabrt" \
+            --output-document=/tmp/coverity_tool.tar.gz \
+            https://scan.coverity.com/download/linux64
+          tar --extract --file=/tmp/coverity_tool.tar.gz --directory=/tmp/coverity --strip-components=1
+
+      - name: Add Coverity tools to PATH
+        run: echo '/tmp/coverity/bin' >> "$GITHUB_PATH"
+
+      - name: Build
+        run: cov-build --dir cov-int make
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v1
+        with:
+          name: log
+          path: cov-int/build-log.txt
+
+      - name: Compress build artifacts
+        run: tar --create --auto-compress --file abrt.tar.xz cov-int
+
+      - name: Upload build artifacts
+        env:
+          COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+        run: |
+          curl \
+            --form email=abrt-devel-list@redhat.com \
+            --form token="$COVERITY_SCAN_TOKEN" \
+            --form file=@abrt.tar.xz \
+            --form version="$GITHUB_SHA" \
+            https://scan.coverity.com/builds?project=abrt%2Fabrt

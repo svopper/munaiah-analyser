@@ -1,0 +1,48 @@
+name: integration
+
+on:
+  push:
+    branches:
+      - 'master'
+      - '[0-9].[0-9]+'  # release branches
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  tarantool:
+    uses: tarantool/tarantool/.github/workflows/reusable_build.yml@master
+    with:
+      ref: ${{ github.sha }}
+      os: ubuntu
+      dist: focal
+
+  vshard:
+    needs: tarantool
+    uses: tarantool/vshard/.github/workflows/reusable_testing.yml@master
+    with:
+      artifact_name: tarantool-ubuntu-focal-${{ github.sha }}
+
+  cartridge:
+    needs: tarantool
+    uses: tarantool/cartridge/.github/workflows/reusable-backend-test.yml@master
+    with:
+      artifact_name: tarantool-ubuntu-focal-${{ github.sha }}
+
+  smtp:
+    needs: tarantool
+    uses: tarantool/smtp/.github/workflows/reusable_testing.yml@master
+    with:
+      artifact_name: tarantool-ubuntu-focal-${{ github.sha }}
+
+  metrics:
+    needs: tarantool
+    uses: tarantool/metrics/.github/workflows/reusable-test.yml@master
+    with:
+      artifact_name: tarantool-ubuntu-focal-${{ github.sha }}
+
+  avro-schema:
+    needs: tarantool
+    uses: tarantool/avro-schema/.github/workflows/reusable_testing.yml@master
+    with:
+      artifact_name: tarantool-ubuntu-focal-${{ github.sha }}

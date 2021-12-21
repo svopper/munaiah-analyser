@@ -1,0 +1,168 @@
+name: EFL on Windows
+
+on:
+  push:
+  pull_request:
+    branches: [ devs/expertise/native-windows ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache LLVM install
+      uses: actions/cache@v2
+      id: cache-llvm
+      env:
+        cache-name: cache-llvm
+      with:
+        path: "C:\\Program Files\\LLVM"
+        key: cache-llvm-v10.0.0.0-1
+        restore-keys: cache-llvm-v10.0.0.0-1
+    - name: Cache vcpkg
+      uses: actions/cache@v2
+      id: cache-vcpkg
+      with:
+        path: ${{ github.workspace }}/vcpkg
+        key: vcpkg-cache-${{ hashfiles('.github/workflows/windows.yml') }}
+    - name: Show vcpkg cache info
+      env:
+        VCPKG_INFO: ${{ toJSON(steps.cache-vcpkg) }}
+      run: echo "${VCPKG_INFO}"
+    - name: Install LLVM
+      if: steps.cache-llvm.outputs.cache-hit != 'true'
+      run: choco install llvm
+    - name: Add clang-cl to PATH
+      run: echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Search clang-cl
+      run: clang-cl -v
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: install ninja
+      run: py -3 -m pip install ninja
+    - name: test ninja
+      run: ninja --version
+    - name: install meson
+      run: py -3 -m pip install meson
+    - name: test meson
+      run: meson -v
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    - name: Show from where clang-cl
+      run: where clang-cl
+    - name: Check if vcpkg is already installed
+      if: steps.cache-vcpkg.outputs.cache-hit == 'true'
+      run: .\vcpkg\vcpkg version
+    - name: Clone vcpkg
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: git clone https://github.com/microsoft/vcpkg
+    - name: Checkout to f4bd6423
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: git checkout f4bd6423
+      working-directory: .\vcpkg
+    - name: Run vcpkg bootstrap
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\bootstrap-vcpkg.bat
+    - name: Install openssl (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install openssl:x64-windows
+    - name: Install freetype (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install freetype:x64-windows
+    - name: Install libjpeg (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install libjpeg-turbo:x64-windows
+    - name: Install lua (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install lua:x64-windows
+    - name: Install luajit (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install luajit:x64-windows
+    - name: Install zlib (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install zlib:x64-windows
+    - name: Install check (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install check:x64-windows
+    - name: Install getopt (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install getopt:x64-windows
+    - name: Install curl (vcpkg)
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      run: .\vcpkg\vcpkg install curl:x64-windows
+    - name: Add vcpkg installed package dirs to path
+      run: echo "${{ github.workspace }}/vcpkg/installed/x64-windows/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Add vcpkg installed package dirs to path (debug libs)
+      run: echo "${{ github.workspace }}/vcpkg/installed/x64-windows/debug/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: configure
+      run: .\configure.bat
+      env:
+        vcpkg_toolchain_file: ${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+    - name: Build
+      run: .\build.bat
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: build
+        path: build
+  tests:
+    name: Tests
+    runs-on: windows-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Cache vcpkg
+      uses: actions/cache@v2
+      id: cache-vcpkg
+      with:
+        path: ${{ github.workspace }}/vcpkg
+        key: vcpkg-cache-${{ hashfiles('.github/workflows/windows.yml') }}
+    - name: Show vcpkg cache info
+      env:
+        VCPKG_INFO: ${{ toJSON(steps.cache-vcpkg) }}
+      run: echo "${VCPKG_INFO}"
+    - name: Install ninja
+      # unexplicably, installation returns error code 1 if a cache location is used
+      run: py -3 -m pip install ninja
+    - name: Test ninja
+      run: ninja --version
+    - name: Install meson
+      run: py -3 -m pip install meson
+    - name: Test meson
+      run: meson -v
+    - name: Download build artifact
+      uses: actions/download-artifact@v1.0.0
+      with:
+        name: build
+    - name: Check directory tree (for debugging purposes)
+      run: tree .
+    - name: Add vcpkg installed package dirs to path
+      run: |
+        echo "${{ github.workspace }}\vcpkg\installed\x64-windows\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "${{ github.workspace }}\vcpkg\installed\x64-windows\debug\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Check installed vcpkg libs
+      run: |
+        dir "${{ github.workspace }}\vcpkg\installed\x64-windows\bin"
+        dir "${{ github.workspace }}\vcpkg\installed\x64-windows\debug\bin"
+    - name: Add build libs to path
+      run: |
+        echo "${{ github.workspace }}\build\subprojects\getopt" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "${{ github.workspace }}\build\subprojects\pcre-8.37" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Check built EFL libs
+      run: |
+        dir "${{ github.workspace }}\build\subprojects\getopt"
+        dir "${{ github.workspace }}\build\subprojects\pcre-8.37"
+    - name: Check path
+      run: $env:PATH
+    - name: Run tests
+      run: meson test --no-rebuild -C build --print-errorlogs
+    - name: Show full log
+      run: type build\meson-logs\testlog.txt
+      if: ${{ always() }}

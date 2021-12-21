@@ -1,0 +1,25 @@
+name: Testing dir2cast
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.3', '7.4', '8.0']
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: Setup PHP and extensions
+        uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring
+          coverage: xdebug
+          tools: php-cs-fixer
+        env:
+          fail-fast: true
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Composer Install
+        uses: php-actions/composer@v5
+      - name: Test with phpunit
+        run: ./test/run.sh --do-not-cache-result .

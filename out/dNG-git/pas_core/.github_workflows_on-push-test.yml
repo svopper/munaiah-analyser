@@ -1,0 +1,66 @@
+name: py:test
+
+on:
+  pull_request:
+    paths-ignore: '_developer/**'
+  push:
+    paths-ignore: '_developer/**'
+
+jobs:
+  codeql-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v2
+    - name: Get the Python path
+      id: get-python-path
+      run: echo ::set-output name=python-path::$(which python)
+    - name: Install dependencies
+      run: |-
+        pip install -r ./build_requirements.txt
+        pip install pylint --upgrade
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: python
+        queries: security-extended
+        setup-python-dependencies: false
+    - name: Perform CodeQL analysis
+      env:
+        CODEQL_PYTHON: ${{ steps.get-python-path.outputs.python-path }}
+      uses: github/codeql-action/analyze@v1
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 2.7, 3.6, 3.7, 3.8, 3.9 ]
+
+    steps:
+    - name: Checkout commit
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |-
+        pip install -r ./build_requirements.txt
+        pip install --upgrade -r ./optional_requirements.txt
+        pip install --upgrade -r ./requirements.txt
+        pip install pylint --upgrade
+    - name: Execute linter for static code analysis
+      run: |-
+        pylint -E --rcfile _developer/pylint_strict.ini ./src/dpt_runtime/
+    - name: Execute tests
+      env:
+        DPT_PATH_DATA: /tmp
+      run: python setup.py test
+    - name: Execute permissive linter
+      continue-on-error: true
+      run: |-
+        pylint --rcfile _developer/pylint.ini ./src/dpt_runtime/

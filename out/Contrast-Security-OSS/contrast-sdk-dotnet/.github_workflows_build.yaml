@@ -1,0 +1,22 @@
+name: "Build"
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.101'
+    - uses: actions/checkout@v2
+    - run: dotnet build -c Release
+    - run: dotnet test -c Release
+    - run: dotnet pack -c Release --output ${{ github.workspace }}\nuget
+    - uses: actions/upload-artifact@v1
+      with:
+        name: nuget-packages
+        path: ${{ github.workspace }}\nuget

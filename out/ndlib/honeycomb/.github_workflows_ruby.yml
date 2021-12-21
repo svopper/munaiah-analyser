@@ -1,0 +1,54 @@
+name: Rspec Tests CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    env:
+      RAILS_ENV: test
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGPORT: 5432
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:11
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Node.js 12
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12.x
+    - name: Install Node modules
+      run: npm install
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@21351ecc0a7c196081abca5dc55b08f085efe09a
+      with:
+        ruby-version: 2.4.1
+        bundler-cache: true
+    - name: Bundler install
+      run: bundle install --jobs 4 --retry 3
+    - name: Setup database
+      run: |
+        cp config/secrets.example.yml config/secrets.yml
+        cp config/database_example.yml config/database.yml
+        psql -c 'create database honeycomb_test'
+        bundle exec rake --trace db:migrate test
+    - name: Run tests
+      run: bundle exec rspec spec
+      env:
+        COVERAGE: true

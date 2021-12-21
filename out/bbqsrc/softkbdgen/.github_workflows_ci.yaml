@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  LZMA_API_STATIC: 1
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup Divvun CI
+      uses: divvun/actions/setup@master
+      with:
+        key: ${{ secrets.DIVVUN_KEY }}
+    - name: Get version
+      id: version
+      uses: divvun/actions/version@master
+      with:
+        cargo: true
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install build dependencies
+      uses: divvun/actions/pahkat/init@master
+      with:
+        repo: https://pahkat.uit.no/devtools/
+        channel: nightly
+        packages: pahkat-uploader
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        components: rustfmt
+        target: x86_64-pc-windows-msvc
+    - name: Install pyoxidizer
+      run: |
+        python3 -m pip install pyoxidizer
+        pyoxidizer python-distribution-extract --download-default tmp
+    - name: Build kbdgen
+      run: |
+        cargo build --release -vv
+      env:
+        PYTHON_SYS_EXECUTABLE: ${{ github.workspace }}/tmp/python/install/python.exe
+        RUSTC_BOOTSTRAP: 1
+    - name: Create dist
+      run: |
+        mkdir -p dist/bin
+        mv target/release/kbdgen.exe dist/bin/kbdgen.exe
+    - name: Sign code
+      uses: divvun/actions/codesign@master
+      with:
+        path: dist/bin/kbdgen.exe
+    - name: Create tarball package
+      id: installer
+      uses: divvun/actions/create-txz@master
+      with:
+        path: dist
+    - name: Deploy
+      uses: divvun/actions/deploy@master
+      with:
+        package-id: kbdgen
+        type: TarballPackage
+        platform: windows
+        arch: x86_64
+        version: ${{ steps.version.outputs.version }}
+        payload-path: ${{ steps.installer.outputs['txz-path'] }}
+        repo: https://pahkat.thetc.se/devtools/
+        channel: ${{ steps.version.outputs.channel }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup Divvun CI
+      uses: divvun/actions/setup@master
+      with:
+        key: ${{ secrets.DIVVUN_KEY }}
+    - name: Get version
+      id: version
+      uses: divvun/actions/version@master
+      with:
+        cargo: true
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install build dependencies
+      uses: divvun/actions/pahkat/init@master
+      with:
+        repo: https://pahkat.uit.no/devtools/
+        channel: nightly
+        packages: pahkat-uploader
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        components: rustfmt
+        override: true
+    # - name: Configure environment using homebrew
+    #   run: |
+    #     brew unlink python
+    #     brew install python@3.7
+    #     brew link --force python@3.7
+    #     brew uninstall --ignore-dependencies libyaml
+    - name: Install pyoxidizer
+      run: |
+        python3 -m pip install pyoxidizer
+        pyoxidizer python-distribution-extract --download-default tmp
+    - name: Build kbdgen
+      run: |
+        cargo build --release -vv
+      env:
+        PYTHON_SYS_EXECUTABLE: ${{ github.workspace }}/tmp/python/install/bin/python3
+    - name: Create dist
+      run: |
+        strip target/release/kbdgen
+        mkdir -p dist/bin
+        mv target/release/kbdgen dist/bin/kbdgen
+    - name: Sign code
+      uses: divvun/actions/codesign@master
+      with:
+        path: dist/bin/kbdgen
+    - name: Create tarball package
+      id: installer
+      uses: divvun/actions/create-txz@master
+      with:
+        path: dist
+    - name: Deploy
+      uses: divvun/actions/deploy@master
+      with:
+        package-id: kbdgen
+        type: TarballPackage
+        platform: macos
+        arch: x86_64
+        version: ${{ steps.version.outputs.version }}
+        payload-path: ${{ steps.installer.outputs['txz-path'] }}
+        repo: https://pahkat.thetc.se/devtools/
+        channel: ${{ steps.version.outputs.channel }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup Divvun CI
+      uses: divvun/actions/setup@master
+      with:
+        key: ${{ secrets.DIVVUN_KEY }}
+    - name: Get version
+      id: version
+      uses: divvun/actions/version@master
+      with:
+        cargo: true
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install musl libs and tools
+      run: |
+        sudo apt install -y musl musl-tools
+    - name: Install build dependencies
+      uses: divvun/actions/pahkat/init@master
+      with:
+        repo: https://pahkat.uit.no/devtools/
+        channel: nightly
+        packages: pahkat-uploader
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-unknown-linux-musl
+        profile: minimal
+        components: rustfmt
+        override: true
+    - name: Install pyoxidizer
+      run: |
+        python3 -m pip install pyoxidizer
+        pyoxidizer python-distribution-extract --download-default tmp
+    - name: Build kbdgen
+      run: |
+        cargo build --release -vv
+      env:
+        PYTHON_SYS_EXECUTABLE: ${{ github.workspace }}/tmp/python/install/bin/python3
+    - name: Create dist
+      run: |
+        strip target/release/kbdgen
+        mkdir -p dist/bin
+        mv target/release/kbdgen dist/bin/kbdgen
+    - name: Create tarball package
+      id: installer
+      uses: divvun/actions/create-txz@master
+      with:
+        path: dist
+    - name: Deploy
+      uses: divvun/actions/deploy@master
+      with:
+        package-id: kbdgen
+        type: TarballPackage
+        platform: linux
+        arch: x86_64
+        version: ${{ steps.version.outputs.version }}
+        payload-path: ${{ steps.installer.outputs['txz-path'] }}
+        repo: https://pahkat.thetc.se/devtools/
+        channel: ${{ steps.version.outputs.channel }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

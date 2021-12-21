@@ -1,0 +1,51 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build_linux:
+    strategy:
+      matrix:
+        docker_image: ['realnc/qtads-build:linux-x86', 'realnc/qtads-build:linux-x64']
+
+    runs-on: ubuntu-latest
+    container: ${{ matrix.docker_image }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: |
+        qmake
+        make appimage
+
+  build_macOS:
+    runs-on: macos-10.15
+
+    steps:
+    - name: Replace homebrew
+      run: |
+        cd ~
+        mkdir newbrew
+        cd newbrew
+        curl -s -S -L 'https://github.com/realnc/stuff/releases/download/stuff/homebrew-10.13.tar.zst' | zstd -d | sudo tar x
+        rm -f bin/brew
+        mkdir ~/oldbrew
+        sudo mv /usr/local/* ~/oldbrew/
+        sudo mv * /usr/local/
+
+    - name: Download Qt
+      working-directory: /opt
+      run: |
+        curl -s -S -L 'https://github.com/realnc/stuff/releases/download/stuff/qt-5.15.2-macos-static.tar.zst' | zstd -d | sudo tar x
+
+    - name: Enable 10.15 SDK
+      run: |
+        sudo mv \
+          "/Applications/Xcode_12.1.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" \
+          "`xcode-select -p`/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk"
+
+    - uses: actions/checkout@v2
+    - name: Build
+      run: |
+        /opt/qt/bin/qmake -after CONFIG-=silent
+        make macdist

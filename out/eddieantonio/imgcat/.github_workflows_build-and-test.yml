@@ -1,0 +1,25 @@
+name: Build and test imgcat
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Build and test imgcat
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: 
+          - ubuntu-16.04
+          - ubuntu-18.04
+          - macos-10.15
+    steps:
+      - name: Checkout imgcat
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Install realpath
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        run: brew install coreutils
+      - name: Build
+        run: make
+      - name: Test
+        run: make test

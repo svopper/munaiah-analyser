@@ -1,0 +1,35 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+    schedule:
+        -   cron: '30 5 * * *'
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: gradle/wrapper-validation-action@v1
+
+            -   name: Install NDK
+                run: echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;22.1.7171670" --sdk_root=${ANDROID_SDK_ROOT}
+
+            -   name: Run release build
+                run: ./gradlew assembleRelease
+
+            -   name: Run debug build
+                run: ./gradlew assembleDebug
+
+            -   name: Upload artifact to GitHub
+                uses: actions/upload-artifact@v2
+                with:
+                    name: RedReader-debug.apk
+                    path: build/outputs/apk/debug/RedReader-debug.apk
+
+            -   name: Run PMD
+                run: ./gradlew pmd
+
+            -   name: Run checkstyle
+                run: ./gradlew checkstyle --stacktrace --info

@@ -1,0 +1,29 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - 3.9
+          - 3.8
+          - 3.7
+          - 3.6
+        flask-version:
+          - 1
+          - 2
+
+    name: Python ${{ matrix.python-version }} & Flask ${{ matrix.flask-version }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install tox
+      run: pip install tox
+
+    - name: Run tox
+      run: tox -e py${{ matrix.python-version }}-flask${{ matrix.flask-version }}

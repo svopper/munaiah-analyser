@@ -1,0 +1,68 @@
+name: Python CI
+
+on: push
+
+jobs:
+  test:
+
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system-level dependencies
+      run: |
+        # Add postgres package repo; see https://wiki.postgresql.org/wiki/Apt
+        sudo apt-get install curl ca-certificates gnupg
+        curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        sudo apt-get update
+        sudo apt purge postgresql-client-13 postgresql-server-dev-all
+        sudo apt-get install postgresql-plpython-9.5 postgresql-9.5-postgis-2.4
+
+    - name: Install pipenv
+      run: |
+        pip install -U pipenv
+
+    - id: cache-pipenv
+      uses: actions/cache@v2
+      with:
+        path: ~/.local/share/virtualenvs
+        key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+
+    - name: Install dependencies if changed
+      if: steps.cache-pipenv.outputs.cache-hit != 'true' && ${{ matrix.python-version == '3.8' }}
+      env:
+        PIP_INDEX_URL: https://pypi.pacificclimate.org/simple
+      run: |
+        pipenv install --deploy --dev
+
+    - name: Re-install dependencies if alternative python version
+      if: ${{ matrix.python-version != '3.8' }}
+      env:
+        PIP_INDEX_URL: https://pypi.pacificclimate.org/simple
+      run: |
+        mv Pipfile.lock do-not-use
+        pipenv install --python ${{ matrix.python-version }} --dev
+
+    - name: Test with pytest (full)
+      if: github.ref == 'refs/heads/master'
+      env:
+        PYCDS_SCHEMA_NAME: other
+      run: |
+        pipenv run pytest -v --tb=short tests
+
+    - name: Test with pytest (fast)
+      if: github.ref != 'refs/heads/master'
+      env:
+        PYCDS_SCHEMA_NAME: other
+      run: |
+        pipenv run pytest -m "not slow" -v --tb=short tests

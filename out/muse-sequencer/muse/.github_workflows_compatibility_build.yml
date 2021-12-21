@@ -1,0 +1,60 @@
+name: Compatibility build
+
+#on: workflow_dispatch
+on: 
+  push:
+    branches:
+      - master
+env: 
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+                 
+    - name: Install Deps
+      run: |
+        sudo apt-get install libsndfile1-dev libsamplerate0-dev \
+          libjack-jackd2-dev ladspa-sdk liblo-dev dssi-dev \
+          libsamplerate0-dev libfluidsynth-dev libgtkmm-2.4-dev \
+          libinstpatch-dev liblash-compat-dev librubberband-dev python3-dev librtaudio-dev \
+          liblilv-dev lv2-dev liblrdf0-dev
+               
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: '5.9.5'
+        
+    # - name: Check Qt Installation
+    #   run: |
+    #     QT_BASE_DIR=/usr
+    #     export QTDIR=$QT_BASE_DIR
+    #     export PATH=$QT_BASE_DIR/bin:$PATH
+    #     export LD_LIBRARY_PATH=$QT_BASE_DIR/lib/x86_64-linux-gnu:$QT_BASE_DIR/lib:$LD_LIBRARY_PATH
+    #     export PKG_CONFIG_PATH=$QT_BASE_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+        
+    #     echo "$PATH" >> $GITHUB_PATH
+    #     echo "QT_BASE_DIR=$QT_BASE_DIR" >> $GITHUB_ENV
+    #     echo "QTDIR=$QT_BASE_DIR" >> $GITHUB_ENV
+    #     echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+    #     echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        
+    #     echo $PKG_CONFIG_PATH
+    #     pkg-config --variable pc_path pkg-config
+    #     ls /usr/lib/x86_64-linux-gnu/pkgconfig
+        
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build
+      run: |
+        REPO_PATH=$GITHUB_WORKSPACE/src  
+        cmake $REPO_PATH -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--no-undefined -DMODULES_BUILD_STATIC=ON
+        
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config $BUILD_TYPE -j3

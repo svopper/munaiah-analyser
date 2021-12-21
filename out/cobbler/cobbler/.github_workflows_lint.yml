@@ -1,0 +1,37 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - master
+      - release30
+      - release32
+  pull_request:
+    branches:
+      - master
+      - release30
+      - release32
+
+jobs:
+  lint_docs:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run:  pip install -U rstcheck doc8
+    - name: Run rstcheck
+      run:  rstcheck -r docs
+    - name: Run doc8
+      run: doc8 --ignore D001 docs
+  lint_shellscripts:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'

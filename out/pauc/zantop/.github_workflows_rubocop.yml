@@ -1,0 +1,36 @@
+name: Rubocop
+
+on: [pull_request]
+
+env:
+  RUBY_VERSION: 3.0.2
+
+jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ env.RUBY_VERSION }}
+        bundler-cache: true
+
+    - name: Install Ruby dependencies
+      run: |
+        gem install bundler
+        bundle install
+
+    - uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        list-files: 'escape'
+        filters: |
+          ruby:
+            - '**/*.rb'
+
+      # run only for ruby files
+    - name: Run rubocop for changed or added files
+      if: steps.changes.outputs.ruby == 'true'
+      run: bundle exec rubocop ${{ steps.changes.outputs.ruby_files}}

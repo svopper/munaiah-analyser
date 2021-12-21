@@ -1,0 +1,108 @@
+name: Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    type: [ "opened", "reopened", "synchronize" ]
+  schedule:
+    - cron: '0 12 * * 0'  # run once a week on Sunday
+  # Allows running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  tests:
+    name: py-${{ matrix.python-version }}:pytest-${{ matrix.pytest-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [
+          "3.6",
+          "3.7",
+          "3.8",
+          "3.9",
+          "3.10-dev",
+          "pypy3",
+        ]
+        pytest-version: [
+          "5.3.*",
+          "5.4.*",
+          "6.0.*",
+          "6.1.*",
+          "6.2.*",
+          "main",
+        ]
+        exclude:
+          # Only pytest 6.2+ supports Python 3.10
+          - { python-version: "3.10-dev", pytest-version: "5.3.*" }
+          - { python-version: "3.10-dev", pytest-version: "5.4.*" }
+          - { python-version: "3.10-dev", pytest-version: "6.0.*" }
+          - { python-version: "3.10-dev", pytest-version: "6.1.*" }
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key:
+            ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pytest-version }}-v1-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pytest-version }}-v1-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          if [[ '${{ matrix.pytest-version }}' == 'main' ]]; then
+            python -m pip install git+https://github.com/pytest-dev/pytest.git@main#egg=pytest
+          else
+            python -m pip install pytest==${{ matrix.pytest-version }}
+          fi
+          python -m pip install -e .
+
+      - name: Tests
+        shell: bash
+        run: |
+          pytest
+
+  platform:
+    # Test devel setup on different platforms.
+    name: Platform-${{ matrix.os }}
+    needs: [ tests ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+
+      - name: Development setup on platform ${{ matrix.os }}
+        run: |
+          python -m pip install -U pip
+          python -m pip install pytest
+          python -m pip install -e .
+
+      - name: Tests
+        run: pytest

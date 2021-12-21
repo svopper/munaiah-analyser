@@ -1,0 +1,188 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  #schedule:
+  #  - cron: '0 */2 * * *'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GET_GAUCHE_URL: https://raw.githubusercontent.com/shirok/get-gauche/master
+      GAUCHE_TEST_PATH: ../Gauche-tmp-self-host-test/stage2
+      TESTLOG_NAME: testlog-linux
+      TESTLOG_PATH: testlog-linux
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Gauche
+      run: |
+        pwd
+        curl -f -o get-gauche.sh $GET_GAUCHE_URL/get-gauche.sh
+        chmod +x get-gauche.sh
+        ./get-gauche.sh --auto --home
+    - name: Add Gauche path
+      run: |
+        echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
+    - name: Run Gauche once
+      run: |
+        gosh -V
+    - name: Install tools
+      run: |
+        sudo apt-get install libgdbm-dev
+    - name: Self-host-test
+      run: |
+        gcc -v
+        ./DIST self-host-test
+    - name: Copy testlog
+      if: always()
+      run: |
+        mkdir -p $TESTLOG_PATH/$TESTLOG_NAME
+        cp $GAUCHE_TEST_PATH/src/test.log $TESTLOG_PATH/$TESTLOG_NAME
+        cp $GAUCHE_TEST_PATH/ext/threads/test.log $TESTLOG_PATH/$TESTLOG_NAME/test-threads.log
+    - name: Upload testlog
+      if: always()
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.TESTLOG_NAME }}
+        path: ${{ env.TESTLOG_PATH }}
+
+  build-osx:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      GET_GAUCHE_URL: https://raw.githubusercontent.com/shirok/get-gauche/master
+      GAUCHE_TEST_PATH: ../Gauche-tmp-self-host-test/stage2
+      TESTLOG_NAME: testlog-osx
+      TESTLOG_PATH: testlog-osx
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Gauche
+      run: |
+        pwd
+        curl -f -o get-gauche.sh $GET_GAUCHE_URL/get-gauche.sh
+        chmod +x get-gauche.sh
+        ./get-gauche.sh --auto --home
+    - name: Add Gauche path
+      run: |
+        echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
+    - name: Run Gauche once
+      run: |
+        gosh -V
+    - name: Install tools
+      run: |
+        brew install automake
+    - name: Self-host-test
+      run: |
+        gcc -v
+        ./DIST self-host-test
+    - name: Copy testlog
+      if: always()
+      run: |
+        mkdir -p $TESTLOG_PATH/$TESTLOG_NAME
+        cp $GAUCHE_TEST_PATH/src/test.log $TESTLOG_PATH/$TESTLOG_NAME
+        cp $GAUCHE_TEST_PATH/ext/threads/test.log $TESTLOG_PATH/$TESTLOG_NAME/test-threads.log
+    - name: Upload testlog
+      if: always()
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.TESTLOG_NAME }}
+        path: ${{ env.TESTLOG_PATH }}
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, i686]
+        include:
+        - arch: x86_64
+          bit: 64
+          devtool_path: D:\devtool64
+        - arch: i686
+          bit: 32
+          devtool_path: D:\devtool32
+    env:
+      GAUCHE_VERSION_URL: https://practical-scheme.net/gauche/releases/latest.txt
+      GAUCHE_INSTALLER_URL: https://practical-scheme.net/gauche/releases/latest.${{ matrix.bit }}bit.msi
+      GAUCHE_PATH: ${{ matrix.devtool_path }}\Gauche\bin
+      TESTLOG_NAME: testlog-windows-${{ matrix.arch }}
+      TESTLOG_PATH: testlog-windows-${{ matrix.arch }}
+    steps:
+    - run: git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW${{ matrix.bit }}
+        path-type: inherit
+        release: true
+        update: true
+        install: 'base-devel mingw-w64-${{ matrix.arch }}-toolchain'
+    - name: Run MSYS2 once
+      shell: msys2 {0}
+      run: |
+        pwd
+        echo $MSYSTEM
+        echo $MSYS2_PATH_TYPE
+        echo $PATH
+    - name: Install Gauche
+      shell: msys2 {0}
+      run: |
+        GAUCHE_INSTALLER_VERSION=`curl -f $GAUCHE_VERSION_URL`
+        echo $GAUCHE_INSTALLER_VERSION
+        GAUCHE_INSTALLER=Gauche-mingw-$GAUCHE_INSTALLER_VERSION-${{ matrix.bit }}bit.msi
+        echo $GAUCHE_INSTALLER
+        curl -f -L -o $GAUCHE_INSTALLER $GAUCHE_INSTALLER_URL
+        ls -l
+        cmd.exe //c "start /wait msiexec /a $GAUCHE_INSTALLER /quiet /qn /norestart TARGETDIR=${{ matrix.devtool_path }}"
+    - name: Add Gauche path
+      run: |
+        echo "PATH=$env:GAUCHE_PATH;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    - name: Run Gauche once
+      shell: msys2 {0}
+      run: |
+        where gosh
+        gosh -V
+    - name: Install tools
+      shell: msys2 {0}
+      run: |
+        #pacman -S --noconfirm msys/winpty
+        #winpty --version
+        where openssl
+        echo 'Rename unavailable openssl.exe'
+        mv /mingw${{ matrix.bit }}/bin/openssl.exe /mingw${{ matrix.bit }}/bin/openssl_NG.exe
+        where openssl
+        /usr/bin/openssl version
+    - name: Build
+      shell: msys2 {0}
+      run: |
+        gcc -v
+        ./DIST gen
+        src/mingw-dist.sh
+    - name: Test
+      shell: msys2 {0}
+      run: |
+        make -s check
+    - name: Copy testlog
+      if: always()
+      shell: msys2 {0}
+      run: |
+        mkdir -p $TESTLOG_PATH/$TESTLOG_NAME
+        cp src/test.log $TESTLOG_PATH/$TESTLOG_NAME
+        cp ext/threads/test.log $TESTLOG_PATH/$TESTLOG_NAME/test-threads.log
+    - name: Upload testlog
+      if: always()
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.TESTLOG_NAME }}
+        path: ${{ env.TESTLOG_PATH }}
+    #- name: Upload result
+    #  if: always()
+    #  uses: actions/upload-artifact@v1
+    #  with:
+    #    name: Gauche-${{ matrix.arch }}
+    #    path: ../Gauche-mingw-dist/Gauche-${{ matrix.arch }}
+

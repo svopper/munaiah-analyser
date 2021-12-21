@@ -1,0 +1,77 @@
+name: Panorama_Gem CI
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 1
+      matrix:
+        management_pack_license: ["diagnostics_and_tuning_pack", "diagnostics_pack", "panorama_sampler", "none"]
+    env:
+      JRUBY_VERSION: jruby-9.3.1.0
+      # Panorama dir after git clone
+      PANORAMA_PATH: /home/runner/work/Panorama_Gem/Panorama_Gem
+      MANAGEMENT_PACK_LICENSE: ${{ matrix.management_pack_license }}
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Check OS prerequisites
+      run: |
+        env
+        docker ps -a
+        docker images
+        java -version
+
+    - name: Set up RVM
+      run: |
+        curl -sSL https://get.rvm.io | bash
+
+    - name: Install JRuby
+      run: |
+        source $HOME/.rvm/scripts/rvm
+        rvm install ${JRUBY_VERSION}
+        rvm --default use ${JRUBY_VERSION}
+        gem install bundler
+        bundle --version
+
+    - name: Install Chrome
+      run: |
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || apt-get -y -f install
+
+    - name: bundle install
+      run: |
+        source $HOME/.rvm/scripts/rvm
+        cd ${PANORAMA_PATH} && bundle install
+
+    # create encypted wallet zip file to store in repository, add passphrase
+    # gpg --symmetric --cipher-algo AES256 Wallet_panoramatest.zip
+    - name: Decrypt Wallet for database access
+      env:
+        GPG_KEY_FOR_DB_WALLET_ENCRYPTION: ${{ secrets.GPG_KEY_FOR_DB_WALLET_ENCRYPTION }}
+      run: |
+        cd ${PANORAMA_PATH}/.github && ./decrypt_DB_wallet.sh
+        cd ${PANORAMA_PATH}/.github && unzip Wallet_panoramatest.zip
+
+    - name: run Test
+      env:
+        TEST_USERNAME: panorama_test
+        TEST_PASSWORD: TryItOut2019
+        TEST_TNS: panoramatest_tpurgent
+      run: |
+        source $HOME/.rvm/scripts/rvm
+        export TNS_ADMIN=${PANORAMA_PATH}/.github
+        echo "TNS_ADMIN=$TNS_ADMIN"
+        echo "tnsnames.ora="
+        cat $TNS_ADMIN/tnsnames.ora
+        cd ${PANORAMA_PATH} && rake test
+
+    - name: Archive test results
+      uses: actions/upload-artifact@v1
+      with:
+        name: test.log
+        path: test/dummy/logs/test.log

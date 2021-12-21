@@ -1,0 +1,66 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+      - uses: actions/checkout@v2
+
+      - name: Install Doxygen
+        run: brew install doxygen
+
+      - name: Set up publication to Maven Central
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+          architecture: x64
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - id: publish-to-central
+        name: Publish to Central Repository
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          GPG_TTY: $(tty)
+        run: |
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
+            -P release \
+            clean deploy --file pom.xml
+
+      - id: deploy-site
+        name: Setup deployment to tagtraum site
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+          architecture: x64
+          server-id: tagtraum-site
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - name: Deploy to tagtraum site
+        env:
+          MAVEN_USERNAME: ${{ secrets.SITE_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.SITE_TOKEN }}
+        run: |
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            clean site site:deploy --file pom.xml

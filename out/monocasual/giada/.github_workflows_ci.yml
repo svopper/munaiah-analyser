@@ -1,0 +1,78 @@
+name: Continuous integration
+
+# Runs on push and pull requests, any branch, Linux only (for now).
+
+on: [push, pull_request]
+
+jobs:
+  # Linux ----------------------------------------------------------------------
+  linux:
+    name: Linux CI
+    runs-on: ubuntu-18.04
+    timeout-minutes: 60
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: bash ./.github/scripts/linux/install-deps.sh
+        
+      - name: Generate Makefile
+        run: cmake -S . -B build/ -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-Wno-class-memaccess -DWITH_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/ -j 2
+
+      - name: Run tests
+        run: xvfb-run ./build/giada --run-tests 
+
+  # Windows --------------------------------------------------------------------
+  windows:
+    name: Windows
+    runs-on: windows-2019
+    timeout-minutes: 60
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        shell: bash
+        run: bash ./.github/scripts/windows/install-deps.sh
+        
+      - name: Generate Makefile
+        shell: bash
+        run: cmake -S . -B build/ -G "Visual Studio 16 2019" -DCMAKE_TOOLCHAIN_FILE=/c/vcpkg/scripts/buildsystems/vcpkg.cmake -DWITH_TESTS=ON
+
+      - name: Build
+        shell: bash
+        run: cmake --build build/ --config Debug -j 2
+
+      - name: Run tests
+        run: ./build/Debug/giada.exe --run-tests 
+
+  # macOS ----------------------------------------------------------------------
+  macos:
+    name: macOS
+    runs-on: macos-10.15
+    timeout-minutes: 60
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: bash ./.github/scripts/macos/install-deps.sh
+
+      - name: Generate Makefile
+        run: cmake -S . -B build/ -G "Xcode" -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_CXX_FLAGS="-x objective-c++" -DWITH_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/ --config Debug -j 2
+
+      - name: Run tests
+        run: ./build/Debug/giada --run-tests 

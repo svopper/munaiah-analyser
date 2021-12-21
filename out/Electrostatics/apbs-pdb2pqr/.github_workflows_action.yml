@@ -1,0 +1,121 @@
+---
+name: Build
+on:
+  push:
+    branches: [master]
+jobs:
+  build:
+    name: Compile Code
+    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, 'noci')"
+    strategy:
+      matrix:
+        # os: [ubuntu-latest]
+        # os: [macOS-latest]
+        os: [ubuntu-latest, macOS-latest]
+        # os: [ubuntu-latest, macOS-latest, windows-latest]
+        # python-version: [3.6, 3.7]
+        # python-version: [3.6, 3.7]
+        python-version: [3.7]
+        cflag-options:
+          - ' -DENABLE_GEOFLOW=ON  -DENABLE_BEM=ON  -DGET_MSMS=ON  -DENABLE_FETK=ON  -DENABLE_PBSAM=ON  -DENABLE_PBAM=ON  -DENABLE_PYTHON=ON  -DBUILD_SHARED_LIBS=ON  -DBUILD_DOC=OFF'
+          # - ' -DENABLE_GEOFLOW=ON  -DENABLE_BEM=ON  -DGET_MSMS=ON  -DENABLE_FETK=ON  -DENABLE_PBSAM=ON  -DENABLE_PBAM=ON  -DENABLE_PYTHON=ON  -DBUILD_SHARED_LIBS=OFF -DBUILD_DOC=OFF'
+          # - ' -DENABLE_GEOFLOW=ON  -DENABLE_BEM=ON  -DGET_MSMS=ON  -DENABLE_FETK=ON  -DENABLE_PBSAM=OFF -DENABLE_PBAM=OFF -DENABLE_PYTHON=ON  -DBUILD_SHARED_LIBS=ON  -DCMAKE_C_FLAGS="-fPIC" -DBUILD_DOC=OFF'
+          # - ' -DENABLE_GEOFLOW=ON  -DENABLE_BEM=OFF -DGET_MSMS=OFF -DENABLE_FETK=ON  -DENABLE_PBSAM=OFF -DENABLE_PBAM=OFF -DENABLE_PYTHON=ON  -DBUILD_SHARED_LIBS=ON  -DCMAKE_C_FLAGS="-fPIC" -DBUILD_DOC=OFF'
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Prereqs
+        uses: mstksg/get-package@v1
+        with:
+          brew: gcc@7 bison flex swig readline
+          apt-get: bison flex swig libreadline-dev
+      - name: Build and Install
+        run: |
+          echo "==================================== WHERE AM I ==================================== "
+          pwd
+          # Make the install directory
+          mkdir -p $HOME/local
+
+          echo "==================================== VERSIONS: ==================================== "
+          echo "==================================== PYTHON VERSION"
+          python -c "import sys; print(sys.version)"
+          echo "==================================== CMAKE VERSION"
+          cmake --version
+          echo "==================================== Gcc VERSION"
+          gcc --version
+          echo "==================================== G++ VERSION"
+          g++ --version
+          echo "==================================== SWIG VERSION"
+          swig -version
+
+          echo "==================================== Install Python requirements ==================================== "
+          pip3 install -U pip
+          pip3 install -U pytest
+          pip3 install -U virtualenv
+          pip3 install -U numpy
+
+          #  Just build APBS for now
+          echo "==================================== PWD FOR TOP DIR ==================================== "
+          pwd
+
+          echo "==================================== Get External SubModules ==================================== "
+          git submodule init
+          git submodule update
+          #mkdir build
+          #cd build
+          #cmake ..
+          #make VERBOSE=1
+          #cd ..
+
+          cd apbs
+          echo "==================================== PWD FOR APBS SRC ==================================== "
+          pwd
+          mkdir build
+          cd build
+          echo "==================================== BUILD DIR ==================================== "
+          pwd
+
+          echo "==================================== RUN CMAKE ==================================== "
+          pwd
+          cmake ${{ matrix.cflag-options }} -DCMAKE_INSTALL_PREFIX:PATH=$HOME/local .. || exit 1
+
+          echo "==================================== RUN MAKE ==================================== "
+          pwd
+          VERBOSE=1 make -j 1
+          VERBOSE=1 make -j 1 install
+      - name: Run the tests
+        run: |
+          #  Assume we are in the User's home directory where the top of the repository
+          echo "==================================== LOOK for APBS binary ==================================== "
+          #pwd
+          #echo find $HOME -type f -name apbs
+          #find $HOME -type f -name apbs
+          echo find $HOME -type f -name libmaloc
+          find $HOME -type f -name libmaloc\*
+          echo find $HOME -type f -name libTABIPB
+          find $HOME -type f -name libTABIPB\*
+          echo cd apbs/tests
+          cd apbs/tests
+          echo pwd
+          pwd
+          echo ls
+          ls
+          if [ -f /etc/os-release ]; then
+            ldd $HOME/local/bin/apbs
+          fi
+          #  TODO: Total HACK since it should be using STATIC libraries
+          #export LD_LIBRARY_PATH="/home/runner/work/apbs-pdb2pqr/apbs-pdb2pqr/apbs/build/fetk/lib"
+          #export LD_LIBRARY_PATH=${HOME}/local/lib:$LD_LIBRARY_PATH
+          for name in `echo $TEST_LIST`
+          do
+            echo bash run_travis_test.sh $HOME/local/bin $name
+            bash run_travis_test.sh $HOME/local/bin $name
+          done
+        env:
+          TEST_LIST: 'born geoflow actin-dimer-auto actin-dimer-parallel alkanes FKBP hca-bind ion-pmf ion-protein ionize pka-lig point-pmf solv protein-rna'
+          # https://codecov.io/gh/Electrostatics/apbs-pdb2pqr
+          CODECOV_TOKEN: "e3a1e24c-5598-4f47-9353-7fa0ac57f98e"

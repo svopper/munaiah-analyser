@@ -1,0 +1,26 @@
+name: 'Lock down repository'
+
+on:
+  pull_request:
+    types: opened
+
+jobs:
+  lockdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/repo-lockdown@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-comment: >
+            ⚠️ Relocation warning
+
+            =====================
+
+            This repository has been relocated to [the new organization Kaleidos Ventures](https://github.com/kaleidos-ventures/taiga-back/) where the team will continue developing Taiga. Please, follow us and contribute on the new location.
+
+
+            We haven't archived this repository yet but it'll become inactive eventually and so all pull request will be closed.
+          skip-closed-pr-comment: true
+          close-pr: true
+          lock-pr: true
+          process-only: 'prs'

@@ -1,0 +1,78 @@
+---
+
+on:
+  push:
+  pull_request:
+jobs:
+#  lint:
+#    name: lint
+#    runs-on: ubuntu-latest
+#    steps:
+#    - id: checkout
+#      name: checkout source
+#      uses: actions/checkout@v2
+#      with:
+#        fetch-depth: 0
+#    - id: super-lint
+#      name: super-lint
+#      uses: github/super-linter@v3
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        VALIDATE_SHELL_SHFMT: false
+#    - id: c-lint
+#      name: c-linter
+#      uses: ArtificialAmateur/cpp-linter-action@0.01
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+      name: build Sisdel
+      runs-on: ubuntu-latest
+      steps:
+          - uses: actions/checkout@v2
+            name: Checkout source
+            with:
+                path: 'src'
+                fetch-depth: 0
+          - uses: ./src/builder
+            name: Configure
+            with:
+                # No support for bash array, and I just can't figure out how white-spaces
+                # are handled when passed from yml to bash variable.
+                # Supports from arg_0 to and including arg_9.
+                cmd: 'cmake'
+                arg_0: '-G'
+                arg_1: 'Ninja Multi-Config'
+                arg_2: 'src'
+          - uses: ./src/builder
+            name: Build release
+            with:
+                cmd: 'cmake'
+                arg_0: '--build'
+                arg_1: '.'
+                arg_2: '--config'
+                arg_3: 'Release'
+          - uses: ./src/builder
+            name: Build debug
+            with:
+                cmd: 'cmake'
+                arg_0: '--build'
+                arg_1: '.'
+                arg_2: '--config'
+                arg_3: 'Debug'
+          - uses: ./src/builder
+            name: Build documentation
+            with:
+                cmd: 'cmake'
+                arg_0: '--build'
+                arg_1: '.'
+                arg_2: '--target'
+                arg_3: 'doc'
+          - id: upload-artifacts
+            name: Upload artifacts
+            uses: actions/upload-artifact@v2
+            with:
+                name: sisdel-binaries
+                path: sisdel-*
+                if-no-files-found: error
+

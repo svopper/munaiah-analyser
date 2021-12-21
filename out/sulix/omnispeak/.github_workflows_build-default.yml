@@ -1,0 +1,61 @@
+name: "CI: Build (Default)"
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Dependencies
+      run: |
+        sudo apt update
+        sudo apt install libsdl2-dev mingw-w64 libasound2-dev libieee1284-3-dev
+        wget https://github.com/andrewwutw/build-djgpp/releases/download/v3.1/djgpp-linux64-gcc1020.tar.bz2
+        sudo tar xf djgpp-linux64-gcc1020.tar.bz2 -C /usr/local
+        wget -nc http://www.delorie.com/pub/djgpp/current/v2misc/csdpmi7b.zip
+        mkdir csdpmi7b
+        unzip csdpmi7b.zip -d csdpmi7b/
+        sudo mkdir -p /opt
+        wget http://www.gcw-zero.com/files/opendingux-gcw0-toolchain.2014-08-20.tar.bz2
+        sudo tar xf opendingux-gcw0-toolchain.2014-08-20.tar.bz2 -C /opt
+    - name: Build (Linux)
+      working-directory: ./src
+      run: |
+        make WITH_ALSA=1 WITH_IEEE1284=1
+    - name: Build (Windows)
+      working-directory: ./src
+      run: |
+        make PLATFORM=win32
+        make PLATFORM=win64
+    - name: Build (MS-DOS)
+      working-directory: ./src
+      run: |
+        make PLATFORM=dos
+        cp ../csdpmi7b/bin/CWSDPMI.EXE ../bin-dos
+    - name: Build (GCW Zero)
+      working-directory: ./src
+      run: |
+        make PLATFORM=gcw0
+    - name: Upload (Linux)
+      uses: actions/upload-artifact@v2
+      with:
+        name: Linux Build
+        path: bin/
+    - name: Upload (Windows)
+      uses: actions/upload-artifact@v2
+      with:
+        name: Windows Build
+        path: bin-win*/
+    - name: Upload (MS-DOS)
+      uses: actions/upload-artifact@v2
+      with:
+        name: MS-DOS Build
+        path: bin-dos/
+    - name: Upload (GCW Zero)
+      uses: actions/upload-artifact@v2
+      with:
+        name: GCW Zero Build
+        path: bin-gcw0/

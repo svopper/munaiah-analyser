@@ -1,0 +1,60 @@
+name: afrika-run (GAE/Legacy/Wicket)
+
+concurrency: my-no-concurrency-group
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'backend/**'
+      - '.github/workflows/backend-cloud-run.yml'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - 'backend/**'
+      - '.github/workflows/backend-cloud-run.yml'
+      - '**/*.md'
+
+env:
+  MONGODB_USER: ${{ secrets.MONGODB_USER }}
+  MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+
+jobs:
+  build:
+    name: Build (and deploy on pull requests to GAE)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 8
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        run: ./mvnw -B clean package -P prod -Dmongodb.user=$MONGODB_USER -Dmongodb.password=$MONGODB_PASSWORD || ./mvnw -B clean package -P prod -Dmongodb.user=$MONGODB_USER -Dmongodb.password=$MONGODB_PASSWORD
+
+      - name: Setup gcloud CLI on pull requests
+        if: ${{ github.event_name == 'pull_request'}}
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          # version of gcloud - defaults to latest
+          # version: '290.0.0'
+          service_account_email: ${{ secrets.GOOGLE_CLOUD_RUN_SA_EMAIL }}
+          service_account_key: ${{ secrets.GOOGLE_CLOUD_RUN_SA_KEY }}
+          project_id: ${{ secrets.GCR_PROJECT_ID }}
+
+      - name: Deploy to GAE on pull requests
+        if: ${{ github.event_name == 'pull_request'}}
+        run: ./mvnw appengine:deploy -P prod

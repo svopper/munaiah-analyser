@@ -1,0 +1,53 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, devel ]
+    paths:
+      - 'illumiprocessor/**'
+      - 'bin/**'
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    # If we set the default shell here, it catches the activated conda
+    # and we don't need to keep calling it.
+    defaults:
+      run:
+        shell: bash -l {0}
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # setup cache for conda files
+      - name: Cache conda
+        uses: actions/cache@v1
+        env:
+          # Increase this value to reset cache if 
+          # etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{hashFiles('etc/environment.yml') }}
+      # we'll use the handy conda incubator miniconda package
+      - uses: conda-incubator/setup-miniconda@v2.0.1
+        with:
+          auto-update-conda: true
+          python-version: 3.6
+          environment-file: etc/environment.yml
+      - name: Run pytest
+        run: |
+          pytest -vv illumiprocessor/

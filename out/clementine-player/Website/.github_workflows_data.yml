@@ -1,0 +1,20 @@
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: "clementine-data"
+          service_account_key: ${{ secrets.CLEMENTINE_DATA_GOOGLE_CREDENTIALS }}
+          export_default_credentials: true
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Deploy data.clementine-player.org
+        working-directory: data.clementine-player.org
+        run: gcloud app deploy app.yaml

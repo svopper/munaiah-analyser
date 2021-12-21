@@ -1,0 +1,109 @@
+#
+# GitHub actions for building and testing python-package through containers.
+#
+# For best support, use `-latest` for runners spinning up containers. More at
+# https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners.
+
+name: Docker
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CHEVAH_REPO: python-package
+  USER: chevah
+  CHEVAH_CONTAINER: yes
+
+# Using a job name that doesn't contain the OS name, to minimize the risk of
+# confusion with the OS names of the containers, which are the relevant ones.
+jobs:
+  latest:
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # CentOS 5.11 setup was saved as an image pushed to Docker Hub. See the
+        # Overview section at https://hub.docker.com/r/proatria/centos for details.
+        container: [ 'alpine:3.14', 'centos:8.2.2004', 'proatria/centos:5.11-chevah1' ]
+    timeout-minutes: 30
+    steps:
+
+    # OpenSSL gets updated by apk, but that is the Alpine way, so it's fine.
+    - name: Alpine setup
+      if: startsWith(matrix.container, 'alpine')
+      run: |
+        apk upgrade -U
+        apk add git curl bash gcc make m4 automake libtool patch zlib-dev libffi-dev ncurses-dev linux-headers musl-dev openssl-dev lddtree shadow sudo openssh-client paxctl
+
+    # Stick to CentOS 8.2 as OpenSSL got updated in 8.3 from 1.1.1c to 1.1.1g.
+    - name: CentOS 8.2 setup
+      if: matrix.container == 'centos:8.2.2004'
+      run: |
+        sed -i s/^mirrorlist=/#mirrorlist=/ /etc/yum.repos.d/*.repo
+        sed -i s@^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever/@baseurl=https://vault.centos.org/8.2.2004/@ /etc/yum.repos.d/*.repo
+        yum -y upgrade
+        yum -y install git curl gcc make m4 automake libtool patch openssl-devel zlib-devel libffi-devel ncurses-devel sudo which openssh-clients
+
+    # On a Docker container, everything runs as root by default.
+    - name: Chevah user setup
+      run: |
+        useradd -g adm -s /bin/bash -m chevah
+        # Don't just add to the file, reset it, as some default options might
+        # be detrimental to our testing, e.g. CentOS 5's "requiretty" option.
+        echo '%adm    ALL=NOPASSWD: ALL' > /etc/sudoers
+
+    # GHA's checkout action doesn't work on CentOS 5. This fails on opening a new PR.
+    - name: Clone sources independently
+      run: |
+        cd /home/chevah/
+        git init $CHEVAH_REPO
+        cd $CHEVAH_REPO
+        # Cleanup the repo.
+        git rev-parse --symbolic-full-name --verify --quiet HEAD || true
+        git rev-parse --symbolic-full-name --branches || true
+        git remote remove origin || true
+        # Update repo token.
+        git remote add origin https://github.com/chevah/$CHEVAH_REPO
+        git fetch --no-tags --prune origin
+        # Prepare the code.
+        git clean -f
+        git reset --hard ${{ github.event.after }}
+        git log -1 --format='%H'
+
+    - name: Detect OS and build Python
+      run: |
+        cd /home/chevah/$CHEVAH_REPO
+        ./brink.sh detect_os
+        ./chevah_build build
+
+    - name: Own tests
+      run: |
+        cd /home/chevah/$CHEVAH_REPO
+        ./chevah_build test
+
+    # Compat tests must run as regular user with sudo rights.
+    - name: Compat tests
+      run: |
+        chown -R chevah /home/chevah/$CHEVAH_REPO
+        cd /home/chevah/$CHEVAH_REPO
+        su chevah -c "./chevah_build compat"
+
+    # Using `~/` is problematic under Docker, use `/root/`.
+    - name: Upload testing package
+      run: |
+        mkdir -pv /root/.ssh/
+        cd /home/chevah/$CHEVAH_REPO
+        touch priv_key
+        chmod 600 priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_PRIV_KEY }}" > priv_key
+        echo "${{ secrets.SFTPPLUS_BIN_HOST_KEY }}" > /root/.ssh/known_hosts
+        ./publish_dist.sh
+        rm priv_key

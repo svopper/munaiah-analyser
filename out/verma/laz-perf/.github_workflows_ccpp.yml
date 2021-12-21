@@ -1,0 +1,85 @@
+on:
+  push:
+    branches:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+  release:
+    types:
+      - published
+
+jobs:
+
+  emscripten:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: lazperf
+      - name: Emsdk
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git pull
+          ./emsdk install latest
+          ./emsdk activate latest
+      - name : Run
+        run: |
+          . emsdk/emsdk_env.sh
+          cd lazperf
+          mkdir build
+          cd build
+          . ../emscripten-build.sh
+
+  base:
+    name: Base library ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows-latest'
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          channels: conda-forge, defaults
+          show-channel-urls: true
+          auto-update-conda: true
+          python-version: '3.8'
+      - name: Setup
+        shell: bash -l {0}
+        run: |
+            conda update -n base -c defaults conda -y
+            conda config --add channels conda-forge
+            conda config --set channel_priority strict
+            conda install -c conda-forge compilers -y
+            conda install -c conda-forge ninja cmake -y
+            conda install -c conda-forge laz-perf --only-deps -y
+        continue-on-error: true
+      - name: Configure
+        shell: bash -l {0}
+        run: |
+            if [ "$RUNNER_OS" == "Windows" ]; then
+              export CC=cl.exe
+              export CXX=cl.exe
+            fi
+            mkdir build
+            cd build
+            cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -Dgtest_force_shared_crt=ON
+      - name: Build
+        shell: bash -l {0}
+        run: |
+            cd build
+            ninja
+      - name: Test
+        shell: bash -l {0}
+        run: |
+            cd build
+            ctest
+

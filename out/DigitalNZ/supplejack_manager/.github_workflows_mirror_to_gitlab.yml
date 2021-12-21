@@ -1,0 +1,15 @@
+name: Mirror to GitLab
+
+on: [push]
+
+jobs:
+  mirror-repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: mirror-repository
+        uses: spyoungtech/mirror-action@master
+        with:
+          REMOTE: ${{ secrets.GITLAB_REPO_SSH }}
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.GIT_SSH_PRIVATE_KEY }}
+          GIT_SSH_NO_VERIFY_HOST: ${{ secrets.GIT_SSH_NO_VERIFY_HOST }}

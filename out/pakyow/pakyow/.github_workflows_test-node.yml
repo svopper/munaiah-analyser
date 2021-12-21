@@ -1,0 +1,31 @@
+name: Test Node
+
+on:
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  test-node:
+    runs-on: ubuntu-latest
+
+    name: Pakyow.js
+
+    container:
+      image: pakyow/ci-npm
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup
+        shell: bash -l -e -o pipefail {0}
+        run: |
+          cd packages/js
+          rm -f package-json.lock
+          npm install
+
+      - name: Test
+        shell: bash -l -e -o pipefail {0}
+        run: |
+          cd packages/js
+          npm test

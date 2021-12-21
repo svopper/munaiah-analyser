@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        java: [ 8, 10, 11.0.x, 12, 13 ]
+
+
+    name: Java ${{ matrix.java }} - MySQL - ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Start MySQL
+      run: sudo systemctl start mysql.service
+      if: runner.os == 'linux'
+
+    - name: Install MySQL
+      run: choco install mysql --version=5.7.18
+      if: runner.os == 'windows'
+
+    - name: Start MySQL
+      run: "C:\\Tools\\mysql\\current\\bin\\mysqld"
+      if: runner.os == 'windows'
+
+    - name: Set root password
+      run: "C:\\Tools\\mysql\\current\\bin\\mysqladmin --user=root password \"root\""
+      if: runner.os == 'windows'
+
+    - name: Create MySQL database
+      run: "mysql -u root -proot -e 'CREATE DATABASE karuta_test'"
+
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml

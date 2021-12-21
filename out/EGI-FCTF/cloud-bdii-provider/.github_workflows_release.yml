@@ -1,0 +1,199 @@
+name: Create packages and release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Extract changelog
+      id: changelog
+      run: |
+        version=$(grep "^## \[[0-9].*\]" CHANGELOG | head -1 | sed -e "s/^.*\[\(.*\)\]/\1/")
+        changes=$(sed -e "/^## \[$version\]\$/,/^##/!d;//d;/^\$/d" CHANGELOG | \
+                  sed -e "s/\%/%25/g" | sed -e "s/\r/%0D/" | sed -z -e "s/\n/%0A/g")
+        echo "::set-output name=changes::$changes"
+        echo "::set-output name=version::$version"
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.changelog.outputs.version }}
+        release_name: Release ${{ steps.changelog.outputs.version }}
+        draft: false
+        prerelease: false
+        body: '${{ steps.changelog.outputs.changes }}'
+
+  sdist:
+    name: build python sdist
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+    - name: Build sdist
+      run: |
+        pip install tox
+        python setup.py sdist
+    - name: Get version
+      id: version
+      run: echo "::set-output name=version::$(python setup.py --version)"
+    - name: Upload output file
+      uses: actions/upload-artifact@v2
+      with:
+        name: sdist
+        path: dist/*tar.gz
+
+  centos7:
+    name: build centos 7 rpms
+    needs: sdist
+    runs-on: ubuntu-latest
+    container: centos:7
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: sdist
+    - name: install build requisites
+      run: |
+        yum install -y rpm-build rpmlint
+        yum install -y centos-release-openstack-queens
+        yum install -y python-pbr python-setuptools
+    - name: build rpm
+      run: |
+        tar -xzf cloud_info_provider-${{ needs.sdist.outputs.version }}.tar.gz \
+            --strip-components 1 cloud_info_provider-${{ needs.sdist.outputs.version }}/rpm
+        sed -i "s/^\(Version.\).*/\\1 ${{ needs.sdist.outputs.version }}/" rpm/cloud-info-provider.spec
+        sed -i "s/^\(Version.\).*/\\1 ${{ needs.sdist.outputs.version }}/" rpm/cloud-info-provider-opennebula.spec
+        sed -i "s/^\(Version.\).*/\\1 ${{ needs.sdist.outputs.version }}/" rpm/cloud-info-provider-openstack.spec
+        mkdir -p {BUILD,RPMS,SOURCES,SPECS,SRPMS}
+        cp -v cloud_info_provider-${{ needs.sdist.outputs.version }}.tar.gz SOURCES
+        rpmbuild --define "_topdir $PWD" -ba rpm/cloud-info-provider.spec
+        rpmbuild --define "_topdir $PWD" -ba rpm/cloud-info-provider-openstack.spec
+        rpmbuild --define "_topdir $PWD" -ba rpm/cloud-info-provider-opennebula.spec
+        rpmlint RPMS/noarch/*.rpm
+    - name: Upload rpms
+      uses: actions/upload-artifact@v2
+      with:
+        name: rpms
+        path: |
+          RPMS/noarch/cloud-info-provider-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          RPMS/noarch/cloud-info-provider-opennebula-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          RPMS/noarch/cloud-info-provider-openstack-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+
+  ubuntu:
+    name: build debs
+    needs: sdist
+    runs-on: ubuntu-latest
+    container: ubuntu:xenial
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: sdist
+    - name: install build requistes
+      run: |
+        apt-get update -q
+        apt-get install -q -y devscripts debhelper git
+        apt-get install -q -y python-all-dev python-pbr python-setuptools
+    - name: build packages
+      run: |
+        tar -xzf cloud_info_provider-${{ needs.sdist.outputs.version }}.tar.gz \
+            --strip-components 1
+        sed -i -e "1s/(.*)/(${{ needs.sdist.outputs.version }}-1)/" debian/changelog
+        debuild --no-tgz-check clean binary
+        cd debs/cloud-info-provider-openstack
+        sed -i -e "1s/(.*)/(${{ needs.sdist.outputs.version }}-1)/" debian/changelog
+        debuild --no-tgz-check clean binary
+        cd ../../debs/cloud-info-provider-opennebula
+        sed -i -e "1s/(.*)/(${{ needs.sdist.outputs.version }}-1)/" debian/changelog
+        debuild --no-tgz-check clean binary
+        cd ../..
+        mv debs/*.deb .
+        mv ../*.deb .
+    - name: Upload debs
+      uses: actions/upload-artifact@v2
+      with:
+        name: debs
+        path: |
+          python-cloud-info-provider_${{ needs.sdist.outputs.version }}-1_all.deb
+          python-cloud-info-provider-opennebula_${{ needs.sdist.outputs.version }}-1_all.deb
+          python-cloud-info-provider-openstack_${{ needs.sdist.outputs.version }}-1_all.deb
+
+  release:
+    needs: [sdist, ubuntu, centos7, prepare-release]
+    name: Upload release artefacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: debs
+      - uses: actions/download-artifact@v2
+        with:
+          name: rpms
+      - name: Upload base rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./cloud-info-provider-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_name: cloud-info-provider-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_content_type: application/octet-stream
+      - name: Upload opennebula rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./cloud-info-provider-opennebula-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_name: cloud-info-provider-opennebula-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_content_type: application/octet-stream
+      - name: Upload openstack rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./cloud-info-provider-openstack-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_name: cloud-info-provider-openstack-${{ needs.sdist.outputs.version }}-1.el7.noarch.rpm
+          asset_content_type: application/octet-stream
+      - name: Upload base deb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./python-cloud-info-provider_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_name: python-cloud-info-provider_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_content_type: application/vnd.debian.binary-package
+      - name: Upload opennebula deb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./python-cloud-info-provider-opennebula_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_name: python-cloud-info-provider-opennebula_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_content_type: application/vnd.debian.binary-package
+      - name: Upload openstack deb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
+          asset_path: ./python-cloud-info-provider-openstack_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_name: python-cloud-info-provider-openstack_${{ needs.sdist.outputs.version }}-1_all.deb
+          asset_content_type: application/vnd.debian.binary-package

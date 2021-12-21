@@ -1,0 +1,67 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.7.5, 3.7.12, 3.8, 3.8.0, 3.8.11, 3.8, 3.9, 3.9.0, 3.9.7, "3.10"]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 9999
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies and prepare tests
+      run: |
+        set -x
+
+        python -m pip install --upgrade pip setuptools wheel
+        python --version; git --version
+        git submodule update --init --recursive
+        git fetch --tags
+
+        pip install -r requirements.txt
+        pip install -r test-requirements.txt
+        TRAVIS=yes ./init-tests-after-clone.sh
+
+        git config --global user.email "travis@ci.com"
+        git config --global user.name "Travis Runner"
+        # If we rewrite the user's config by accident, we will mess it up
+        # and cause subsequent tests to fail
+        cat test/fixtures/.gitconfig >> ~/.gitconfig
+
+    - name: Lint with flake8
+      run: |
+        set -x
+        flake8
+
+    - name: Check types with mypy
+      run: |
+        set -x
+        mypy -p git
+
+    - name: Test with pytest
+      run: |
+        set -x
+        pytest
+      continue-on-error: false
+
+    - name: Documentation
+      run: |
+        set -x
+        pip install -r doc/requirements.txt
+        make -C doc html

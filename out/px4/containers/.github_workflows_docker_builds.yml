@@ -1,0 +1,466 @@
+name: Build & Publish Docker images
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  px4-dev-base-archlinux:
+    name: "Arch Linux Base"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-base-archlinux
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-base-archlinux
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_base-archlinux
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-base-bionic:
+    name: "Ubuntu Bionic Base"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-base-bionic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-base-bionic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_base-bionic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-armhf:
+    name: "Debian armhf"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-armhf
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-armhf
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_armhf
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-aarch64:
+    name: "Debian aarch64"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-aarch64
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-aarch64
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_aarch64
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-clang:
+    name: "Ubuntu Clang"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-bionic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-clang
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-clang
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_clang
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-nuttx-clang:
+    name: "Ubuntu NuttX Clang"
+    runs-on: ubuntu-latest
+    needs: px4-dev-clang
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-nuttx-clang
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-nuttx-clang
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_nuttx_clang
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-nuttx-bionic:
+    name: "NuttX in Ubuntu Bionic"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-bionic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-nuttx-bionic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-nuttx-bionic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_nuttx-bionic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-raspi:
+    name: "Ubuntu Raspberry Pi"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-bionic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-raspi
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-raspi
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_raspi
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-simulation-bionic:
+    name: "Ubuntu Bionic Simulation"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-bionic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-simulation-bionic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-simulation-bionic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_simulation-bionic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros-melodic:
+    name: "ROS Melodic"
+    runs-on: ubuntu-latest
+    needs: px4-dev-simulation-bionic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros-melodic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros-melodic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros-melodic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros2-dashing:
+    name: "ROS2 Dashing"
+    runs-on: ubuntu-latest
+    needs: px4-dev-ros-melodic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros2-dashing
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros2-dashing
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros2-dashing
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros2-eloquent:
+    name: "ROS2 Eloquent"
+    runs-on: ubuntu-latest
+    needs: px4-dev-ros-melodic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros2-eloquent
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros2-eloquent
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros2-eloquent
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-base-focal:
+    name: "Ubuntu Focal Base"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-base-focal
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-base-focal
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_base-focal
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-nuttx-focal:
+    name: "NuttX in Ubuntu Focal"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-focal
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-nuttx-focal
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-nuttx-focal
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_nuttx-focal
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-simulation-focal:
+    name: "Ubuntu Focal Simulation"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-focal
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-simulation-focal
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-simulation-focal
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_simulation-focal
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros-noetic:
+    name: "ROS Noetic"
+    runs-on: ubuntu-latest
+    needs: px4-dev-simulation-focal
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros-noetic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros-noetic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros-noetic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros2-foxy:
+    name: "ROS2 Foxy"
+    runs-on: ubuntu-latest
+    needs: px4-dev-ros-noetic
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros2-foxy
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros2-foxy
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros2-foxy
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros2-rolling:
+    name: "ROS2 Rolling"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-focal
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros2-rolling
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros2-rolling
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros2-rolling
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-dev-ros2-galactic:
+    name: "ROS2 Galactic"
+    runs-on: ubuntu-latest
+    needs: px4-dev-base-focal
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-dev-ros2-galactic
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-dev-ros2-galactic
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_ros2-galactic
+        cache: false
+        tag_names: true
+        workdir: docker
+
+  px4-docs:
+    name: "Ubuntu Docs"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build container
+      if: github.event_name == 'pull_request'
+      run: |
+        cd docker
+        make px4-docs
+    - name: Build & Publish container
+      if: github.event_name == 'push' && (contains(github.ref, '/heads/master') || contains(github.ref, '/tags/'))
+      uses: julianoes/Publish-Docker-Github-Action@master
+      with:
+        name: px4io/px4-docs
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: Dockerfile_docs
+        cache: false
+        tag_names: true
+        workdir: docker

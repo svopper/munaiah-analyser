@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    continue-on-error: true
+    strategy:
+      matrix:
+        include:
+          - task: ci-php-7.3-runkit-1.0.11
+          - task: ci-php-7.3-runkit-2.1.0
+          - task: ci-php-7.3-runkit-3.0.0
+          - task: ci-php-7.3-runkit-4.0.0a3
+          - task: ci-php-7.4-runkit-4.0.0a3
+          - task: ci-php-8.0-runkit-4.0.0a3
+          - task: ci-php-7.3-uopz-6.1.2
+          - task: ci-php-7.4-uopz-6.1.2
+          - task: ci-php-8.0-uopz
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests "${{ matrix.task }}"
+        run: make "${{ matrix.task }}"

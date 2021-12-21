@@ -1,0 +1,40 @@
+name: Linting
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8', '3.9']
+    name: Python ${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Check pip
+        run: pip --version
+      - name: Update pip
+        run: pip install --upgrade pip
+      - name: Install poetry
+        run: pip install poetry
+      - name: poetry install
+        run: poetry install
+      - name: check code style with black
+        run: make black
+        if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.9' }}  # broken in 3.6 currently
+      - name: flake8 tests
+        run: make flake8
+        if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.9' }}
+      - name: bandit
+        run: make bandit
+        if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.9' }}
+      - name: mypy
+        run: make mypy
+        if: ${{ matrix.python-version == '3.8' || matrix.python-version == '3.9' }}

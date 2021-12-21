@@ -1,0 +1,41 @@
+on:
+    pull_request:
+        types: [ opened, synchronize, reopened ]
+    push:
+        branches:
+            - 'master'
+        tags:
+            - "**"
+
+name: "Continuous Integration"
+
+jobs:
+    build:
+        runs-on: 'ubuntu-16.04'
+
+        strategy:
+            matrix:
+                java-version:
+                    - '8'
+
+        name: 'Java ${{ matrix.java-version }}'
+        steps:
+            -   uses: 'actions/checkout@v2'
+
+            -   uses: 'actions/cache@v1'
+                with:
+                    path: '~/.m2/repository'
+                    key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+                    restore-keys: |
+                        ${{ runner.os }}-maven-
+
+            -   name: 'Setup java'
+                uses: 'actions/setup-java@v1'
+                with:
+                    java-version: ${{ matrix.java-version }}
+
+            -   name: 'Compile'
+                run: 'mvn compile'
+
+            -   name: 'Test'
+                run: 'mvn test'

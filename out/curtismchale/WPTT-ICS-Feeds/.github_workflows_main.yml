@@ -1,0 +1,41 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: mirromutth/mysql-action@v1.1
+      with:
+        host port: 3800 # Optional, default value is 3306. The port of host
+        container port: 3307 # Optional, default value is 3306. The port of container
+        character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
+        collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
+        mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
+        mysql database: 'some_test' # Optional, default value is "test". The specified database which will be create
+        mysql root password: ${{ secrets.RootPassword }} # Required if "mysql user" is empty, default is empty. The root superuser password
+        mysql user: 'developer' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
+        mysql password: 'root' # Required if "mysql user" exists. The password for the "mysql user"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Composer install
+      run: composer install --optimize-autoloader --prefer-dist
+
+    - name: Install WP Tests
+      run: bash bin/install-wp-tests.sh wordpress_test root root localhost latest
+
+    - name: phpunit tests
+      run: ./vendor/bin/phpunit

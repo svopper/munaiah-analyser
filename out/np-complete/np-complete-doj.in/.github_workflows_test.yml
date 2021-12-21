@@ -1,0 +1,26 @@
+name: test
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: node-version
+        run: echo "::set-output name=NODE_VERSION::$(cat .node-version)"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node-version.outputs.NODE_VERSION }}
+      - run: yarn install
+      - run: yarn eslint .
+      - run: yarn stylelint 'src/**/*.scss'
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: node-version
+        run: echo "::set-output name=NODE_VERSION::$(cat .node-version)"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node-version.outputs.NODE_VERSION }}
+      - run: yarn install
+      - run: yarn webpack --mode development

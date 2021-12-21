@@ -1,0 +1,69 @@
+name: Check format
+
+on:
+  push:    
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:      
+
+    - name: Install OS dependencies (needed for act on ubuntu-latest)      
+      run: |
+        sudo apt update
+        sudo apt install -y --force-yes curl xz-utils libicu-dev git dos2unix
+
+    - uses: actions/checkout@v1      
+
+    - name: Cache Clang
+      id: cache-clang
+      uses: actions/cache@v2
+      with:
+        path: clang
+        key: ${{ runner.os }}-clang
+
+    - name: Install Clang
+      if: steps.cache-clang.outputs.cache-hit != 'true'
+      run: |
+        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/clang+llvm-12.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output clang.tar.xz
+        tar -xf clang.tar.xz
+        mv clang+llvm-12.0.1-x86_64-linux-gnu-ubuntu- clang
+
+    - name: Install dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+          dotnet-version: "6.0.x"      
+          include-prerelease: true   
+    - run: dotnet tool install -g dotnet-format    
+          
+    - name: Install Node and dependenceis    
+      uses: actions/setup-node@v1       
+      with:
+        node-version: "16"
+    - run: npm install -g typescript typescript-formatter        
+
+    - name: Install JDK
+      uses: actions/setup-java@v2   
+      with:
+        distribution: 'zulu'
+        java-version: "16"          
+                
+    - name: Format   
+      run: | 
+        export CLANGFORMAT=`pwd`/clang/bin/clang-format
+        export PATH="$PATH:/root/.dotnet/tools"      
+        ./formatters/format.sh
+        find . -type f -name '*.cs' -exec perl -pi -e 's/\r\n/\n/g' '{}' +
+        git diff
+        git diff > format-diff.txt          
+
+    - name: Archive formatting result
+      uses: actions/upload-artifact@v2
+      with:
+        name: format-diff
+        path: format-diff.txt
+
+    - name: Fail on format changes
+      run: |
+        git ls-files -m
+        if [[ `git ls-files -m` ]]; then echo "Detected formatting errors!" & exit 1; fi

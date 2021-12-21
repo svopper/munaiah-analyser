@@ -1,0 +1,40 @@
+---
+name: Build & Test
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: '42 3 * * *'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [bionic, buster, focal, debian-testing]
+    container:
+      image: ganeti/ci:${{ matrix.os }}-py3
+      options: "--init"
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: autogen
+        run: ./autogen.sh
+
+      - name: configure
+        run: ./configure --enable-haskell-tests
+
+      - name: Build
+        run: make -j 2
+
+      - name: Python tests
+        run: make py-tests
+
+      - name: Haskell tests
+        run: make -j 2 hs-tests

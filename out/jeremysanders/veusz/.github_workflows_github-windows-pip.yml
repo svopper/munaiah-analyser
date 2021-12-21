@@ -1,0 +1,52 @@
+name: Windows pip build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.3
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache-v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Upgrade pip
+      run : |
+        python -V
+        python -m pip install --upgrade pip
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        modules: 'qtsvg'
+        version: 5.15.2
+        setup-python: false
+    - name: Install Python dependencies
+      run: |
+        pip install -r requirements.txt
+    - name: Build
+      run: |
+        python setup.py build_ext --inplace
+    - name: Run tests
+      run: |
+        set QT_QPA_PLATFORM=minimal
+        set VEUSZ_INPLACE_TEST=1
+        python tests/runselftest.py
+      env:
+        VEUSZ_INPLACE_TEST: '1'
+        VEUSZ_REMOVE_FROM_ENV: 'QT_PLUGIN_PATH QML2_IMPORT_PATH'

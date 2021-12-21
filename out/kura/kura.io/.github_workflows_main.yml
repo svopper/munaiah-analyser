@@ -1,0 +1,61 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: cache_file
+      - name: apt install  
+        run: |
+          sudo apt update
+          sudo apt install -y pngquant imagemagick phantomjs
+      - name: pip install
+        run: make install
+      - name: clean
+        run: make clean
+      - name: publish
+        run: |
+          make publish
+          rm -rf output/theme/fonts/roboto*
+          rm -rf output/curriculum-vitae/ && cp -R cv output/curriculum-vitae/
+      - name: cname
+        run: make cname
+      - name: purge crud
+        run: make remove_crud
+      - name: touch
+        run: make touch
+      - name: deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+            personal_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+            publish_branch: gh-pages
+            publish_dir: ./output
+      - name: screenshot
+        run: make screenshot
+      - name: pngquant
+        run: make pngquant
+      - name: perms
+        run: make perms
+      - name: hash
+        run: make hash
+      - name: deploy images, screenshots and hashes
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+            personal_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+            publish_branch: gh-pages
+            publish_dir: ./output

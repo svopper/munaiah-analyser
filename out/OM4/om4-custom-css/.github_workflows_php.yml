@@ -1,0 +1,53 @@
+name: PHP Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: ["7.2", "7.3", "7.4"]
+    name: PHP ${{ matrix.php-versions }} Test on latest Ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: json, ctype
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composercache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composercache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Run php compatibility test
+        run: composer test:compat
+
+      - name: Run phpstan test
+        run: composer test:stan
+
+      - name: Run phpunit test
+        run: composer test:unit
+
+      - name: Generate zip file
+        run: composer release:zip ${{ github.sha }}
+
+      - name: Upload zip file
+        uses: actions/upload-artifact@v2
+        with:
+          name: om4-custom-css.zip
+          path: om4-custom-css.zip

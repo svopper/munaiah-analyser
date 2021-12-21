@@ -1,0 +1,19 @@
+name: scripts
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: "0 */72 * * *"  # every three days
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - run: pip install -r requirements.txt
+    - run: python ./scripts/inbox.py
+      env:
+        TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+        TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+        TRELLO_BOARD: ${{ secrets.TRELLO_BOARD }}

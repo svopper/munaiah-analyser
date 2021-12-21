@@ -1,0 +1,300 @@
+name: Nightly Builds
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 3:14
+    - cron: '14 3 * * *'
+
+jobs:
+  debian-packages:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Update Repositories
+      run: sudo apt-get update
+    - name: Install Build Dependencies
+      run: >
+        sudo apt-get install -y
+        devscripts build-essential lintian debhelper dh-exec
+        autoconf automake libtool
+        libglib2.0-dev libncurses-dev libgtk-3-dev xvfb
+        groff-base
+
+    # NOTE: We need to configure the build directory only to generate distribute.mk.
+    - name: Configure Build
+      run: |
+        autoreconf -i
+        ./configure
+
+    # NOTE: The debian package build rules already use xvfb-run to emulate an XServer
+    # when necessary since the PPA build servers might also be headless.
+    # NOTE: Packages are left in debian-temp/.
+    - name: Build Debian/Ubuntu Packages
+      run: ./distribute.mk debian-binary
+
+    - name: Get current date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    # NOTE: There is no way to prevent Github from zipping the artifact.
+    - name: Archive Debian/Ubuntu Packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: SciTECO nightly packages on ${{ steps.date.outputs.date }} (${{ matrix.os }}, x86_64, ncurses and GTK+ 3)
+        path: debian-temp/*.deb
+
+  macos:
+    runs-on: macos-10.15
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    # NOTE: macOS already ships with ncurses and groff.
+    # The system libncurses has turned out to be buggy, though (keypad() does not work).
+    # However, it does work on real Mac OS systems, I was told.
+    # Linking in our own ncurses should also be more portable in case
+    # the system libncurses ABI breaks.
+    # However, Homebrew installs ncurses as a keg and it will refer to a
+    # non-standard $TERMINFO. This could be worked around.
+    - name: Install Build Dependencies
+      run: brew install autoconf automake libtool glib dylibbundler
+    # FIXME: It would be nice to build universal arm64/x86_64 binaries,
+    # this apparently requires two separate build runs and a following merge
+    # using `lipo -create`. In this case we could just as well build two
+    # separate packages.
+    - name: Configure Build
+      env:
+        # Make sure we don't pick up GCC by accident.
+        CC: clang
+        CXX: clang++
+        # FIXME: Once there is an --enable-lto, we should use that.
+        CFLAGS: -O3 -flto
+        CXXFLAGS: -O3 -flto
+        LDFLAGS: -flto
+        # Uncomment if you want to build against the Homebrew-installed libncurses.
+        #PKG_CONFIG_PATH: /usr/local/opt/ncurses/lib/pkgconfig
+      # NOTE: This will not result in a fully statically-linked binary,
+      # but the more we get rid off, the better.
+      run: |
+        autoreconf -i
+        ./configure --with-interface=ncurses --enable-static-executables
+
+    - name: make
+      run: make -j 2
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: make check TESTSUITEFLAGS="--verbose"
+
+    - name: Package
+      run: |
+        make install-strip DESTDIR=`pwd`/temp-install
+        # There are libraries we cannot link against statically.
+        # We ship them in /usr/local/lib/sciteco so as not to cause collisions with system
+        # libraries or libraries installed via Homebrew.
+        # System libraries  are considered to have stable ABIs and
+        # are not currently bundled.
+        # FIXME: Is this really true for libc++?
+        dylibbundler -b -x temp-install/usr/local/bin/sciteco \
+                     -cd -d temp-install/usr/local/lib/sciteco -p @executable_path/../lib/sciteco
+        tar -C temp-install -cf sciteco.tar .
+
+    - name: Get Current Date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    - name: Archive Mac OS Distribution (ncurses)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SciTECO nightly build on ${{ steps.date.outputs.date }} (Mac OS, x86_64, ncurses)
+        path: sciteco.tar
+
+  win32-curses:
+    runs-on: windows-2019
+
+    defaults:
+      run:
+        shell: bash.exe --login -eo pipefail "{0}"
+    env:
+      MSYSTEM: MINGW32
+      CHERE_INVOKING: 1
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Set Up Shell
+      run: echo C:\msys64\usr\bin\ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+
+    - name: Install Build Dependencies
+      run: >
+        pacman -S --noconfirm --needed
+        base-devel mingw-w64-i686-toolchain
+        mingw-w64-i686-glib2 mingw-w64-i686-pdcurses
+        groff
+
+    - name: Configure Build
+      env:
+        PDCURSES_CFLAGS: -I/mingw32/include/pdcurses/
+        # FIXME: glib on MinGW supports static linking but the gspawn
+        # helper binaries are still linked dynamically, forcing us to ship
+        # all DLLs anyway. Therefore it makes little sense to link SciTECO
+        # itself statically - it only wastes a few MB.
+        # You will also have to add --enable-static-executables.
+        # The additional Windows libraries are for PDCursesMod/WinGUI:
+#       PDCURSES_LIBS: -lpdcurses -lgdi32 -lcomdlg32
+#       LIBGLIB_LIBS: -lglib-2.0 -lintl -liconv -lpcre -lole32 -lws2_32 -luuid
+        # FIXME: Once there is an --enable-lto, we should use that.
+#       CFLAGS: -O3 -flto -DGLIB_STATIC_COMPILATION
+        CFLAGS: -O3 -flto
+        CXXFLAGS: -O3 -flto
+        LDFLAGS: -flto
+      run: |
+        autoreconf -i
+        ./configure --with-interface=pdcurses-gui --enable-html-manual
+
+    - name: make
+      run: make -j 2
+    - run: make install-strip
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: make check TESTSUITEFLAGS="--verbose"
+
+    - name: Prepare Distribution Directory
+      run: |
+        mkdir temp-bin/
+        cp /mingw32/bin/{sciteco.exe,grosciteco.tes,tedoc.tes} temp-bin/
+        cp -r /mingw32/share/sciteco/{lib,*.tmac} temp-bin/
+        cp /mingw32/share/sciteco/sample.teco_ini temp-bin/.teco_ini
+        cp -r /mingw32/share/doc/sciteco/* temp-bin/
+        cp COPYING ChangeLog temp-bin/
+        cp /mingw32/bin/gspawn-win32-helper*.exe temp-bin/
+        # FIXME: See above. We currently link dynamically.
+        cp /mingw32/bin/{libglib-2.0-0,libpcre-1,libintl-8,libiconv-2,libwinpthread-1,libgcc_s_dw2-1}.dll temp-bin/
+        cp /mingw32/bin/libstdc++-6.dll temp-bin/
+        cp /mingw32/bin/libpdcurses.dll temp-bin/
+    - name: Get Current Date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    - name: Archive Windows Distribution (PDCurses)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SciTECO nightly build on ${{ steps.date.outputs.date }} (Win32, PDCurses)
+        path: temp-bin/*
+
+  # NOTE: There is a lot of redundancy with win32-curses.
+  # However the Curses version may be linked statically, while Gtk+3 cannot be
+  # linked statically on Windows (at least MSYS does not provide
+  # static libraries) and would draw in libglib, libintl, libiconv etc. anyway.
+  win32-gtk:
+    runs-on: windows-2019
+
+    defaults:
+      run:
+        shell: bash.exe --login -eo pipefail "{0}"
+    env:
+      MSYSTEM: MINGW32
+      CHERE_INVOKING: 1
+
+    steps:
+
+    - name: Git Clone
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Set Up Shell
+      run: echo C:\msys64\usr\bin\ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+
+    - name: Install Build Dependencies
+      run: >
+        pacman -S --noconfirm --needed
+        base-devel mingw-w64-i686-toolchain
+        mingw-w64-i686-glib2 mingw-w64-i686-gtk3
+        groff
+
+    - name: Configure Build
+      env:
+        # FIXME: Once there is an --enable-lto, we should use that.
+        CFLAGS: -O3 -flto
+        CXXFLAGS: -O3 -flto
+        LDFLAGS: -flto
+      run: |
+        autoreconf -i
+        ./configure --with-interface=gtk --enable-html-manual
+
+    - name: make
+      run: make -j 2
+    - run: make install-strip
+    # NOTE: The test suite must be run in verbose mode because if it fails
+    # we won't be able to analyze testsuite.log.
+    - name: Run Test Suite
+      run: make check TESTSUITEFLAGS="--verbose"
+
+    - name: Prepare Distribution Directory
+      run: |
+        mkdir -p temp-bin
+        cp /mingw32/bin/{sciteco.exe,grosciteco.tes,tedoc.tes} temp-bin/
+        cp -r /mingw32/share/sciteco/{lib,*.tmac} temp-bin/
+        # FIXME: Maybe there should be a separate win32/.teco_ini with
+        # a few pre-enabled settings?
+        cp /mingw32/share/sciteco/sample.teco_ini temp-bin/.teco_ini
+        cp /mingw32/share/sciteco/fallback.css temp-bin/.teco_css
+        cp -r /mingw32/share/doc/sciteco/* temp-bin/
+        cp COPYING ChangeLog temp-bin/
+        cp /mingw32/bin/gspawn-win32-helper*.exe temp-bin/
+        cp /mingw32/bin/{libglib-2.0-0,libpcre-1,libintl-8,libiconv-2,libwinpthread-1,libgcc_s_dw2-1}.dll temp-bin/
+        cp /mingw32/bin/{libgtk-3-0,libgdk-3-0,libgdk_pixbuf-2.0-0,libatk-1.0-0}.dll temp-bin/
+        cp /mingw32/bin/{libgobject-2.0-0,libgmodule-2.0-0,libgio-2.0-0,libffi-7}.dll temp-bin/
+        cp /mingw32/bin/{libpango-1.0-0,libpangocairo-1.0-0,libpangowin32-1.0-0,libpangoft2-1.0-0}.dll temp-bin/
+        cp /mingw32/bin/{libthai-0,libdatrie-1,libharfbuzz-0,libgraphite2,libfribidi-0,libepoxy-0}.dll temp-bin/
+        cp /mingw32/bin/{libfontconfig-1,libexpat-1}.dll temp-bin/
+        cp /mingw32/bin/{libfreetype-6,libbrotlidec,libbrotlicommon,libbz2-1,zlib1}.dll temp-bin/
+        cp /mingw32/bin/{libcairo-2,libcairo-gobject-2,libpixman-1-0,libstdc++-6}.dll temp-bin/
+        cp /mingw32/bin/{libpng16-16,librsvg-2-2,libxml2-2}.dll temp-bin/
+        #mkdir -p temp-bin/share
+        #cp /mingw32/share/loader.cache temp-bin/share/
+        #glib-compile-schemas /mingw32/share/glib-2.0/schemas
+        #mkdir -p temp-bin/share/glib-2.0
+        #cp /mingw32/share/glib-2.0/gschemas.compiled temp-bin/share/glib-2.0/
+        mkdir -p temp-bin/share/icons/Adwaita
+        # FIXME: It should be sufficient to package the SVG icons,
+        # but I cannot get it to work. Perhaps index.theme would have to be tweaked.
+        # We could also try to include a pure scalable icon theme.
+        #cp -r /mingw32/share/icons/Adwaita/{scalable*,index.theme} temp-bin/share/icons/Adwaita/
+        cp -r /mingw32/share/icons/Adwaita/* temp-bin/share/icons/Adwaita/
+        gtk-update-icon-cache-3.0 temp-bin/share/icons/Adwaita/
+        # FIXME: It's possible to change the location of loaders.cache via $GDK_PIXBUF_MODULE_FILE.
+        # If we did that, we could avoid "reusing" the lib/ directory.
+        # This is important when somebody changes $SCITECOPATH.
+        mkdir -p temp-bin/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+        cp /mingw32/lib/gdk-pixbuf-2.0/2.10.0/loaders/{libpixbufloader-svg.dll,libpixbufloader-png.dll} \
+           temp-bin/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+        cp win32/loaders.cache temp-bin/lib/gdk-pixbuf-2.0/2.10.0/
+    - name: Get Current Date
+      id: date
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+    - name: Archive Windows Distribution (GTK+ 3)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SciTECO nightly build on ${{ steps.date.outputs.date }} (Win32, GTK+ 3)
+        path: temp-bin/*

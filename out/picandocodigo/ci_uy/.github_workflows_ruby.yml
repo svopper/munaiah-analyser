@@ -1,0 +1,20 @@
+name: Ruby
+on: [push, pull_request]
+jobs:
+  test:
+    name: "Run tests"
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ 2.5, 2.6, 2.7, 3.0, head, jruby-9.2, jruby-head, truffleruby ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Build and test with Rake
+      run: |
+        ruby -v
+        bundle install --jobs 4 --retry 3
+        bundle exec rake

@@ -1,0 +1,33 @@
+name: build
+on:
+  push:
+    branches:
+      - master
+      - /\d\.0\.0-RC/
+  pull_request:
+    branches:
+      - master
+      - /\d\.0\.0-RC/
+jobs:
+  builds-tests-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Run build steps and generate coverage report
+        run: |
+          mvn verify javadoc:javadoc jacoco:report -Pcoverage -B -V
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./**/target/site/jacoco/jacoco.xml
+          name: codecov
+          fail_ci_if_error: true

@@ -1,0 +1,196 @@
+defaults:
+  run:
+    shell: "bash"
+
+name: "ci"
+
+on:
+  push:
+    branches: ["master"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["master"]
+
+env:
+  BADABUMP_VERSION: "21.1.0"
+  COMMITIZEN_VERSION: "2.17.6"
+  COVERALLS_VERSION: "3.0.1"
+  DEV_PYTHON_VERSION: "3.9.5"
+  POETRY_VERSION: "1.1.6"
+  TOX_GH_ACTIONS_VERSION: "2.5.0"
+  TOX_VERSION: "3.23.1"
+  TWINE_VERSION: "3.4.1"
+
+jobs:
+  dev:
+    name: "Verify package is installed well"
+
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+
+    runs-on: "${{ matrix.os }}"
+
+    steps:
+      - uses: "actions/checkout@v2.3.4"
+
+      - name: "Install Python"
+        uses: "actions/setup-python@v2.2.2"
+        with:
+          python-version: "${{ env.DEV_PYTHON_VERSION }}"
+
+      - name: "Install poetry"
+        run: "python3 -m pip install poetry==${{ env.POETRY_VERSION }}"
+
+      - name: "Cache venv"
+        uses: "actions/cache@v2.1.6"
+        with:
+          path: ".venv"
+          key: "venv-${{ hashFiles('poetry.lock') }}"
+
+      - name: "Install package"
+        run: "poetry install --no-dev"
+
+      - name: "Import package"
+        run: "poetry run python3 -c 'import rororo'"
+
+  test:
+    name: "Python ${{ matrix.python-version }}"
+
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
+
+    runs-on: "ubuntu-latest"
+
+    services:
+      redis:
+        image: "redis:6.0.7-alpine"
+        ports:
+          - "6379/tcp"
+        options: "--entrypoint redis-server"
+
+    steps:
+      - uses: "actions/checkout@v2.3.4"
+
+      - name: "Install Python"
+        uses: "actions/setup-python@v2.2.2"
+        with:
+          python-version: "${{ matrix.python-version }}"
+
+      - name: "Install poetry"
+        run: "python3 -m pip install poetry==${{ env.POETRY_VERSION }}"
+
+      - name: "Install depencencies"
+        run: "sudo apt update -y && sudo apt install -y locales-all"
+
+      - name: "Cache venv"
+        uses: "actions/cache@v2.1.6"
+        with:
+          path: ".venv"
+          key: "venv-${{ hashFiles('poetry.lock') }}"
+
+      - name: "Install package"
+        run: |
+          set -e
+          poetry install --no-dev
+          python3 -m pip install tox==${{ env.TOX_VERSION }} tox-gh-actions==${{ env.TOX_GH_ACTIONS_VERSION }}
+
+      - name: "Run pre-commit"
+        if: "startsWith(env.DEV_PYTHON_VERSION, matrix.python-version)"
+        uses: "pre-commit/action@v2.0.3"
+
+      - name: "Validate OpenAPI schemas"
+        if: "startsWith(env.DEV_PYTHON_VERSION, matrix.python-version)"
+        run: |
+          set -e
+          poetry run python3 -m openapi_spec_validator ./examples/hobotnica/src/hobotnica/openapi.yaml
+          poetry run python3 -m openapi_spec_validator ./examples/petstore/src/petstore/petstore-expanded.yaml
+          poetry run python3 -m openapi_spec_validator ./examples/simulations/src/simulations/openapi.yaml
+          poetry run python3 -m openapi_spec_validator ./examples/todobackend/src/todobackend/openapi.yaml
+          poetry run python3 -m openapi_spec_validator ./tests/rororo/openapi.json
+          poetry run python3 -m openapi_spec_validator ./tests/rororo/openapi.yaml
+
+      - name: "Run tests"
+        env:
+          PYTHONPATH: "./examples/hobotnica/src:./examples/petstore/src:./examples/simulations/src:./examples/todobackend/src"
+          REDIS_URL: "redis://localhost:${{ job.services.redis.ports[6379] }}/0"
+        run: "python3 -m tox"
+
+      - name: "Send report to coveralls"
+        if: "startsWith(env.DEV_PYTHON_VERSION, matrix.python-version)"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          python3 -m pip install coveralls==${{ env.COVERALLS_VERSION }}
+          python3 -m coveralls --service=github
+
+  package:
+    needs: ["test"]
+    name: "Build & deploy package"
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v2.3.4"
+
+      - name: "Install Python"
+        uses: "actions/setup-python@v2.2.2"
+        with:
+          python-version: "${{ env.DEV_PYTHON_VERSION }}"
+
+      - name: "Install poetry"
+        run: "python3 -m pip install poetry==${{ env.POETRY_VERSION }}"
+
+      - name: "Build package"
+        run: "poetry build"
+
+      - name: "Check package"
+        run: |
+          python3 -m pip install twine==${{ env.TWINE_VERSION }}
+          python3 -m twine check dist/*
+
+      - name: "Publish package"
+        if: "github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')"
+        uses: "pypa/gh-action-pypi-publish@v1.4.2"
+        with:
+          user: "${{ secrets.PYPI_USERNAME }}"
+          password: "${{ secrets.PYPI_PASSWORD }}"
+
+  release:
+    needs: ["package"]
+    if: "startsWith(github.ref, 'refs/tags/')"
+    name: "Create GitHub release"
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v2.3.4"
+
+      - name: "Fetch git data"
+        run: |
+          set -e
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+          git fetch --prune --unshallow
+
+      - name: "Install Python"
+        uses: "actions/setup-python@v2.2.2"
+        with:
+          python-version: "${{ env.DEV_PYTHON_VERSION }}"
+
+      - name: "Install badabump"
+        run: "python3 -m pip install badabump==${{ env.BADABUMP_VERSION }}"
+
+      - id: "badabump"
+        name: "Run badabump"
+        run: "python3 -m badabump.ci prepare_release \"${{ github.ref }}\""
+
+      - name: "Create new release"
+        uses: "actions/create-release@v1.1.4"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          tag_name: "${{ steps.badabump.outputs.tag_name }}"
+          release_name: "${{ steps.badabump.outputs.release_name }}"
+          body: "${{ steps.badabump.outputs.release_body }}"
+          prerelease: "${{ steps.badabump.outputs.is_pre_release }}"

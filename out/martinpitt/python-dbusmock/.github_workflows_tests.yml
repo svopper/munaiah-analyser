@@ -1,0 +1,29 @@
+name: unit-tests
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron: 0 4 * * MON,FRI
+jobs:
+  OS:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - docker.io/debian:unstable
+          - docker.io/ubuntu:devel
+          - docker.io/ubuntu:rolling
+          - docker.io/ubuntu:latest
+          - registry.fedoraproject.org/fedora:latest
+          - registry.fedoraproject.org/fedora:rawhide
+
+    timeout-minutes: 30
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+
+      - name: Run unit tests
+        # run as root; current Ubuntu podman breaks user networking ("could not find slirp4netns")
+        # disable seccomp profile: https://bugzilla.redhat.com/show_bug.cgi?id=1900021
+        run: sudo RUNC_OPTIONS=--security-opt=seccomp=unconfined tests/run ${{ matrix.scenario }}

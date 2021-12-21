@@ -1,0 +1,69 @@
+name: Build and Deploy Webpage
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: webpage
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - id: files
+      uses: jitterbit/get-changed-files@v1
+      with:
+        format: 'csv'
+    - id: changes
+      name: Check if we want to build and deploy the webpage
+      run: |
+        unset DO_BUILD
+        mapfile -d ',' -t added_modified_files < <(printf '%s,' '${{ steps.files.outputs.added_modified }}')
+        for changed_file in "${added_modified_files[@]}"; do
+          if [[ ${changed_file} == "CHANGELOG.md" ]] || [[ ${changed_file} = screenshots* ]] || [[ ${changed_file} = webpage* ]] || [[ ${changed_file} = ".github/workflows/build-deploy-webpage.yml" ]] ;
+          then
+            echo "'${changed_file}' matches, we will build"
+            DO_BUILD='true'
+          fi
+        done
+        echo "DO_BUILD: ${DO_BUILD}"
+        echo ::set-output name=DO_BUILD::${DO_BUILD}
+    - if: steps.changes.outputs.DO_BUILD
+      name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '12'
+    - if: steps.changes.outputs.DO_BUILD
+      run: yarn install
+    - if: steps.changes.outputs.DO_BUILD
+      run: yarn run build
+    - if: steps.changes.outputs.DO_BUILD
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - if: steps.changes.outputs.DO_BUILD
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - if: steps.changes.outputs.DO_BUILD
+      name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - if: steps.changes.outputs.DO_BUILD
+      name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        #path: ./webpage
+        context: ./webpage
+        file: ./webpage/Dockerfile
+        tags: pbeke/qownnotes-webpage:latest
+    - if: steps.changes.outputs.DO_BUILD
+      name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}

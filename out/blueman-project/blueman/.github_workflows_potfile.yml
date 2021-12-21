@@ -1,0 +1,23 @@
+name: potfile
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-pot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y -qq --no-install-recommends autopoint gettext cython libglib2.0-dev python-gi-dev libbluetooth-dev
+      - run: ./autogen.sh
+      - run: make -C po blueman.pot-update
+      - uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Update blumean.pot
+          branch: potfile
+          delete-branch: true
+          title: Update blueman.pot
+          body:

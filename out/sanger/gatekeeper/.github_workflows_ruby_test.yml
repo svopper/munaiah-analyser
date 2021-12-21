@@ -1,0 +1,32 @@
+
+name: Ruby RSpec Tests
+
+on:
+  - push
+  - pull_request
+
+env:
+  BUNDLE_WITHOUT: 'development lint'
+
+jobs:
+  ruby_test:
+
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/London
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true # Runs bundle install and caches gems. See the ruby_test.yml
+                            # example if you need more control over bundler.
+    - name: Update webpacker
+      run: RAILS_ENV=test bundle exec rake webdrivers:chromedriver:update
+    - name: Test & publish code coverage
+      uses: paambaati/codeclimate-action@v2.7.5
+      env:
+        CC_TEST_REPORTER_ID:  ${{ secrets.CC_TEST_REPORTER_ID || '76bbf64dfeb5a367f6ea0cc50d7949cf2957a5c11305e5de64decfb89ed471f6' }}
+      with:
+        coverageCommand: bundle exec rake

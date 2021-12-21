@@ -1,0 +1,32 @@
+name: CI_version-2.03
+
+on:
+  push:
+    branches: [version-2.03]
+  pull_request:
+    branches: [version-2.03]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install xmllint
+        run: sudo apt-get install libxml2-utils
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: IATI-Extra-Documentation
+
+      - name: Checkout Schemas repo
+        uses: actions/checkout@v2
+        with:
+          repository: IATI/IATI-Schemas
+          ref: version-2.03
+          path: IATI-Schemas
+
+      - name: Run schema validation with xmllint
+        run: |
+          xmllint --schema IATI-Schemas/iati-activities-schema.xsd --noout IATI-Extra-Documentation/en/activity-standard/*.xml
+          xmllint --schema IATI-Schemas/iati-organisations-schema.xsd --noout IATI-Extra-Documentation/en/organisation-standard/*.xml

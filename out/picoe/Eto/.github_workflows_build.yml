@@ -1,0 +1,210 @@
+name: Build
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+  release:
+    types: [ published ]
+
+env:
+  DotNetVersion: "5.0.100"
+  BuildConfiguration: "Release"
+  BuildParameters: "build/Build.proj /v:Minimal /consoleLoggerParameters:NoSummary /p:Configuration=Release /p:BuildVersion=${{ github.run_id }} /p:BuildBranch=${{ github.ref }}"
+
+jobs:
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Setup msbuild
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Build
+      run: dotnet build ${{ env.BuildParameters }} /p:Platform=Windows /t:Build /bl:artifacts/log/Build.Windows.binlog
+
+    - name: Build VS/Win Extension
+      run: msbuild ${{ env.BuildParameters }} /t:BuildAddins /bl:artifacts/log/Addin.Windows.binlog
+
+    - name: Upload nuget artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget
+        path: artifacts/nuget/${{ env.BuildConfiguration }}/*.nupkg
+
+    - name: Upload extension artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: addins
+        path: artifacts/addin/${{ env.BuildConfiguration }}/Eto.Addin.VisualStudio.Windows*.vsix
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: test
+        path: |
+          artifacts/test/${{ env.BuildConfiguration }}/**/*
+          !artifacts/test/${{ env.BuildConfiguration }}/**/*Mac64.*
+
+    - name: Upload sample artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: samples
+        path: artifacts/samples/${{ env.BuildConfiguration }}/**/*
+
+    - name: Upload log files
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: log
+        path: artifacts/log/**/*
+
+  build-mac:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DotNetVersion }}
+
+    - name: Setup Xamarin and XCode
+      uses: maxim-lobanov/setup-xamarin@v1
+      with:
+        mono-version: latest
+        xamarin-mac-version: latest
+        xcode-version: latest
+    
+    # See https://github.com/actions/virtual-environments/issues/2790
+    - name: Fix issue with latest macos image
+      run: |
+        curl -o xamarinmac.pkg 'https://bosstoragemirror.blob.core.windows.net/wrench/xcode12.4/a4c70e7d04e3904d17aa60f6d640eb048081c757/4477741/package/notarized/xamarin.mac-7.4.0.10.pkg'
+        sudo installer -pkg xamarinmac.pkg -target /
+
+    - name: Import code signing certificate
+      if: github.event_name != 'pull_request'
+      uses: apple-actions/import-codesign-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.DEVID_CERTIFICATE_P12 }}
+        p12-password: ${{ secrets.DEVID_CERTIFICATE_P12_PASSWORD }}
+
+    - name: Enable code signing
+      if: github.event_name != 'pull_request'
+      run: echo "BuildParameters=${{ env.BuildParameters }} /p:EnableCodeSignBuild=True" >> $GITHUB_ENV
+
+    - name: Set notarization credentials
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        xcrun altool --store-password-in-keychain-item "AC_PASSWORD" -u "${{ secrets.AC_USERNAME }}" -p "${{ secrets.AC_PASSWORD }}"
+        echo "BuildParameters=${{ env.BuildParameters }} /p:EnableNotarizationBuild=True" >> $GITHUB_ENV
+
+    - name: Build
+      run: dotnet build ${{ env.BuildParameters }} /p:Platform=Mac /t:Build /bl:artifacts/log/Build.Mac.binlog
+
+    - name: Build VS/Mac extension
+      run: msbuild ${{ env.BuildParameters }} /t:BuildAddins /bl:artifacts/log/Addin.Mac.binlog
+
+    - name: Upload nuget artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget
+        path: |
+          artifacts/nuget/${{ env.BuildConfiguration }}/Eto.Platform.XamMac2*.nupkg
+          artifacts/nuget/${{ env.BuildConfiguration }}/Eto.Platform.Gtk2*.nupkg
+
+    - name: Upload extension artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: addins
+        path: artifacts/addin/${{ env.BuildConfiguration }}/Eto.Addin.VisualStudio.Mac*.mpack
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: test
+        path: |
+          artifacts/test/${{ env.BuildConfiguration }}/**/*XamMac2.*
+          artifacts/test/${{ env.BuildConfiguration }}/**/*Mac64.*
+          artifacts/test/${{ env.BuildConfiguration }}/**/*Gtk2.*
+
+    - name: Upload log files
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: log
+        path: |
+          artifacts/log/**/*
+          lib/monomac/artifacts/generated/**/*.binlog
+
+  update-release:
+    needs: [ build-windows, build-mac ]
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'release' && github.event.action == 'published' && startsWith(github.ref, 'refs/tags/'))
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
+      - name: Get release
+        id: get_release
+        uses: bruceadams/get-release@v1.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: addins
+
+      - name: Upload VS/Win addin
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: Eto.Addin.VisualStudio.Windows-${{ steps.get_version.outputs.VERSION }}.vsix
+          asset_name: Eto.Addin.VisualStudio.Windows-${{ steps.get_version.outputs.VERSION }}.vsix
+          asset_content_type: application/octet-stream
+
+      - name: Upload VS/Mac addin
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: Eto.Addin.VisualStudio.Mac-${{ steps.get_version.outputs.VERSION }}.mpack
+          asset_name: Eto.Addin.VisualStudio.Mac-${{ steps.get_version.outputs.VERSION }}.mpack
+          asset_content_type: application/octet-stream
+
+  publish:
+    needs: [ build-windows, build-mac ]
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'release' && github.event.action == 'published' && startsWith(github.ref, 'refs/tags/'))
+    steps:
+      - name: Download nuget artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: nuget
+
+      - name: Push packages to myget.org
+        run: dotnet nuget push '*.nupkg' --skip-duplicate -s https://www.myget.org/F/eto/api/v2/package -k ${{secrets.MYGET_API_KEY}}
+
+      - name: Push packages to nuget.org
+        if: (github.event_name == 'release' && github.event.action == 'published' && startsWith(github.ref, 'refs/tags/'))
+        run: dotnet nuget push '*.nupkg' --skip-duplicate -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGET_API_KEY}}

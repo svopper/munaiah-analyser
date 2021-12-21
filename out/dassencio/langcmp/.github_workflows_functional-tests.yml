@@ -1,0 +1,56 @@
+name: Functional tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  generate-test-list:
+    name: Generate test list
+    runs-on: ubuntu-latest
+    outputs:
+      test-list: ${{steps.find-existing-tests.outputs.test-list}}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Find existing tests
+      id: find-existing-tests
+      run: |
+        cd tests
+        test_list=[$(echo * | sed -E -e 's/[[:alnum:]-]+/"&"/g' -e 's/ /,/g')]
+        echo "::set-output name=test-list::$test_list"
+
+  build-and-test:
+    name: Build and test
+    needs: generate-test-list
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        num-subproc: [1, 2]
+        python-version: [3.6, 3.8]
+        test-id: ${{fromJson(needs.generate-test-list.outputs.test-list)}}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{matrix.python-version}}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{matrix.python-version}}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install matplotlib numpy
+
+    - name: Run functional tests
+      env:
+        NUM_SUBPROC: ${{matrix.num-subproc}}
+        TEST_ID: ${{matrix.test-id}}
+      run: |
+        ./run-test "tests/$TEST_ID"

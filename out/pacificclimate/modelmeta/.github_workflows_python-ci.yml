@@ -1,0 +1,53 @@
+name: Python CI
+
+on: push
+
+jobs:
+  test:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install postgis postgresql-13 postgresql-client-13 libhdf5-serial-dev libnetcdf-dev libspatialite-dev
+
+    - name: Install pipenv
+      run: |
+        pip install -U pipenv
+    
+    - id: cache-pipenv
+      uses: actions/cache@v2
+      with:
+        path: ~/.local/share/virtualenvs
+        key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+
+    - name: Install dependencies if changed
+      if: steps.cache-pipenv.outputs.cache-hit != 'true' && ${{ matrix.python-version == '3.8' }}
+      run: |
+        pipenv install --deploy --dev
+    - name: Re-install dependencies if alternative python version
+      if: ${{ matrix.python-version != '3.8' }}
+      run: |
+        mv Pipfile.lock do-not-use
+        pipenv install --python ${{ matrix.python-version }} --dev
+    
+    - name: Test with pytest (full)
+      if: github.ref == 'refs/heads/master'
+      run: |
+        pipenv run py.test -m "not online" -v
+    
+    - name: Test with pytest (fast)
+      if: github.ref != 'refs/heads/master'
+      run: |
+        pipenv run py.test -m "not online and not slow" -v

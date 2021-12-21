@@ -1,0 +1,20 @@
+name: Valgrind
+on: [push, pull_request]
+jobs:
+  # Valgrind Check
+  valgrind:
+    name: Valgrind
+    runs-on: [self-hosted, valgrind]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Configure
+        env:
+          GIT_SSH_COMMAND: "${{ runner.os != 'Linux' && 'ssh' || 'ssh -i /home/buildbot/.ssh/id_ed25519 -o IdentitiesOnly=yes' }}"
+        run: python3 waf configure --git_protocol=git@
+      - name: Build
+        run: |
+          echo "::add-matcher::.github/gcc-problem-matcher.json"
+          python3 waf
+      - name: Valgrind Test
+        run: python3 waf --run_tests --run_cmd="valgrind %s"

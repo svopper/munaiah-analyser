@@ -1,0 +1,63 @@
+name: SeleniumLibrary CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.9, pypy3]
+        rf-version: [3.2.2, 4.0.1]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }} with Robot Framework ${{ matrix.rf-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Start xvfb
+      run: |
+        export DISPLAY=:99.0
+        Xvfb -ac :99 -screen 0 1280x1024x16 > /dev/null 2>&1 &
+    - name: Install dependencies
+      if: matrix.python-version != 'pypy3'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    - name: Install dependencies for pypy
+      if: matrix.python-version == 'pypy3'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install mockito>=1.0.0
+        pip install robotstatuschecker>=1.4
+        pip install approvaltests>=0.2.4
+        pip install pytest pytest-mockito pytest-approvaltests requests robotframework-pabot
+    - name: Install RF ${{ matrix.rf-version }}
+      run: |
+        pip install -U --pre robotframework==${{ matrix.rf-version }}
+    - name: Generate stub file for ${{ matrix.python-version }}
+      if: matrix.python-version != 'pypy3'
+      run: |
+        invoke gen-stub
+    - name: Run tests with headless Chrome and with Python != 3.8
+      if: matrix.python-version != '3.8'
+      run: |
+        xvfb-run --auto-servernum python atest/run.py --zip headlesschrome
+    - name: Run tests normal Chrome with Python 3.8
+      if: matrix.python-version == '3.8' && matrix.rf-version != '3.2.2'
+      run: |
+        xvfb-run --auto-servernum python atest/run.py --zip chrome
+    - name: Run tests with Selenium Grid
+      if: matrix.python-version == '3.8' && matrix.rf-version == '3.2.2'
+      run: |
+        wget --no-verbose --output-document=./selenium-server-standalone.jar http://selenium-release.storage.googleapis.com/3.141/selenium-server-standalone-3.141.59.jar
+        sudo chmod u+x ./selenium-server-standalone.jar
+        xvfb-run --auto-servernum python atest/run.py --zip headlesschrome  --grid True
+    - uses: actions/upload-artifact@v1
+      if: success() || failure()
+      with:
+        name: Failed Test results
+        path: atest/zip_results

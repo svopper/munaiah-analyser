@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    paths:
+    - "**.py"
+    - .github/workflows/ci.yml
+    pull-request:
+    - "**.py"
+    - .github/workflows/ci_stdlib_only.yml
+
+jobs:
+
+  full:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - run: pip install .[full,tests,lint]
+
+    - run: flake8
+    - run: mypy
+
+    - run: pytest
+
+# codecov coverage
+    # - run: pip install codecov pytest-cov
+    # - run: pytest --cov --cov-report=xml
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v1

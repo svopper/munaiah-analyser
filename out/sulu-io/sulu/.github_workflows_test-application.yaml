@@ -1,0 +1,284 @@
+name: Test application
+
+on:
+    pull_request:
+    push:
+        branches:
+            - '[0-9]+.x'
+            - '[0-9]+.[0-9]+'
+
+# automatically cancel previously started workflows when pushing a new commit to a branch
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    js-css:
+        name: "Node ${{ matrix.node-version }}"
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - node-version: '12'
+                    - node-version: '14'
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+
+            - name: Install and configure Node
+              uses: actions/setup-node@v2-beta
+              with:
+                  node-version: ${{ matrix.node-version }}
+
+            - name: Assert error when using yarn
+              run: tests/js/check-yarn-warning.sh
+
+            - name: Install npm dependencies
+              uses: bahmutov/npm-install@v1
+              with:
+                  useLockFile: false
+
+            - name: Lint JavaScript and CSS code
+              run: |
+                  npm run lint:js
+                  npm run lint:scss
+                  npm run flow -- check
+                  npm run depcruise
+
+            - name: Test JavaScript code
+              run: npm test -- --maxWorkers=4
+
+            - name: Test Styleguidist build
+              run: npm run styleguide:build
+
+            - name: Install and configure PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '7.4'
+                  tools: 'composer:v2'
+
+            - name: Install php dependencies
+              run: rm composer.json && composer require friendsofsymfony/jsrouting-bundle:^2.3 --no-interaction
+
+            - name: Test application build
+              run: npm run build
+
+    php:
+        name: "PHP ${{ matrix.php-version }} (${{ matrix.database }}, ${{ matrix.phpcr-transport }}, ${{ matrix.dependency-versions }})"
+        runs-on: ubuntu-latest
+
+        env:
+            APP_ENV: test
+            APP_SECRET: a448d1dfcaa563fce56c2fd9981f662b
+            MAILER_URL: null://localhost
+            SULU_ADMIN_EMAIL:
+            PHPCR_TRANSPORT: ${{ matrix.phpcr-transport }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - php-version: '7.2'
+                      database: postgres
+                      phpcr-transport: jackrabbit
+                      dependency-versions: 'lowest'
+                      php-extensions: 'ctype, iconv, mysql, gd'
+                      tools: 'composer:v1'
+                      env:
+                          SYMFONY_DEPRECATIONS_HELPER: disabled
+                          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/sulu_test?serverVersion=12.5
+                          DATABASE_CHARSET: UTF8
+                          DATABASE_COLLATE:
+
+                    - php-version: '8.0'
+                      database: mysql
+                      phpcr-transport: doctrinedbal
+                      dependency-versions: 'highest'
+                      php-extensions: 'ctype, iconv, mysql, imagick'
+                      tools: 'composer:v2'
+                      env:
+                          SYMFONY_DEPRECATIONS_HELPER: weak
+                          DATABASE_URL: mysql://root:root@127.0.0.1:3306/sulu_test?serverVersion=5.7
+                          DATABASE_CHARSET: utf8mb4
+                          DATABASE_COLLATE: utf8mb4_unicode_ci
+
+        services:
+            mysql:
+                image: mysql:5.7
+                env:
+                    MYSQL_ROOT_PASSWORD: root
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+            postgres:
+                image: postgres:12.5
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
+                options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+            jackrabbit:
+                image: sulu/jackrabbit:2.20-tomcat-filesystem
+                env:
+                    LOG_LEVEL: WARN
+                ports:
+                    - 8080:8080
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+
+            - name: Install and configure PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-version }}
+                  extensions: ${{ matrix.php-extensions }}
+                  tools: ${{ matrix.tools }}
+                  coverage: none
+
+            - name: Require jackrabbit dependencies
+              if: ${{ matrix.phpcr-transport == 'jackrabbit' }}
+              run: |
+                  composer remove jackalope/jackalope-doctrine-dbal --dev --no-interaction --no-update
+                  composer require jackalope/jackalope-jackrabbit:^1.4  --no-interaction --no-update
+
+            - name: Install composer dependencies
+              uses: ramsey/composer-install@v1
+              with:
+                  dependency-versions: ${{matrix.dependency-versions}}
+
+            - name: Bootstrap test environment
+              run: composer bootstrap-test-environment
+              env: ${{ matrix.env }}
+
+            - name: Execute test cases
+              run: time composer test
+              env: ${{ matrix.env }}
+
+    php-lint:
+        name: "PHP Lint"
+        runs-on: ubuntu-latest
+
+        env:
+            APP_ENV: test
+            APP_SECRET: a448d1dfcaa563fce56c2fd9981f662b
+            MAILER_URL: null://localhost
+            SULU_ADMIN_EMAIL:
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+
+            - name: Install and configure PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.0'
+                  extensions: 'ctype, iconv, mysql, imagick'
+                  tools: 'composer:v2'
+                  coverage: none
+
+            - name: Install composer dependencies
+              uses: ramsey/composer-install@v1
+              with:
+                  dependency-versions: highest
+
+            - name: Lint code
+              run: composer lint
+
+    php-windows:
+        name: "PHP ${{ matrix.php-version }} on Windows (mysql ${{ matrix.mysql-version }}, ${{ matrix.phpcr-transport }}, ${{ matrix.dependency-versions }})"
+        runs-on: windows-latest
+
+        env:
+            APP_ENV: test
+            APP_SECRET: a448d1dfcaa563fce56c2fd9981f662b
+            MAILER_URL: null://localhost
+            SULU_ADMIN_EMAIL:
+            DATABASE_URL: mysql://root:root@127.0.0.1:3306/sulu_test?serverVersion=${{ matrix.mysql-version }}
+            PHPCR_TRANSPORT: ${{ matrix.phpcr-transport }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - php-version: '7.4'
+                      mysql-version: '8.0'
+                      phpcr-transport: 'doctrinedbal'
+                      dependency-versions: 'highest'
+                      php-extensions: 'ctype, iconv, intl, mysql, pdo_mysql, php_fileinfo, imagick'
+                      tools: 'composer'
+                      env:
+                          SYMFONY_DEPRECATIONS_HELPER: disabled
+                          DATABASE_CHARSET: utf8mb4
+                          DATABASE_COLLATE: utf8mb4_unicode_ci
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+
+            - name: Install and configure PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-version }}
+                  extensions: ${{ matrix.php-extensions }}
+                  tools: ${{ matrix.tools }}
+                  ini-values: 'memory_limit=-1'
+
+            - name: Install and configure MySQL
+              uses: shogo82148/actions-setup-mysql@v1.0.1
+              with:
+                  mysql-version: ${{ matrix.mysql-version }}
+                  root-password: 'root'
+                  my-cnf: |
+                      [mysqld]
+                      default-authentication-plugin=mysql_native_password
+
+            - name: Download jackrabbit
+              if: ${{ matrix.phpcr-transport == 'jackrabbit' }}
+              uses: carlosperate/download-file-action@v1.0.3
+              with:
+                  file-url: http://archive.apache.org/dist/jackrabbit/2.20.2/jackrabbit-standalone-2.20.2.jar
+                  file-name: jackrabbit-standalone.jar
+                  location: downloads
+
+            - name: Run jackrabbit
+              if: ${{ matrix.phpcr-transport == 'jackrabbit' }}
+              run: powershell -command "Start-Process -FilePath java -ArgumentList '-jar downloads/jackrabbit-standalone.jar'"
+
+            - name: Require jackrabbit dependencies
+              if: ${{ matrix.phpcr-transport == 'jackrabbit' }}
+              run: |
+                  composer remove jackalope/jackalope-doctrine-dbal --dev --no-interaction --no-update
+                  composer require jackalope/jackalope-jackrabbit:^1.4  --no-interaction --no-update
+
+            - name: Install composer dependencies
+              uses: ramsey/composer-install@v1
+              with:
+                  dependency-versions: ${{ matrix.dependency-versions }}
+
+            - name: Bootstrap test environment
+              run: composer bootstrap-test-environment
+              env: ${{ matrix.env }}
+
+            - name: Execute test cases
+              run: composer test
+              env: ${{ matrix.env }}
+
+            - name: Install and configure Node.js
+              uses: actions/setup-node@v2
+              with:
+                  node-version: '14'
+
+            - name: Install npm dependencies
+              uses: bahmutov/npm-install@v1
+              with:
+                  useLockFile: false
+
+            - name: Build javascript
+              run: npm run build

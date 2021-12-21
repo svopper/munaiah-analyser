@@ -1,0 +1,93 @@
+name: fast tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        python-version: ['3.7', '3.8', '3.9']
+        include:
+          - os: 'macos-latest'
+            python-version: '3.7'
+    env:
+      PYTEST_ADDOPTS: --cov --cov-append -n 5 --color=yes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Brew Install
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew update
+          brew install shellcheck sqlite3 bash coreutils
+
+          # add GNU coreutils and sed to the user PATH
+          # (see instructions in brew install output)
+          echo \
+            "$(brew --prefix)/opt/coreutils/libexec/gnubin" \
+            >> "${GITHUB_PATH}"
+
+      - name: Apt-Get Install
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck sqlite3
+
+      - name: Install
+        run: |
+          pip install -e ."[all]"
+
+      - name: Configure git  # Needed by the odd test
+        uses: cylc/release-actions/configure-git@v1
+
+      - name: Style
+        run: |
+          flake8
+          etc/bin/shellchecker
+
+      - name: Typing
+        run: mypy
+
+      - name: Doctests
+        run: |
+          pytest cylc/flow
+
+      - name: Unit Tests
+        run: |
+          pytest tests/unit
+
+      - name: Bandit
+        if: ${{ matrix.python-version == '3.7' }}
+        # https://github.com/PyCQA/bandit/issues/658
+        run: |
+          bandit -r --ini .bandit cylc/flow
+
+      - name: Integration Tests
+        run: |
+          pytest tests/integration
+
+      - name: Coverage report
+        run: |
+          coverage xml
+          coverage report
+
+      - name: Codecov upload
+        uses: codecov/codecov-action@v2
+        with:
+          name: '"${{ github.workflow }} ${{ matrix.os }} py-${{ matrix.python-version }}"'
+          flags: fast-tests
+          fail_ci_if_error: true

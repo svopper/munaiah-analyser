@@ -1,0 +1,138 @@
+name: Create Release Assets
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    container:
+      image: mono:latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Installing build dependencies
+        run: apt-get update && apt-get install -y git make sed libplist-utils xorriso gzip fakeroot lintian rpm wget jq dpkg-dev
+      - name: Installing runtime dependencies
+        run: apt-get install -y xvfb
+
+      - name: Build ckan.exe and netkan.exe
+        run: ./build --configuration=Release
+      - name: Run tests
+        run: xvfb-run ./build test+only --configuration=Release --where="Category!=FlakyNetwork"
+
+      - name: Build dmg
+        run: ./build osx --configuration=Release --exclusive
+      - name: Build deb
+        env:
+          CODENAME: stable
+        run: ./build deb --configuration=Release --exclusive
+      - name: Sign deb release
+        env:
+          CODENAME: stable
+          DEBIAN_PRIVATE_KEY: ${{ secrets.DEBIAN_PRIVATE_KEY }}
+        run: |
+          echo "$DEBIAN_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          ./build deb-sign --configuration=Release --exclusive
+        if: ${{ env.DEBIAN_PRIVATE_KEY }}
+      - name: Build rpm
+        run: ./build rpm --configuration=Release --exclusive
+
+      - name: Get release data
+        id: release_data
+        run: |
+          URL=$(wget -qO- https://api.github.com/repos/$GITHUB_REPOSITORY/releases | jq '.[0].upload_url' | tr -d \")
+          echo "::set-output name=upload_url::$URL"
+          VERSION=$(wget -qO- https://api.github.com/repos/$GITHUB_REPOSITORY/releases | jq '.[0].tag_name' | tr -d \"v)
+          echo "::set-output name=version::$VERSION"
+          RPM_VERSION=$(echo $VERSION | sed -e 's/-/_/g')
+          echo "::set-output name=rpm_version::$RPM_VERSION"
+          DEB_VERSION=${VERSION}.$(date +'%g%j')
+          echo "::set-output name=deb_version::$DEB_VERSION"
+      - name: Push deb to S3
+        # Send deb file to https://ksp-ckan.s3-us-west-2.amazonaws.com/
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --follow-symlinks
+        env:
+          AWS_S3_BUCKET: ksp-ckan
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          SOURCE_DIR: _build/deb/apt-repo-root
+          DEST_DIR: deb
+        if: ${{ env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY }}
+      - name: Push Release file to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --follow-symlinks
+        env:
+          AWS_S3_BUCKET: ksp-ckan
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          SOURCE_DIR: _build/deb/apt-repo-dist
+          DEST_DIR: deb/dists/stable
+        if: ${{ env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Upload ckan.exe
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_data.outputs.upload_url }}
+          asset_path: _build/repack/Release/ckan.exe
+          asset_name: ckan.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+      - name: Upload CKAN.dmg
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_data.outputs.upload_url }}
+          asset_path: _build/osx/CKAN.dmg
+          asset_name: CKAN.dmg
+          asset_content_type: application/x-apple-diskimage
+      - name: Upload ckan_*.deb
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_data.outputs.upload_url }}
+          asset_path: _build/deb/ckan_${{ steps.release_data.outputs.deb_version }}_all.deb
+          asset_name: ckan_${{ steps.release_data.outputs.version }}_all.deb
+          asset_content_type: application/vnd.debian.binary-package
+      - name: Upload ckan-*.rpm
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_data.outputs.upload_url }}
+          asset_path: _build/rpm/RPMS/noarch/ckan-${{ steps.release_data.outputs.rpm_version }}-1.noarch.rpm
+          asset_name: ckan-${{ steps.release_data.outputs.rpm_version }}-1.noarch.rpm
+          asset_content_type: application/x-rpm
+      - name: Upload AutoUpdater.exe
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_data.outputs.upload_url }}
+          asset_path: _build/out/AutoUpdater/Release/bin/AutoUpdater.exe
+          asset_name: AutoUpdater.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Send Discord Notification
+        env:
+          JOB_STATUS: ${{ job.status }}
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
+          HOOK_OS_NAME: ${{ runner.os }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+        if: ${{ always() && env.WEBHOOK_URL }}]
+        run: |
+          git clone --depth 1 https://github.com/DiscordHooks/github-actions-discord-webhook.git webhook
+          bash webhook/send.sh $JOB_STATUS $WEBHOOK_URL

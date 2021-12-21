@@ -1,0 +1,37 @@
+name: Reproducible build
+
+on:
+  push:
+    branches:
+    - main
+    - 'releases/*'
+  pull_request:
+    branches:
+    - '*'
+
+env:
+  GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
+
+jobs:
+  check_build_reproducibility:
+    name: 'Check build reproducibility'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - name: Set up JDK 17
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    - name: Restore Gradle cache and display toolchains
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: |
+          -Porg.gradle.java.installations.auto-download=false
+          javaToolchains
+    - name: Build and compare checksums
+      shell: bash
+      run: |
+        ./src/checkBuildReproducibility.sh

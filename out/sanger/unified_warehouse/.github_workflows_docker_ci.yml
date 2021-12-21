@@ -1,0 +1,86 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+    paths-ignore:
+      - "README.md"
+    tags:
+      - uat-*
+      - release-*
+      - v*
+env:
+  IMAGE_NAME: ${{ github.repository }}/${{ github.event.repository.name }}
+
+jobs:
+  build_and_test_job:
+    runs-on: ubuntu-latest
+    env:
+      LOCALHOST: 127.0.0.1 # If we use localhost, rails tries to use a socket
+    services:
+      mysql:
+        image: mysql:5.7
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ROOT_PASSWORD: null
+          MYSQL_DATABASE: unified_warehouse_test
+      rmq:
+        image: rabbitmq:3
+        ports:
+          - 5672:5672
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+      ewh:
+        image: docker.pkg.github.com/sanger/event_warehouse/event_warehouse:develop
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          DBHOST: mysql
+          RMQHOST: rmq
+          INTEGRATION_TEST_SETUP: true
+          INTEGRATION_TEST_SEED: '/code/spec/data/integration/seed_for_unified_wh.rb'
+          RAILS_ENV: test
+    steps:
+      - uses: actions/checkout@v2
+      - uses: nelonoel/branch-name@v1.0.1
+      - name: Build the Docker image
+        run: >-
+          docker build .
+          --file Dockerfile
+          --tag docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}
+      - name: Run Rubocop against the image
+        run: >-
+          docker run --network host --env DBHOST=$LOCALHOST
+          docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}
+          bundle exec rubocop
+      - name: Initialize Unified warehouse testing database
+        run: >-
+          docker run --network host --env DBHOST=$LOCALHOST --env RAILS_ENV=test
+          docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}
+          bundle exec rake db:setup db:views:schema:load
+      - name: Run tests against the image
+        run: >-
+          docker run --network host --env DBHOST=$LOCALHOST
+          docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}
+          bundle exec rspec
+      - name: Run integration tests
+        run: >-
+          docker run --network host --env DBHOST=$LOCALHOST
+          docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}
+          bundle exec rspec --tag integration
+      - name: Login to registry
+        run: >-
+          docker login
+          -u ${{ github.actor }}
+          -p ${{ secrets.GITHUB_TOKEN }}
+          docker.pkg.github.com
+      - name: Publish image with image tag being either develop/master/<tag_name>
+        run: >-
+          docker push
+          docker.pkg.github.com/${IMAGE_NAME}:${BRANCH_NAME}

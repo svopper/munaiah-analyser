@@ -1,0 +1,136 @@
+name: Windows unit tests
+on:
+  push:
+    branches: ['master']
+    tags-ignore: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        ruby: [2.3, 2.7, 3.0, jruby]
+        node: [14]
+    runs-on: ${{ matrix.os }}
+    # runs-on: self-hosted
+    # Self-hosted needs:
+    # - 7z installing and adding to path
+    # - Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine
+    # - install chocolatey
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        env:
+          ImageOS: win19
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup Golang
+        uses: actions/setup-go@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pycairo
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Install Graphviz
+        run: |
+          cinst graphviz -r -y --no-progress
+          dot -c
+      - name: Install AsciitoSVG
+        run: |
+          go get github.com/asciitosvg/asciitosvg/cmd/a2s
+          echo "$(go env GOPATH)/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install BPNM-JS
+        run: npm install -g bpmn-js-cmd
+      - name: Install Bytefield-SVG
+        run: npm install -g bytefield-svg
+      - name: Install Dpic
+        run: |
+          mkdir dpic
+          @"
+          function DownloadWithRetry([string] `$url, [string] `$downloadLocation, [int] `$retries)
+          {
+              while(`$true)
+              {
+                  try
+                  {
+                      Invoke-WebRequest `$url -OutFile `$downloadLocation
+                      break
+                  }
+                  catch
+                  {
+                      `$exceptionMessage = `$_.Exception.Message
+                      Write-Host "Failed to download '`$url': `$exceptionMessage"
+                      if (`$retries -gt 0) {
+                          `$retries--
+                          Write-Host "Waiting 10 seconds before retrying. Retries left: `$retries"
+                          Start-Sleep -Seconds 10
+                      }
+                      else
+                      {
+                          `$exception = `$_.Exception
+                          throw `$exception
+                      }
+                  }
+              }
+          }
+          "@ | Tee-Object -FilePath "DownloadWithRetry.ps1" -Append
+          . .\DownloadWithRetry.ps1; DownloadWithRetry -url "https://ece.uwaterloo.ca/~aplevich/dpic/Windows/dpic.exe" -downloadLocation "dpic\dpic.exe" -retries 5
+          echo "$PWD\dpic" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Mermaid
+        run: npm install -g @mermaid-js/mermaid-cli
+      - name: Install NomNoml
+        run: npm install -g nomnoml
+      - name: Install Blockdiag
+        run: pip install blockdiag[pdf] actdiag seqdiag nwdiag[pdf]
+      - name: Install StateMachineCat
+        run: npm install -g state-machine-cat
+      - name: Install Vega
+        run: |
+          npm install -g vega-cli
+          npm install -g install-peerdeps@2.0.3
+          install-peerdeps -g vega-lite
+      - name: Install Wavedrom
+        run: npm install -g wavedrom-cli
+      - name: Install LilyPond
+        run: |
+          cinst lilypond -r -y --no-progress
+          echo "C:\Program Files (x86)\LilyPond\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install ImageMagick
+        run: |
+          cinst imagemagick -r -y --no-progress
+          echo "C:\Program Files\ImageMagick-7.1.0-Q16-HDRI" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Gnuplot
+        run: |
+          cinst gnuplot -r -y --no-progress
+          echo "C:\Program Files\gnuplot\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Set-Content -Path $env:APPDATA\gnuplot.ini -Value 'set term debug'
+      - name: Install StateMachineCat
+        run: npm install -g state-machine-cat
+      - name: Install Svgbob
+        run: cargo install svgbob_cli
+      - name: Install UMLet
+        run: |
+          . .\DownloadWithRetry.ps1; DownloadWithRetry -url "https://www.umlet.com/umlet_14_3/umlet-standalone-14.3.0.zip" -downloadLocation umlet.zip -retries 5
+          7z x umlet.zip
+          echo "$PWD/Umlet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Install Diagrams
+        run: pip install diagrams
+      - name: Run tests
+        run: bundle exec rake test

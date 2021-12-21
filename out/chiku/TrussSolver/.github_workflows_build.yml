@@ -1,0 +1,43 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  release:
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - name: "Ubuntu GCC"
+          os: "ubuntu-latest"
+          CC: "gcc"
+          CXX: "g++"
+        - name: "Ubuntu Clang"
+          os: "ubuntu-latest"
+          CC: "clangcc"
+          CXX: "clang++"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Environment
+        run: |
+          echo github.event.action: ${{ github.event.action }}
+          echo github.event_name: ${{ github.event_name }}
+          echo cc: ${{ matrix.config.cc }}
+          echo cxx: ${{ matrix.config.cxx }}
+
+      - name: Submodules
+        run: |
+          git submodule update --init --recursive
+
+      - name: Test
+        shell: bash
+        run: make all

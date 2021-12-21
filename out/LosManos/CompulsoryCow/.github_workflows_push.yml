@@ -1,0 +1,79 @@
+name: Push
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core 3
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Setup .NET 5
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+    - name: Possibly publish CompulsoryCow.AreEqual
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.AreEqual/CompulsoryCow.AreEqual/CompulsoryCow.AreEqual.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.CharacterSeparated
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.CharacterSeparated/CompulsoryCow.CharacterSeparated/CompulsoryCow.CharacterSeparated.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.DateTimeAbstractions
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.DateTimeAbstractions/CompulsoryCow.DateTimeAbstractions/CompulsoryCow.DateTimeAbstractions.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.AssemblyAbstractions
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.AssemblyAbstractions/CompulsoryCow.AssemblyAbstractions/CompulsoryCow.AssemblyAbstractions.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.DeSerialiser
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.DeSerialiser/CompulsoryCow.DeSerialiser/CompulsoryCow.DeSerialiser.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.IsEqualsImplemented
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.IsEqualsImplemented/CompulsoryCow.IsEqualsImplemented/CompulsoryCow.IsEqualsImplemented.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.Meta
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.Meta/CompulsoryCow.Meta/CompulsoryCow.Meta.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.Permutation
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.Permutation/CompulsoryCow.Permutation/CompulsoryCow.Permutation.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.ReachIn
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.ReachIn/CompulsoryCow.ReachIn/CompulsoryCow.ReachIn.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+    - name: Possibly publish CompulsoryCow.StringExtensions
+      uses: brandedoutcast/publish-nuget@v2.5.5
+      with:
+          PROJECT_FILE_PATH: CompulsoryCow.StringExtensions/CompulsoryCow.StringExtensions/CompulsoryCow.StringExtensions.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}

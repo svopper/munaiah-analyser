@@ -1,0 +1,68 @@
+name: Lint
+
+on: [pull_request]
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v3
+
+  jslint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Read build settings from repository
+        id: setup
+        run: |
+          go_version=$(< .go-version)
+          echo "Go version: ${go_version}"
+          echo "::set-output name=go_version::${go_version}"
+
+      - name: Setup Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.setup.outputs.go_version }}
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v2
+        with:
+          key: golang-jslint-Linux-${{ hashFiles('**/go.sum') }}
+          restore-keys: golang-jslint-Linux-
+          path: |
+            ~/go/pkg
+            ~/.cache/go-build
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v2
+        with:
+          key: yarn-Linux-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-Linux-
+          path: |
+            .pnp.*
+            .yarn/
+            !.yarn/releases
+            !.yarn/plugins
+
+      - name: Cache managed dependencies
+        uses: actions/cache@v2
+        with:
+          key: third_party-${{ runner.os }}-${{ hashFiles('packages/build-tools/DEPS.yml') }}
+          restore-keys: third_party-${{ runner.os }}-
+          path: |
+            packages/build-tools/DEPS.stamps
+            third_party
+
+      - name: Configure tasks
+        run: ./task.sh configure static_deps=false
+
+      - name: Fetch JS dependencies
+        run: ./task.sh yarn-install
+
+      - name: Run JS lint
+        run: ./task.sh js-lint

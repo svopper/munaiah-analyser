@@ -1,0 +1,90 @@
+name: "CI"
+
+on:
+  pull_request:
+    branches:
+      - "master"
+  push:
+    branches:
+      - "master"
+
+env:
+  fail-fast: true
+
+jobs:
+  phpunit:
+    name: "PHPUnit (PHP ${{ matrix.php }})"
+    runs-on: "ubuntu-20.04"
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: f43_test
+        ports:
+          - 3306:3306
+      rabbitmq:
+        image: rabbitmq:3-alpine
+        ports:
+          - 5672:5672
+
+    strategy:
+      matrix:
+        php:
+          - "7.2"
+          - "7.3"
+          - "7.4"
+        include:
+          - php: "7.4"
+            coverage: true
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2"
+        with:
+          fetch-depth: 2
+
+      - name: "Install PHP with PCOV"
+        uses: "shivammathur/setup-php@v2"
+        with:
+          php-version: "${{ matrix.php }}"
+          coverage: "pcov"
+          tools: pecl, composer:v2
+          extensions: pdo, pdo_mysql, curl, amqp
+          ini-values: "date.timezone=Europe/Paris"
+        env:
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Install dependencies with Composer"
+        uses: "ramsey/composer-install@v1"
+
+      - name: "Setup messenger queue"
+        run: "php bin/console messenger:setup-transports --env=dev"
+
+      - name: "Prepare database"
+        run: "make prepare"
+
+      - name: "Prepare logs"
+        run: "mkdir -p build/logs"
+
+      - name: "Run PHPUnit (with coverage)"
+        if: matrix.coverage
+        run: "php bin/simple-phpunit -v --coverage-clover=coverage.xml"
+
+      - name: "Run PHPUnit"
+        run: "php bin/simple-phpunit -v"
+        if: "${{ !matrix.coverage }}"
+
+      - name: "Retrieve Coveralls phar"
+        if: matrix.coverage
+        run: "wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.4.2/php-coveralls.phar"
+
+      - name: "Enable Coveralls phar"
+        if: matrix.coverage
+        run: "chmod +x php-coveralls.phar"
+
+      - name: "Upload to Coveralls"
+        if: matrix.coverage
+        run: "php php-coveralls.phar -v -x coverage.xml -o coveralls-upload.json"
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}

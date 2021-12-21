@@ -1,0 +1,123 @@
+name: CI
+on:
+    push:
+        branches:
+        - main
+    pull_request:
+        paths-ignore:
+        - 'doc/*.rst'
+    schedule:
+        - cron:  '17 3 * * 0'
+
+jobs:
+    flake8:
+        name: Flake8
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v2
+        -
+            uses: actions/setup-python@v1
+            with:
+                # matches compat target in setup.py
+                python-version: '3.6'
+        -   name: "Main Script"
+            run: |
+                curl -L -O https://gitlab.tiker.net/inducer/ci-support/raw/main/prepare-and-run-flake8.sh
+                . ./prepare-and-run-flake8.sh pymbolic test
+
+    pylint:
+        name: Pylint
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v2
+        -
+            uses: actions/setup-python@v1
+            with:
+                python-version: '3.x'
+        -   name: "Main Script"
+            run: |
+                EXTRA_INSTALL="numpy sympy scipy pexpect"
+                curl -L -O https://tiker.net/ci-support-v0
+                . ./ci-support-v0
+                build_py_project_in_venv
+
+                # https://github.com/inducer/pymbolic/pull/66#issuecomment-950371315
+                pip install symengine || true
+
+                run_pylint pymbolic test/test_*.py
+
+    pytest:
+        name: Pytest on Py${{ matrix.python-version }}
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.6", "3.8", "3.9", "3.x"]
+        steps:
+        -   uses: actions/checkout@v2
+        -
+            uses: actions/setup-python@v1
+            with:
+                python-version: ${{ matrix.python-version }}
+        -   name: "Main Script"
+            run: |
+                EXTRA_INSTALL="numpy sympy pexpect"
+                curl -L -O https://tiker.net/ci-support-v0
+                . ./ci-support-v0
+
+                build_py_project_in_venv
+
+                # https://github.com/inducer/pymbolic/pull/66#issuecomment-950371315
+                pip install symengine || true
+
+                test_py_project
+
+
+    docs:
+        name: Documentation
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v2
+        -
+            uses: actions/setup-python@v1
+            with:
+                python-version: '3.x'
+        -   name: "Main Script"
+            run: |
+                EXTRA_INSTALL="numpy sympy"
+                curl -L -O https://tiker.net/ci-support-v0
+                . ./ci-support-v0
+                build_py_project_in_venv
+                build_docs
+
+    downstream_tests:
+        strategy:
+            matrix:
+                downstream_project: [loopy, grudge, pytential, pytato]
+        name: Tests for downstream project ${{ matrix.downstream_project }}
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: "Main Script"
+            env:
+                DOWNSTREAM_PROJECT: ${{ matrix.downstream_project }}
+            run: |
+                curl -L -O https://tiker.net/ci-support-v0
+                . ./ci-support-v0
+
+                git clone "https://github.com/inducer/$DOWNSTREAM_PROJECT.git"
+                cd "$DOWNSTREAM_PROJECT"
+                echo "*** $DOWNSTREAM_PROJECT version: $(git rev-parse --short HEAD)"
+
+                edit_requirements_txt_for_downstream_in_subdir
+
+                export CONDA_ENVIRONMENT=.test-conda-env-py3.yml
+
+                # Avoid slow or complicated tests in downstream projects
+                export PYTEST_ADDOPTS="-k 'not (slowtest or octave or mpi)'"
+
+                sed -i "/mpi4py/ d" requirements.txt
+
+                build_py_project_in_conda_env
+                test_py_project
+
+# vim: sw=4

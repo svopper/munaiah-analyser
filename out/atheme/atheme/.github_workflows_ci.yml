@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+    paths-ignore:
+      - '.gitattributes'
+      - '.github/workflows/periodic-*'
+      - 'ABOUT-NLS'
+      - 'contrib/**'
+      - 'dist/**'
+      - 'doc/**'
+      - 'email/**'
+      - 'GIT-Access.txt'
+      - 'help/**'
+      - 'NEWS.md'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'TODO'
+  push:
+    branches:
+      - 'master'
+      - 'release/**'
+    paths-ignore:
+      - '.gitattributes'
+      - '.github/workflows/periodic-*'
+      - 'ABOUT-NLS'
+      - 'contrib/**'
+      - 'dist/**'
+      - 'doc/**'
+      - 'email/**'
+      - 'GIT-Access.txt'
+      - 'help/**'
+      - 'NEWS.md'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'TODO'
+  schedule:
+    - cron: '0 12 1 * *'
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: true
+      matrix:
+        compiler:
+          - clang-10
+          - gcc-10
+
+    env:
+      CC: ${{ matrix.compiler }}
+
+    steps:
+    - name: Clone source code repository
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      working-directory: /tmp
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends                 \
+          ${CC}                                                         \
+          build-essential                                               \
+          gettext                                                       \
+          git                                                           \
+          libargon2-0-dev                                               \
+          libcrack2-dev                                                 \
+          libgcrypt20-dev                                               \
+          libgettextpo-dev                                              \
+          libidn11-dev                                                  \
+          libldap2-dev                                                  \
+          libpasswdqc-dev                                               \
+          libpcre3-dev                                                  \
+          libperl-dev                                                   \
+          libqrencode-dev                                               \
+          libsodium-dev                                                 \
+          libssl-dev                                                    \
+          lld-10                                                        \
+          # EOF
+
+    - name: Run CI build script
+      run: scripts/ci-build.sh

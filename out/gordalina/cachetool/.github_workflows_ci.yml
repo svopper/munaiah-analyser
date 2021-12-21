@@ -1,0 +1,128 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - "*"
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  test:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      max-parallel: 15
+      matrix:
+        operating-system: [ubuntu-20.04, macOS-10.15]
+        php-versions: ["7.3", "7.4", "8.0"]
+    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: apcu, mbstring, pcov
+          ini-values: apc.enabled=1, apc.enable_cli=1, opcache.enable=1, opcache.enable_cli=1, opcache.jit=disable
+          coverage: pcov
+
+      - name: Check PHP Version
+        run: php -v
+
+      - name: Check Composer Version
+        run: composer -V
+
+      - name: Check PHP Extensions
+        run: php -m
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+
+      - name: Install Dependencies
+        run: composer install --prefer-dist
+
+      - name: Run test suite
+        run: $(composer config bin-dir)/phpunit --coverage-clover=coverage.clover
+
+      - name: Upload coverage to coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          wget https://github.com/php-coveralls/php-coveralls/releases/download/v2.4.3/php-coveralls.phar
+          php php-coveralls.phar --coverage_clover=coverage.clover --json_path=coveralls-upload.json -v
+
+  release:
+    runs-on: ubuntu-20.04
+    name: Create & Publish Release
+    if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') }}
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: 8.0
+
+      - name: Install Dependencies
+        run: |
+          composer global config minimum-stability dev
+          composer global config prefer-stable true
+          composer global require humbug/box
+          composer install --prefer-dist --no-dev
+
+      - name: Create Release Assets
+        run: |
+          jq '. + {compression: "GZ", output: "cachetool.phar.gz"}' box.json > box.gz.json
+          jq '. + {compression: "BZ2", output: "cachetool.phar.bz2"}' box.json > box.bz2.json
+          $(composer config home)/vendor/bin/box compile --config=box.json
+          $(composer config home)/vendor/bin/box compile --config=box.gz.json
+          $(composer config home)/vendor/bin/box compile --config=box.bz2.json
+
+      - name: Tag
+        id: tag
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ steps.tag.outputs.VERSION }}
+          tag_name: ${{ steps.tag.outputs.VERSION }}
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
+          files: |
+            cachetool.phar
+            cachetool.phar.gz
+            cachetool.phar.bz2
+            CHANGELOG.md
+            LICENSE
+          body: |
+            ## Changelog
+            The full changelog can be found in our [changelog file](https://github.com/gordalina/cachetool/blob/${{ steps.tag.outputs.VERSION }}/CHANGELOG.md)
+
+      - name: Update GitHub Pages
+        if: ${{ !contains(github.ref, '-') }}
+        run: |
+          REF="${{ github.ref }}"
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          bin/update-gh-pages.sh ${{ steps.tag.outputs.VERSION }}

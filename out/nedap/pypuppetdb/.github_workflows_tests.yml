@@ -1,0 +1,32 @@
+name: tests (unit)
+
+on: [push, pull_request]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10-dev]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install --upgrade wheel setuptools
+          pip install -r requirements-test.txt
+          mypy --install-types --non-interactive pypuppetdb/ tests/
+      - name: Test
+        run: |
+          pytest --cov=. --cov-report=xml --flake8 --strict-markers --mypy pypuppetdb tests
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true

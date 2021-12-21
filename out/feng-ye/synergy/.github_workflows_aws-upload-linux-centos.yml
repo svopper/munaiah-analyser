@@ -1,0 +1,41 @@
+name: CentOS - Core
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-core-centos:
+    runs-on: ubuntu-latest
+    container: symless/synergy-core:${{ matrix.distro }}
+    env:
+      GIT_COMMIT: ${{ github.sha }}
+      SYNERGY_NO_LEGACY: "1"
+      SYNERGY_NO_TESTS: "1"
+      SYNERGY_STATIC_OPENSSL: "1"
+    strategy:
+      matrix:
+        include:
+          - distro: centos7.6
+          - distro: centos8
+
+    name: ${{ matrix.distro }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake3 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$(pwd)/rpm/BUILDROOT/usr ..
+          . ./version
+          make -j
+
+      - uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_S3_UPLOAD_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_S3_UPLOAD_SECRET }}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: ./build/bin
+          destination_dir: "./synergy3/latest/${{matrix.distro}}/"

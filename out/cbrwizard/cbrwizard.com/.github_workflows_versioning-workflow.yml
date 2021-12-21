@@ -1,0 +1,16 @@
+name: Create a github release based on a pr label
+
+on:
+  pull_request:
+    types: closed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Bump up version
+        uses: cbrwizard/semver-release-action@feature/release_with_pull_request_body
+        with:
+          default_version: patch

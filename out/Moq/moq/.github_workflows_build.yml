@@ -1,0 +1,108 @@
+﻿name: build
+on: 
+  push:
+    branches: [ '*' ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_NOLOGO: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  dotnet-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🤘 checkout
+        uses: actions/checkout@v2
+      - name: ⚙ dotnet 5.0.x
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+      - name: 🙏 restore
+        run: dotnet restore
+      - name: ✓ ensure format
+        run: |
+          dotnet tool update -g dotnet-format --version 5.0.* --add-source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
+          dotnet format --check -v:diag
+
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: dotnet-format
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - name: 🤘 checkout
+        uses: actions/checkout@v2
+      - name: ⚙ dotnet 5.0.x
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+      - name: 🙏 build
+        run: dotnet msbuild -r -m:1 -bl:build.binlog -p:versionsuffix="$GITHUB_REF.$GITHUB_RUN_NUMBER"
+      - name: 🧪 test net5.0
+        run: dotnet test --no-build -f net5.0
+      - name: 🧪 test net472
+        run: dotnet test --no-build
+        if: matrix.os == 'windows-latest'
+      - name: 🔼 logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}
+          path: |
+            *.binlog
+            **/coverage.cobertura.xml
+      - name: 🔼 packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: bin
+          path: bin/*.nupkg
+
+  acceptance:
+    name: acceptance-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - name: 🤘 checkout
+        uses: actions/checkout@v2
+      - name: 🔽 packages
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: bin
+      - name: ⚙ dotnet 5.0.x
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+      - name: 🧪 test
+        run: dotnet test -m:1 -p:versionsuffix="$GITHUB_REF.$GITHUB_RUN_NUMBER"
+        working-directory: src/Acceptance
+
+  push:
+    name: push nuget.ci
+    runs-on: ubuntu-latest
+    needs: [build, acceptance]
+    steps:
+      - name: 🔽 packages
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: bin
+      - name: ⚙ dotnet 2.1.x
+        uses: actions/setup-dotnet@v1
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          dotnet-version: 2.1.x
+      - name: 🚀 sleet
+        run: |
+          dotnet tool install -g --version 3.2.0 sleet 
+          sleet push bin --config none -f --verbose -p "SLEET_FEED_CONTAINER=nuget" -p "SLEET_FEED_CONNECTIONSTRING=${{ secrets.SLEET_CONNECTION }}" -p "SLEET_FEED_TYPE=azure"

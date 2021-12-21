@@ -1,0 +1,70 @@
+name: CodeQL analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  #schedule:
+  #  - cron: '0 23 * * 0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runtime environment
+        shell: bash
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "PKG_CONFIG_PATH=$HOME/.local/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "GITHUB_WORKSPACE=`pwd`" >> $GITHUB_ENV
+      - name: Setup GCC
+        shell: bash
+        run: |
+          CC=gcc-10
+          CXX=${CC/#gcc/g++}
+          sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install $CC $CXX
+
+          echo "CC=$CC" >> $GITHUB_ENV
+          echo "CXX=$CXX" >> $GITHUB_ENV
+      - name: Checkout crunch
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          submodules: true
+          fetch-depth: 2
+      - name: Checkout pull request
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: git checkout HEAD^2
+      - name: Setup Meson + Ninja
+        shell: bash
+        run: |
+          wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
+          sudo pip3 install --upgrade pip setuptools wheel
+          pip3 install --user meson
+          unzip ninja-linux.zip -d ~/.local/bin
+          rm ninja-linux.zip
+        working-directory: ${{ runner.temp }}
+      - name: Setup CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: cpp
+      - name: Version tools
+        shell: bash
+        run: |
+          $CC --version
+          $CXX --version
+          g++ --version
+          meson --version
+          ninja --version
+      - name: Build
+        run: |
+          meson build
+          ninja -C build
+      - name: CodeQL Analysis
+        uses: github/codeql-action/analyze@v1

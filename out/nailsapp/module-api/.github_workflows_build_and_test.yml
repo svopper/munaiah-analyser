@@ -1,0 +1,30 @@
+name: build_and_test
+on: [ push ]
+jobs:
+    test:
+        name: build_and_test
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v2
+
+            -   name: Setup PHP, with composer and extensions
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: 7.4
+
+            -   name: Cache Composer dependencies
+                uses: actions/cache@v1
+                with:
+                    path: vendor
+                    key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+                    restore-keys: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+
+            -   name: Install Composer dependencies
+                run: composer update
+
+            -   name: Run tests
+                run: composer test
+
+            -   name: PHPStan Static Analysis
+                run: composer analyse

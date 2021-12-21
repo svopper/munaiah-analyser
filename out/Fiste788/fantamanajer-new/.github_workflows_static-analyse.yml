@@ -1,0 +1,50 @@
+name: Static Analyze
+
+on: [push]
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.4', '8.0']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup PHP, with composer and extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: json, mbstring, openssl, gmp, curl, simplexml, intl
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        run: |
+          composer update --no-progress --no-suggest --prefer-dist --optimize-autoloader
+          
+      - name: Copy env
+        uses: canastro/copy-action@0.0.2
+        with:
+          source: config/.env.default
+          target: config/.env
+          
+      - name: Copy app default
+        uses: canastro/copy-action@0.0.2
+        with:
+          source: config/app.default.php
+          target: config/app.php
+      
+      - name: Copy app config default
+        uses: canastro/copy-action@0.0.2
+        with:
+          source: config/app_config.default.php
+          target: config/app_config.php  
+          
+      - name: PHPStan
+        run: composer test:typing

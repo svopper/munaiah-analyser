@@ -1,0 +1,39 @@
+name: Base Image
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/base.yml'
+      - 'docker/Dockerfile.base'
+      - 'docker/Dockerfile.base.dockerignore'
+      - 'docker/Dockerfile.base-dev'
+      - 'docker/Dockerfile.base-dev.dockerignore'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+  schedule:
+    - cron:  '30 5 */14 * *'
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build base image
+        run: docker build -t ghcr.io/emfcamp/website-base:latest -f ./docker/Dockerfile.base .
+      - name: Publish base image
+        run: docker push ghcr.io/emfcamp/website-base:latest
+      - name: Build base-dev image
+        run: docker build -t ghcr.io/emfcamp/website-base-dev:latest -f ./docker/Dockerfile.base-dev .
+      - name: Publish base-dev image
+        run: docker push ghcr.io/emfcamp/website-base-dev:latest

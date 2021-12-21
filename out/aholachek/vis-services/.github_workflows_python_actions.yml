@@ -1,0 +1,57 @@
+name: Python CI actions
+
+on: [pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        #python -m pip install --upgrade wheel setuptools pip
+        python -m pip install --upgrade wheel pip
+        pip install -U -r requirements.txt
+        pip install -U -r dev-requirements.txt
+        python -m spacy download en
+        
+    - name: Test with pytest
+      run: |
+        py.test
+        
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-vis
+        path: .coverage
+
+
+  coveralls:
+
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade wheel setuptools pip
+        pip install coverage==5.2.1
+        pip install coveralls==2.2.0
+    - uses: actions/download-artifact@master
+      with:
+        name: coverage-vis
+
+    - name: Coveralls
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,35 @@
+name: Ruby
+
+on:
+  schedule:
+    - cron:  '0 0 * * 0'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        ruby-version: [2.5, 2.6, 2.7, 3.0, head]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ endsWith(matrix.ruby, 'head') }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Build
+      run: |
+        bundle config --global ignore_messages true
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+    - name: Test
+      run: |
+        bundle exec rake
+      env:
+        CI: true

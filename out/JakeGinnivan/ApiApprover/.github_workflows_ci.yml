@@ -1,0 +1,27 @@
+on:
+  push:
+    branches:
+    - master
+    - release-*
+    tags:
+    - '**'
+  pull_request:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, windows-latest]
+    name: ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+    - run: dotnet --info
+    - uses: actions/checkout@af513c7a016048ae468971c52ed77d9562c7c819
+    - if: contains(matrix.runs-on, 'windows')
+      run: ./build.cmd
+    - if: contains(matrix.runs-on, 'ubuntu')
+      run: ./build.sh
+    - uses: actions/upload-artifact@master
+      with:
+        name: nugets
+        path: nugets/  

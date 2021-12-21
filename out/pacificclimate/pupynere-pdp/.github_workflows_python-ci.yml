@@ -1,0 +1,27 @@
+name: Python CI
+
+on: push
+
+jobs:
+  test:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      env:
+        PIP_INDEX_URL: https://pypi.pacificclimate.org/simple
+      run: |
+        pip install -e .
+        pip install pytest
+    - name: Test with pytest
+      run: |
+        pytest -v

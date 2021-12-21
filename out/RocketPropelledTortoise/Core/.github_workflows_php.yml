@@ -1,0 +1,114 @@
+name: PHP
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  sqlite:
+    strategy:
+      max-parallel: 15
+      matrix:
+        php-versions: ['7.2', '7.3', '7.4']
+
+    name: PHP ${{ matrix.php-versions }} using sqlite
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Setup PHP Action
+      uses: shivammathur/setup-php@master
+      with:
+        php-version: ${{ matrix.php-versions }}
+    
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+
+    - name: Install tools
+      run: ./scripts/install_tools.sh
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Run test suite
+      run: composer run-script test
+
+  mysql:
+    strategy:
+      max-parallel: 15
+      matrix:
+        php-versions: ['7.2', '7.3', '7.4']
+
+    name: PHP ${{ matrix.php-versions }} using mysql
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: test_db
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+  
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Setup PHP Action
+      uses: shivammathur/setup-php@master
+      with:
+        php-version: ${{ matrix.php-versions }}
+    
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+
+    - name: Install tools
+      run: ./scripts/install_tools.sh
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Run test suite
+      run: composer run-script test
+      env:
+        DB_CONNECTION: mysql
+        DB_DATABASE: test_db
+        DB_USERNAME: root
+        DB_PASSWORD: root
+        DB_PORT: ${{ job.services.mysql.ports[3306] }}
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    name: "SonarCloud"
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup PHP
+      uses: shivammathur/setup-php@master
+      with:
+        php-version: 7.4
+        coverage: pcov
+
+    - name: Install tools
+      run: ./scripts/install_tools.sh
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Run test suite
+      run: composer run-script test -- --coverage-clover=coverage.clover --log-junit=test-report.xml
+
+      # https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/5
+    - name: fix code coverage paths
+      run: sed -i 's/\/home\/runner\/work\/Core\/Core\//\/github\/workspace\//g' coverage.clover
+      
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@v1.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

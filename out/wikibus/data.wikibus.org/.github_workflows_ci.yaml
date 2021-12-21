@@ -1,0 +1,46 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  CI_ENV: CI
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1.4.4
+        with:
+          node-version: 14
+      - run: yarn install --ci
+      - run: yarn lint
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1.4.4
+        with:
+          node-version: 14
+      - run: yarn install --ci
+      - name: setup-docker
+        uses: docker-practice/actions-setup-docker@1.0.4
+        with:
+          docker_version: 20.10.3
+      - name: Install lando
+        run: sh .github/install-lando.sh
+      - uses: iamsauravsharma/create-dotenv@v1.2.0
+        with:
+          env-prefix: 'CI_'
+      - name: Start site
+        run: lando start
+      - run: yarn bootstrap
+        working-directory: apps/sources
+
+      - name: Hydra e2e tests
+        run: docker-compose -f docker-compose.yml -f docker-compose.posix.yml run e2e-tests
+      - name: logs on fail
+        if: ${{ failure() }}
+        run: lando logs -s sources

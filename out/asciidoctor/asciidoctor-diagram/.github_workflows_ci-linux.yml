@@ -1,0 +1,168 @@
+name: Linux unit tests
+on:
+  push:
+    branches: ['master']
+    tags-ignore: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu]
+        ruby: [2.3, 2.7, 3.0, jruby, truffleruby]
+        node: [14]
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Packages
+        run: |
+          sudo apt-get update
+          echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+          sudo apt-get install -qq haveged \
+                                   gconf-service \
+                                   libasound2 \
+                                   libatk1.0-0 \
+                                   libc6 \
+                                   libcairo2 \
+                                   libcairo-gobject2 \
+                                   libcups2 \
+                                   libdbus-1-3 \
+                                   libexpat1 \
+                                   libfontconfig1 \
+                                   libgcc1 \
+                                   libgconf-2-4 \
+                                   libgdk-pixbuf2.0-0 \
+                                   libglib2.0-0 \
+                                   libgirepository1.0-dev \
+                                   libgtk-3-0 \
+                                   libnspr4 \
+                                   libpango-1.0-0 \
+                                   libpangocairo-1.0-0 \
+                                   gir1.2-pango-1.0 \
+                                   libstdc++6 \
+                                   libx11-6 \
+                                   libx11-xcb1 \
+                                   libxcb1 \
+                                   libxcomposite1 \
+                                   libxcursor1 \
+                                   libxdamage1 \
+                                   libxext6 \
+                                   libxfixes3 \
+                                   libxi6 \
+                                   libxrandr2 \
+                                   libxrender1 \
+                                   libxss1 \
+                                   libxtst6 \
+                                   ca-certificates \
+                                   fonts-liberation \
+                                   libappindicator1 \
+                                   libnss3 \
+                                   lsb-release \
+                                   xdg-utils \
+                                   curl \
+                                   ttf-dejavu \
+                                   ttf-mscorefonts-installer \
+                                   texlive-science \
+                                   texlive-pictures \
+                                   cargo \
+                                   texlive-latex-extra \
+                                   texlive-fonts-extra \
+                                   git \
+                                   haskell-stack
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Setup Golang
+        uses: actions/setup-go@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pygobject
+          pip install pycairo
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Install Graphviz
+        run: sudo apt-get install -qq graphviz
+      - name: Install Lilypond
+        run: sudo apt-get install -qq lilypond
+      - name: Install AsciitoSVG
+        run: |
+          go get github.com/asciitosvg/asciitosvg/cmd/a2s
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      - name: Install Bytefield-SVG
+        run: npm install -g bytefield-svg
+      - name: Install ERD
+        run: |
+          git clone git://github.com/BurntSushi/erd
+          cd erd
+          stack install
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install DPIC
+        run: sudo apt-get install -qq dpic
+      - name: Install Pikchr
+        run: |
+          wget https://pikchr.org/home/tarball/trunk/pikchr.tgz
+          tar -xf pikchr.tgz
+          cd pikchr
+          make
+          echo "$(pwd)" >> $GITHUB_PATH
+      - name: Install BPNM-JS
+        run: npm install -g bpmn-js-cmd
+      - name: Install Mermaid
+        run: npm install -g @mermaid-js/mermaid-cli
+      - name: Install NomNoml
+        run: npm install -g nomnoml
+      - name: Install StateMachineCat
+        run: npm install -g state-machine-cat
+      - name: Install Vega
+        run: |
+          npm install -g vega-cli
+          npm install -g install-peerdeps
+          install-peerdeps -g vega-lite
+      - name: Install Wavedrom
+        run: npm install -g wavedrom-cli
+      - name: Install ImageMagick
+        run: sudo apt-get install -qq imagemagick
+      - name: Install Gnuplot
+        run: sudo apt-get install -qq gnuplot
+      - name: Install UMLet
+        run: |
+          curl -s -O https://www.umlet.com/download/umlet_14_3/umlet-standalone-14.3.0.zip
+          unzip -qq umlet-standalone-14.3.0.zip
+          cp Umlet/umlet.sh Umlet/umlet
+          chmod +x Umlet/umlet
+          echo "$PWD/Umlet" >> $GITHUB_PATH
+      - name: Install MSCgen
+        run: sudo apt-get install -qq mscgen
+      - name: Install Blockdiag
+        run: pip install blockdiag[pdf] actdiag seqdiag nwdiag[pdf]
+      - name: Install svgbob
+        run: |
+          cargo install svgbob_cli
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install Syntrax
+        run: pip install syntrax
+      - name: Install Symbolator
+        run: pip install symbolator
+      - name: Install Diagrams
+        run: pip install diagrams
+      - name: Run tests
+        run: bundle exec rake test
+        env:
+          BLOCKDIAG_FONTPATH: /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf

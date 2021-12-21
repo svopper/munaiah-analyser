@@ -1,0 +1,30 @@
+name: Ruby
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        ruby: [ jruby-9.1.17.0, jruby-9.2.9.0, jruby-9.2.11.0, jruby-head ]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JRuby versions
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Build and test with rake
+      run: |
+        ruby extconf.rb
+        make
+        gem install rspec
+        rake spec

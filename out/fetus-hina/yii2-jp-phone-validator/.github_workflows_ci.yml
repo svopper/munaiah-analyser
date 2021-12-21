@@ -1,0 +1,94 @@
+---
+name: 'CI'
+
+on:
+  push:
+  pull_request:
+    types:
+      - 'opened'
+      - 'synchronize'
+      - 'reopened'
+
+jobs:
+  phpSyntaxCheck:
+    name: 'PHP Syntax Check (PHP ${{ matrix.envs.php }})'
+    strategy:
+      matrix:
+        envs:
+          - php: '7.1'
+            os: 'ubuntu-18.04'
+
+          - php: '7.2'
+            os: 'ubuntu-18.04'
+
+          - php: '7.3'
+            os: 'ubuntu-18.04'
+
+          - php: '7.4'
+            os: 'ubuntu-20.04'
+
+          - php: '8.0'
+            os: 'ubuntu-20.04'
+
+    runs-on: '${{ matrix.envs.os }}'
+    steps:
+      - uses: 'actions/checkout@v2'
+
+      - name: 'Use PHP ${{ matrix.envs.php }}'
+        run: |
+          sudo update-alternatives --set php /usr/bin/php${{ matrix.envs.php }}
+          php -v
+
+      - name: 'Syntax check'
+        run: |
+          find . \( -type d \( -name '.git' -or -name 'vendor' -or -name 'runtime' \) -prune \) -or \( -type f -name '*.php' -print \) | LANG=C sort | xargs -n 1 php -l
+
+  phpStyleCheck:
+    name: 'PHP Coding Style (PSR-12)'
+    runs-on: 'ubuntu-20.04'
+    steps:
+      - uses: 'actions/checkout@v2'
+
+      - name: 'Use PHP 8.0'
+        run: 'sudo update-alternatives --set php /usr/bin/php8.0'
+
+      - name: 'Install Composer dependencies'
+        run: 'composer install --prefer-dist'
+
+      - name: 'Run PHPCS'
+        run: 'vendor/bin/phpcs'
+
+  phpTest:
+    name: 'PHP test (PHP ${{ matrix.envs.php }})'
+    strategy:
+      matrix:
+        envs:
+          - php: '7.1'
+            os: 'ubuntu-18.04'
+
+          - php: '7.2'
+            os: 'ubuntu-18.04'
+
+          - php: '7.3'
+            os: 'ubuntu-18.04'
+
+          - php: '7.4'
+            os: 'ubuntu-20.04'
+
+          - php: '8.0'
+            os: 'ubuntu-20.04'
+
+    runs-on: '${{ matrix.envs.os }}'
+    steps:
+      - uses: 'actions/checkout@v2'
+
+      - name: 'Use PHP ${{ matrix.envs.php }}'
+        run: |
+          sudo update-alternatives --set php /usr/bin/php${{ matrix.envs.php }}
+          php -v
+
+      - name: 'Install dependencies'
+        run: 'composer install --prefer-dist'
+
+      - name: 'Run test on PHP ${{ matrix.envs.php }}'
+        run: 'vendor/bin/phpunit'

@@ -1,0 +1,266 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: '*'
+    tags: 'v*'
+
+name: CI
+
+jobs:
+  coding-guidelines:
+    name: Coding Guidelines
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: "Install PHP with extensions"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          extensions: json, mbstring, intl
+          tools: composer
+
+      - name: "Cache dependencies installed with composer"
+        uses: actions/cache@v2
+        with:
+          path: ~/.composer/cache
+          key: php7.4-composer-highest-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            php7.4-composer-highest-
+
+      - name: Install dependencies with composer
+        run: composer update --no-ansi --no-interaction --no-progress --no-suggest
+
+      - name: Run easy coding standard
+        run: vendor/bin/ecs check
+
+#  type-checker:
+#    name: Type Checker
+#
+#    runs-on: ubuntu-latest
+#
+#    strategy:
+#      matrix:
+#        php-version:
+#          - "7.4"
+#        dependencies:
+#          - highest
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: "Install PHP with extensions"
+#        uses: shivammathur/setup-php@v2
+#        with:
+#          php-version: ${{ matrix.php-version }}
+#          extensions: json, mbstring, intl
+#          tools: composer
+#
+#      - name: "Cache dependencies installed with composer"
+#        uses: actions/cache@v1
+#        with:
+#          path: ~/.composer/cache
+#          key: php${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.json') }}
+#          restore-keys: |
+#            php${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-
+#
+#      - name: Install dependencies with composer
+#        run: composer update --no-ansi --no-interaction --no-progress --no-suggest
+#
+#      - name: Run psalm
+#        run: php -dmemory_limit=-1 vendor/bin/psalm
+
+  unit:
+    name: Unit tests
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+#          - "5.6"
+#          - "7.2"
+          - "7.3"
+          - "7.4"
+          - "8.0"
+
+        dependencies:
+          - lowest
+          - highest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: "Install PHP with extensions"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: pcov
+          extensions: json, mbstring, intl
+          tools: composer
+          ini-values: assert.exception=1, zend.assertions=1
+
+      - name: "Cache dependencies installed with composer"
+        uses: actions/cache@v2
+        with:
+          path: ~/.composer/cache
+          key: php${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            php${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-
+
+      - name: Set Guzzle5
+        if: matrix.dependencies == 'lowest'
+        run: ./set_guzzle5.sh
+
+      - name: Install lowest dependencies with composer
+        if: matrix.dependencies == 'lowest'
+        run: composer update --no-ansi --no-interaction --no-progress --no-suggest --prefer-lowest
+
+      - name: Install highest dependencies with composer
+        if: matrix.dependencies == 'highest'
+        run: composer update --no-ansi --no-interaction --no-progress --no-suggest
+
+      - name: Run tests with phpunit
+        run: vendor/bin/phpunit --testsuite=unit --coverage-clover=coverage.xml
+
+      - name: Send code coverage report to Codecov.io
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: bash <(curl -s https://codecov.io/bash) || true
+
+  integration:
+    name: Integration tests
+
+    runs-on: ubuntu-latest
+
+    if: startsWith( github.ref, 'refs/tags/v') == false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: "Install PHP with extensions"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          coverage: pcov
+          extensions: json, mbstring, intl, apcu
+          tools: composer
+          ini-values: assert.exception=1, zend.assertions=1, apc.enabled=1, apc.enable_cli=1
+
+      - name: "Cache dependencies installed with composer"
+        uses: actions/cache@v2
+        with:
+          path: ~/.composer/cache
+          key: php7.4-composer-highest-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            php7.4-composer-highest-
+
+      - name: Install highest dependencies with composer
+        run: composer update --no-ansi --no-interaction --no-progress --no-suggest
+
+      - name: Run integration tests with phpunit for push
+        if: github.event_name != 'pull_request'
+        env:
+          COMMERCETOOLS_CLIENT_ID: ${{ secrets.COMMERCETOOLS_CLIENT_ID }}
+          COMMERCETOOLS_CLIENT_SECRET: ${{ secrets.COMMERCETOOLS_CLIENT_SECRET }}
+          COMMERCETOOLS_PROJECT: ${{ secrets.COMMERCETOOLS_PROJECT }}
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+      - name: Run integration tests with phpunit for PR
+        if: github.event_name == 'pull_request'
+        env:
+          COMMERCETOOLS_CLIENT_ID: ${{ secrets.PR_COMMERCETOOLS_CLIENT_ID }}
+          COMMERCETOOLS_CLIENT_SECRET: ${{ secrets.PR_COMMERCETOOLS_CLIENT_SECRET }}
+          COMMERCETOOLS_PROJECT: ${{ secrets.PR_COMMERCETOOLS_PROJECT }}
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+      - name: Send code coverage report to Codecov.io
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: bash <(curl -s https://codecov.io/bash) || true
+
+  release:
+    if: startsWith( github.ref, 'refs/tags/v')
+    name: Create release
+
+    runs-on: ubuntu-latest
+    needs: ["coding-guidelines", "unit"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install PHP with extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.3
+          extensions: json, mbstring, intl, apcu
+          tools: composer, phive
+          ini-values: assert.exception=1, zend.assertions=1, apc.enabled=1, apc.enable_cli=1
+
+      - name: Install dependencies with composer
+        run: composer install --no-ansi --no-interaction --no-progress --no-suggest --no-dev
+
+      - name: Retrieve branch name
+        id: branch_name
+        run: |
+          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
+          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
+          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+
+      - name: Install box
+        env:
+          GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: phive install humbug/box@^3.11.1 --force-accept-unsigned
+
+      - name: Compile phar
+        run: tools/box compile
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: commercetools-php-sdk-${{ steps.branch_name.outputs.SOURCE_TAG }}.phar
+          path: commercetools-php-sdk.phar
+
+      - name: Read changeset
+        id: changeset
+        run: |
+          CHANGESET=`php tools/extract_changelog.php`
+          CHANGESET="${CHANGESET//'%'/'%25'}"
+          CHANGESET="${CHANGESET//$'\n'/'%0A'}"
+          CHANGESET="${CHANGESET//$'\r'/'%0D'}"
+          echo "::set-output name=changes::$CHANGESET"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+          body: |
+            ${{ steps.changeset.outputs.changes }}
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object,
+          # which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./commercetools-php-sdk.phar
+          asset_name: commercetools-php-sdk.phar
+          asset_content_type: application/php-archive

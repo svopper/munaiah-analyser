@@ -1,0 +1,22 @@
+on: [push, pull_request]
+name: Test
+jobs:
+  test:
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup PHP
+        uses: nanasess/setup-php@master
+        with:
+          php-version: ${{ matrix.php-version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install deps
+        run: composer install
+      - name: Lint
+        run: ./scripts/phplint.sh
+      - name: Test
+        run: ./vendor/bin/phpunit

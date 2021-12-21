@@ -1,0 +1,49 @@
+---
+name: CI
+on: [ push, pull_request ]
+jobs:
+  tests:
+    strategy:
+        matrix:
+          preset:
+            - cppcheck
+            - clang-tidy
+            - install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/ghaction-cmake:0.15
+        with:
+          dependencies_debian: gkrellm libgtk2.0-dev
+          preset: ${{ matrix.preset }}
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: DoozyX/clang-format-lint-action@v0.5
+  omnilint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/omnilint:v0.2
+  packagecloud:
+    needs: [ omnilint, clang-format, tests ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: docker://lpenz/ghaction-cmake:0.15
+        with:
+          dependencies_debian: gkrellm libgtk2.0-dev
+          preset: cpack
+      - run: |
+          dpkg --info *.deb
+          dpkg --contents *.deb
+      - uses: docker://lpenz/ghaction-packagecloud:v0.3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          repository: debian/debian/bullseye
+        env:
+          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
+

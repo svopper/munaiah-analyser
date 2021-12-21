@@ -1,0 +1,32 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+    name: ${{ matrix.conf.name }}
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        conf:
+          - name: Debug
+            build_flags: --warnlevel=3
+          - name: Release
+            build_flags: --buildtype=release
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y meson libimlib2-dev libxfixes-dev
+      - run: meson setup ${{ matrix.conf.build_flags }} build
+      - run: ninja -C build
+
+  static_analysis:
+    name: Static Analysis
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y meson libimlib2-dev libxfixes-dev clang-tools
+      - run: meson setup build
+      - run: SCANBUILD="$(pwd)/contrib/scan-build.sh" ninja -C build scan-build

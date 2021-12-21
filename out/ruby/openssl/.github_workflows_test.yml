@@ -1,0 +1,120 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: >-
+      ${{ matrix.os }} ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        ruby: [ head, "3.0", "2.7", "2.6" ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v2
+
+      - name: load ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: depends
+        run:  bundle install
+
+      - name: compile
+        run:  rake compile -- --enable-debug
+
+      - name: test
+        run:  rake test TESTOPTS="-v --no-show-detail-immediately" OSSL_MDEBUG=1
+
+  test-windows:
+    name: >-
+      ${{ matrix.os }} ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest ]
+        ruby: [ mswin, mingw, "3.0", "2.7", "2.6" ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v2
+
+      - name: load ruby, install/update gcc, install openssl
+        uses: MSP-Greg/setup-ruby-pkgs@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          mingw: _upgrade_ openssl
+
+      - name: depends
+        run:  bundle install
+
+      # pkg-config is disabled because it can pick up the different OpenSSL installation
+      # SSL_DIR is set as needed by MSP-Greg/setup-ruby-pkgs
+      # only used with mswin
+      - name: compile
+        run:  rake compile -- --enable-debug --without-pkg-config $env:SSL_DIR
+
+      - name: test
+        run:  rake test TESTOPTS="-v --no-show-detail-immediately" OSSL_MDEBUG=1
+
+  test-openssls:
+    name: >-
+      ${{ matrix.openssl }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        ruby: [ "3.0" ]
+        openssl:
+          - openssl-1.0.2u # EOL
+          - openssl-1.1.0l # EOL
+          - openssl-1.1.1l
+          - libressl-3.1.5 # EOL
+          - libressl-3.2.6
+          - libressl-3.3.4
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v2
+
+      - name: prepare openssl
+        run: |
+          mkdir -p tmp/build-openssl && cd tmp/build-openssl
+          case ${{ matrix.openssl }} in
+          openssl-*)
+            curl -OL https://ftp.openssl.org/source/${{ matrix.openssl }}.tar.gz
+            tar xf ${{ matrix.openssl }}.tar.gz && cd ${{ matrix.openssl }}
+            # shared is required for 1.0.x.
+            ./Configure --prefix=$HOME/.openssl/${{ matrix.openssl }} \
+                shared linux-x86_64
+            make depend
+            ;;
+          libressl-*)
+            curl -OL https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${{ matrix.openssl }}.tar.gz
+            tar xf ${{ matrix.openssl }}.tar.gz && cd ${{ matrix.openssl }}
+            ./configure --prefix=$HOME/.openssl/${{ matrix.openssl }}
+            ;;
+          *)
+            false
+            ;;
+          esac
+          make -j4
+          make install_sw
+
+      - name: load ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: depends
+        run:  bundle install
+
+      - name: compile
+        run:  rake compile -- --enable-debug --with-openssl-dir=$HOME/.openssl/${{ matrix.openssl }}
+
+      - name: test
+        run:  rake test TESTOPTS="-v --no-show-detail-immediately" OSSL_MDEBUG=1

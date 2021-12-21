@@ -1,0 +1,26 @@
+name: test
+
+# Run on pull requests and on the master branch itself.
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-18.04
+    steps:
+      # Checkout the code.
+      - uses: actions/checkout@v2
+      - name: build
+        run: |
+          docker-compose build --build-arg uid=`id -u` --build-arg gid=`id -g`
+          docker-compose run web make install
+      - name: test
+        run: docker-compose run web bin/python manage.py test
+      - name: coverage report
+        run: docker-compose run -e COVERALLS_REPO_TOKEN=${{ secrets.COVERALLS_REPO_TOKEN }} web bin/coveralls

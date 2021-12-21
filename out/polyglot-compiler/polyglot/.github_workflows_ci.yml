@@ -1,0 +1,80 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '2'
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - name: Checkout HEAD
+        run: git checkout HEAD
+      - name: Check Format
+        run: ./tools/format-check
+
+  build-base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - name: Build the base compiler
+        run: ant
+      - name: Build Jar
+        run: ant jar
+      - name: Run Base Tests
+        run: ../bin/pth -ec pthScript
+        working-directory: ./tests
+
+  build-jl5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - name: Build the base compiler
+        run: ant
+      - name: Run Base Tests
+        run: ../bin/pth -ec pthScript-JL pthScript
+        working-directory: ./testsjl5
+
+  build-jl7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - name: Build the base compiler
+        run: ant
+      - name: Run Base Tests
+        run: ../bin/pth -ec pthScript-JL pthScript-JL5 pthScript
+        working-directory: ./testsjl7
+
+  build-jl8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - name: Build the base compiler
+        run: ant
+      - name: Run Base Tests
+        run: ../bin/pth -ec pthScript-JL pthScript-JL5 pthScript-JL7 pthScript
+        working-directory: ./testsjl8

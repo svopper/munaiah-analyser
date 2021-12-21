@@ -1,0 +1,60 @@
+---
+name: CrateDB SQL
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Test CrateDB SQL on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Gradle Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Run tests on ${{ matrix.os }}
+        uses: eskatos/gradle-command-action@v1
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
+        with:
+          arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
+
+  forbiddenApis:
+    name: forbiddenApisMain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Gradle Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - name: Run forbiddenApisMain
+        run: |
+          ./gradlew forbiddenApisMain
+
+  linkcheck:
+    name: Sphinx linkcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r blackbox/requirements.txt
+
+      - name: Run linkcheck
+        run: |
+          sphinx-build -n -W --keep-going -q -c docs/ -b linkcheck -E docs/ docs/out/html

@@ -1,0 +1,71 @@
+name: Add-on Validations
+
+on:
+  push:
+    branches: [ master, main ]
+
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+
+  addon-validations:
+    if: github.repository == 'XBMC-Addons/service.xbmc.versioncheck'
+
+    runs-on: ubuntu-latest
+
+    name: Add-on Validations
+
+    steps:
+      - name: Set up Python v3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+
+      - name: Checkout Add-on
+        uses: actions/checkout@v2
+        with:
+          path: ${{ github.event.repository.name }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install libxml2-utils xmlstarlet
+          python -m pip install --upgrade pip
+          python -m pip install jsonschema
+          python -m pip install pylint
+          python -m pip install git+https://github.com/xbmc/addon-check.git
+
+      - name: Kodi Add-on Checker (Leia)
+        id: kodi-addon-checker-leia
+        run: |
+          kodi-addon-checker ${{ github.event.repository.name }} --branch=leia
+
+      - name: Staging for Matrix
+        run: |
+          xmlstarlet ed -L -u '//import[@addon="xbmc.python"]/@version' -v "3.0.0" addon.xml
+        working-directory: ${{ github.event.repository.name }}
+
+      - name: Kodi Add-on Checker (Matrix)
+        id: kodi-addon-checker-matrix
+        run: |
+          kodi-addon-checker ${{ github.event.repository.name }} --branch=matrix
+
+      - name: Re-staging Repository
+        run: |
+          git reset
+          git checkout .
+          git clean -fdx
+        working-directory: ${{ github.event.repository.name }}
+
+      - name: Pylint
+        id: pylint
+        run: |
+          cp -t ${HOME} .pylintrc
+          pylint --ignore=distro resources/lib/
+        working-directory: ${{ github.event.repository.name }}
+
+      - name: JSONSchema
+        id: jsonschema
+        run: |
+          jsonschema -i resources/versions.txt resources/versions.schema.txt
+        working-directory: ${{ github.event.repository.name }}

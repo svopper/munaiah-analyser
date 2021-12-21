@@ -1,0 +1,42 @@
+name: Upload Release Asset
+
+on:
+  push:
+    tags:
+    - 'v*'
+  workflow_dispatch:
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    name: Upload Release Asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+      - name: Build SDIST
+        run: |
+          python setup.py sdist -d ./dist/SOURCES/
+      - name: Build RPM
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          V=$GITHUB_REF
+          V=${V#refs/tags/}
+          V=${V#v}
+          V=${V%%-*}
+          rpmbuild -bb ./python-storable.spec --define "_topdir $GITHUB_WORKSPACE/dist" --define "version $V"
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/RPMS/noarch/python-storable-*.rpm

@@ -1,0 +1,192 @@
+---
+name: Style
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'docker/**'
+      - '**.md'
+      - '!docs/building-cmake.md'
+      - 'changelog.txt'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/styles.yml'
+      - 'snap/**'
+      - 'build/**'
+      - 'assets/**'
+      - 'Docker/**'
+      - 'report/**'
+      - 'resources/**'
+  pull_request:
+    branches:
+      - 'master'
+    types: [opened, reopened]
+    paths-ignore:
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'docker/**'
+      - '**.md'
+      - '!docs/building-cmake.md'
+      - 'changelog.txt'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/styles.yml'
+      - 'snap/**'
+      - 'build/**'
+      - 'assets/**'
+      - 'Docker/**'
+      - 'report/**'
+      - 'resources/**'
+
+  release:
+    types: [published]
+
+env:
+  SOURCE_CACHE: ${{ github.workspace }}/src
+  QT_VERSION: 6.1.0
+  QT_ARCH: clang_64
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Debug
+  PRODUCT: jmbde
+  targetName: jmbde
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source code
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+        #          ref: master
+
+      - name: Checkout Source code
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/cache@v2.1.6
+        with:
+          path: '**/src'
+          key:
+            ${{ github.workflow }}-src-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake')
+            }}
+
+      - name: Cache Qt
+        id: cache-qt
+        uses: actions/cache@v2.1.5
+        with:
+          path: ../Qt
+          key: QtCache-${{ matrix.platform }}-${{ matrix.arch }}-${{ env.QT_VERSION }}
+
+      - name: Installing Qt - ${{ matrix.arch }}
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: ${{  env.QT_VERSION }}
+          arch: ${{ matrix.qtarch }}
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
+      - name: Linux - ${{  env.QT_VERSION }} - Build preparation - Install Packages
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential ninja-build cmake pkgconf fcitx-frontend-qt5 libxcb-xinerama0 libgl-dev libx11-dev libxkbcommon-x11-dev libxcb-image0-dev libxcb-icccm4-dev libssl-dev libxcb-keysyms1 libxcb-render-util0
+
+      - name: Get conan
+        id: conan
+        uses: turtlebrowser/get-conan@v1.0
+
+      - name: Add Bincrafters Remote
+        run:
+          conan remote add bincrafters
+          https://api.bintray.com/conan/bincrafters/public-conan
+
+      - name: Create Build Environment
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        # Use a bash shell so we can use the same syntax for environment variable
+        # access regardless of the host operating system
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Note the current convention is to use the -S and -B options here to specify source
+        # and build directories, but this is only available with CMake 3.13 and higher.
+        # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+        run: |
+          cmake $GITHUB_WORKSPACE \
+              ${{matrix.config.generator}} \
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DENABLE_CLANG_FORMAT=ON
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        # Execute the build.  You can specify a specific target with "--target <NAME>"
+        run: |
+          cmake --build . \
+            --config ${{ env.BUILD_TYPE }} \
+            -j2
+
+      # Run only on linux
+      - name: Validate QML and JavaScript files
+        uses: liri-infra/qmllint-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: SQL Check
+        uses: yokawasa/action-sqlcheck@v1.3.0
+        id: sqlcheck
+        with:
+          post-comment: true
+          risk-level: 3
+          verbose: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          postfixes: |
+            sql
+            sqlx
+            schema
+          directories: |
+            src/models
+
+      - name: Get SQL CHECK output
+        if: steps.sqlcheck.outputs.issue-found
+        run: echo "Issues found in previous step"
+
+      - name: Clang Format
+        uses: DoozyX/clang-format-lint-action@v0.12
+        with:
+          source: './src'
+          extensions: 'h,cpp'
+          clangFormatVersion: 11
+          style: file
+
+      # - name: PMD Code Analyzer Action
+      #   uses: billyan2018/setup-pmd@PMDAnalyzer1.0
+      #   run: pmd -d ./src -R category/apex/design.xml -f text
+
+      # - name: Check_for_duplicate_code
+      #   uses: platisd/duplicate-code-detection-tool@master
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     directories: 'src'
+      #     # Ignore the specified directories
+      #     ignore_directories: 'src/external_libraries'
+      #     # Only examine .h and .cpp files
+      #     file_extensions: 'h, cpp'
+      #     # Only report similarities above 5%
+      #     ignore_below: 5
+      #     # If a file is more than 70% similar to another, then the job fails
+      #     fail_above: 70
+      #     # If a file is more than 15% similar to another, show a warning symbol in the report
+      #     warn_above: 15
+      #     # Remove `src/` from the file paths when reporting similarities
+      #     project_root_dir: 'src'

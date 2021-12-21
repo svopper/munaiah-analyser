@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version:
+          - 2.5
+          - 2.6
+          - 2.7
+          - "3.0"
+          - head
+
+    env:
+      BUNDLE_WITHOUT: vscode
+
+    continue-on-error: ${{ matrix.ruby-version == 'head' }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - name: Run test
+        run: bundle exec rake
+
+  coverage:
+    needs: [ test ]
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: vscode
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.0"
+          bundler-cache: true
+      - uses: paambaati/codeclimate-action@v2.7.5
+        with:
+          coverageCommand: bundle exec rake
+          debug: true
+        env:
+          CI: enabled
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}

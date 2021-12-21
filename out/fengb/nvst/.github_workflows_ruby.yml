@@ -1,0 +1,32 @@
+name: CI
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:10.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby 2.6
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: 2.6.x
+    - name: Build and test with Rake
+      env:
+        DATABASE_URL: postgres://postgres:@localhost:5432/test
+        DATABASE_TEST_URL: postgres://postgres:@localhost:5432/test
+      run: |
+        sudo apt-get -yqq install libpq-dev
+        gem install bundler
+        bin/setup
+        bundle exec rspec

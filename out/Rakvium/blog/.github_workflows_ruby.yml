@@ -1,0 +1,39 @@
+name: Ruby
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:11
+        ports: ['5432:5432']
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          BLOG_DATABASE_USERNAME: postgres
+          BLOG_DATABASE_PASSWORD: postgres
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby 2.7
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.7.x'
+    - name: Build and test with Rake
+      env:
+        RAILS_ENV: test
+        BLOG_DATABASE_USERNAME: postgres
+        BLOG_DATABASE_PASSWORD: postgres
+      run: |
+        sudo apt-get -yqq install libpq-dev
+        gem install bundler
+        bundle install --jobs 4 --retry 3
+        bundle exec rake db:create db:migrate
+        bundle exec rake

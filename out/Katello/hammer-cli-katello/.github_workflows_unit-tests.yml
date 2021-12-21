@@ -1,0 +1,27 @@
+name: Run unit tests
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: ["2.5", "2.7"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add hammer-cli-foreman to local gem file
+      run: echo "gem 'hammer_cli_foreman', :git => 'https://github.com/theforeman/hammer-cli-foreman.git'" > Gemfile.local
+    - name: Add hammer-cli to local gem file
+      run: echo "gem 'hammer_cli', :git => 'https://github.com/theforeman/hammer-cli.git'" >> Gemfile.local
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run tests
+      run: COVERALLS_REPO_TOKEN=${{ secrets.COVERALLS_REPO_TOKEN }} bundle exec rake

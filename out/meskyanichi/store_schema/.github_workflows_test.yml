@@ -1,0 +1,68 @@
+name: Test
+
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby:
+          - 2.5
+          - 2.6
+          - 2.7
+          - 3.0
+        gemfile:
+          - gemfiles/6.0.gemfile
+          - gemfiles/6.1.gemfile
+    services:
+      postgres:
+        image: postgres:12
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_USER: store_schema
+          MYSQL_PASSWORD: store_schema
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: store_schema
+        ports:
+          - 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Ruby ${{ matrix.ruby }}
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Install libsqlite3
+        run: |
+          sudo apt-get -yqq install libsqlite3-dev
+      - name: "Prepare MySQL database"
+        run: |
+          mysql -uroot -h127.0.0.1 -P $MYSQL_PORT -proot -e 'CREATE DATABASE IF NOT EXISTS store_schema;'
+        env:
+          MYSQL_PORT: ${{ job.services.mysql.ports[3306] }}
+      - name: Run tests
+        run: |
+          gem install bundler
+          bundle install --jobs 4 --retry 3
+          bundle exec rake
+        env:
+          BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+          MYSQL_PORT: ${{ job.services.mysql.ports[3306] }}

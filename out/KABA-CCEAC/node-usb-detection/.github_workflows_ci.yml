@@ -1,0 +1,113 @@
+name: 'ci'
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: 'Build on Node v${{ matrix.node }} ${{ matrix.os }} ${{ matrix.arch }}'
+    runs-on: ${{ matrix.os }}-latest
+
+    strategy:
+      matrix:
+        os: [Ubuntu, Windows, macOS]
+        arch: [x64]
+        node: ['12', '14', '16']
+        include:
+          - os: Windows
+            arch: x86
+            node: '12'
+          - os: Windows
+            arch: x86
+            node: '14'
+          - os: Windows
+            arch: x86
+            node: '16'
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v2
+
+      - name: 'Install Node.js v${{ matrix.node }} ${{ matrix.arch }}'
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.arch }}
+
+      - name: 'Install Linux dependencies'
+        if: ${{ matrix.os == 'Ubuntu' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install libudev-dev
+
+      - name: 'Install dependencies and build from source'
+        run: npm ci --build-from-source
+
+      # TODO: Tests are disabled until we have tests which are
+      # suitable for CI and don't require manual interaction.
+      - name: 'Test'
+        run: echo "Skipping tests on CI, as they currently require manual interaction."
+
+      # Prebuilds should only be generated once per OS + arch
+      # Running from Node LTS will generate prebuilds for all ABIs
+      - name: 'Prebuild binaries for all ABIs'
+        if: ${{ matrix.node == '14' }}
+        run: npm run prebuild
+
+      - name: 'Upload prebuilt binaries'
+        if: ${{ matrix.node == '14' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: prebuilds-${{ matrix.os }}-${{ matrix.arch }}
+          path: prebuilds
+
+  check:
+    name: 'Check JavaScript code'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v2
+
+      - name: 'Install Node.js'
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: 'Install dependencies without building'
+        run: npm ci --ignore-scripts
+
+      - name: 'Lint'
+        run: npm run lint
+
+  publish:
+    name: 'Publish release'
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: [check, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v2
+
+      - name: 'Install Node.js with registry configured for publish'
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 'Install dependencies without building'
+        run: npm ci --ignore-scripts
+
+      - name: 'Download prebuilt binaries'
+        uses: actions/download-artifact@v2
+        with:
+          path: prebuilds
+
+      - name: 'Publish to npm'
+        # We use `--ignore-scripts` to skip the linting/testing `prepublishOnly` hook
+        run: npm publish --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 'Upload prebuilt artifacts to GitHub release'
+        run: npm run prebuild-upload -- ${{ secrets.GITHUB_TOKEN }}

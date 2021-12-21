@@ -1,0 +1,123 @@
+name: Build and Test
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - master
+      - siemens-dev
+
+jobs:
+  linux:
+    name: Linux
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Setup environment
+        run: echo "DOCKER_IMAGE=docker.pkg.github.com/hipacc/docker/ubuntu-minimal:v2.0" >> $GITHUB_ENV
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          path: "hipacc"
+
+      - name: Fetch history for all tags
+        run: |
+          cd hipacc
+          git fetch --prune --unshallow
+
+      # Pulling Docker images from GitHub's package registry requires login
+      - name: Docker login
+        run: docker login docker.pkg.github.com -u $GITHUB_ACTOR -p $GITHUB_TOKEN
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Run Docker image
+        run: docker run -it -d --name hipacc -v $GITHUB_WORKSPACE:/workspace -w /workspace $DOCKER_IMAGE
+
+      - name: Build Hipacc
+        run: docker exec hipacc hipacc/.github/run_build.sh
+
+      # Run only CPU tests, as GitHub's CI runner does not have GPU support
+      - name: Run sample tests
+        run: docker exec hipacc hipacc/.github/run_tests.sh -DHIPACC_SAMPLE_CUDA=OFF -DHIPACC_SAMPLE_OPENCL_GPU=OFF
+
+      # On failure: Upload build artifacts
+      - name: Upload build artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Linux_artifacts
+          path: '*'
+
+      # For tags: Create Debian package
+      - name: Create Debian package
+        if: contains(github.ref, 'refs/tags/')
+        run: docker exec hipacc hipacc/.github/run_package.sh
+
+      # For tags: Upload as release asset
+      - name: Upload Debian package
+        if: contains(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@1.1.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: hipacc/build/hipacc_*.deb
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+  windows:
+    name: Windows
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: windows-2019
+    steps:
+      - name: Setup environment
+        run: echo "DOCKER_IMAGE=oreiche/hipacc-windows-minimal:v3.0" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          path: "hipacc"
+
+      - name: Fetch history for all tags
+        run: |
+          cd hipacc
+          git fetch --prune --unshallow
+
+      - name: Run Docker image
+        run: docker run -it -d --name hipacc -v $GITHUB_WORKSPACE:C:/workspace -w C:/workspace $DOCKER_IMAGE
+        shell: bash
+
+      - name: Build Hipacc
+        run: docker exec hipacc powershell hipacc/.github/run_build.ps1
+
+      # Run only CPU tests, as GitHub's CI runner does not have GPU support
+      - name: Run sample tests
+        run: docker exec hipacc powershell hipacc/.github/run_tests.ps1 -DHIPACC_SAMPLE_CUDA=OFF -DHIPACC_SAMPLE_OPENCL_GPU=OFF
+
+      # On failure: Upload build artifacts
+      - name: Upload build artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Windows_artifacts
+          path: '*'
+
+      # For tags: Create Windows installer
+      - name: Create Windows installer
+        if: contains(github.ref, 'refs/tags/')
+        run: docker exec hipacc powershell hipacc/.github/run_package.ps1
+
+      # For tags: Upload as release asset
+      - name: Upload Windows installer
+        if: contains(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@1.1.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: hipacc/build/Hipacc-*.exe
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

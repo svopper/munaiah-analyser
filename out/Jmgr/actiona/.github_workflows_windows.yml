@@ -1,0 +1,58 @@
+name: Windows-msvc
+
+on: [push]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [ON, OFF]
+        updater: [ON, OFF]
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - uses: suisei-cn/actions-download-file@v1
+      id: downloadfile
+      name: Download prebuilt OpenCV
+      with:
+        url: "https://actiona.tools/files/opencv-4.5.1-x64-vc16.7z"
+
+    - name: Extract OpenCV
+      run: 7z x -oopencv ${{ steps.downloadfile.outputs.filename }}
+
+    - name: setup-msbuild
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2.12.2
+      with:
+        version: 5.15.2
+        arch: win64_msvc2019_64
+        modules: 'qtscript'
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DACT_PROFILE=${{ matrix.profile }} -DACT_UPDATER=${{ matrix.updater }} -G "Visual Studio 16 2019" -DOpenCV_DIR=$GITHUB_WORKSPACE/opencv/x64/vc16/lib
+      env:
+        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --parallel 2
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: ctest -C $BUILD_TYPE

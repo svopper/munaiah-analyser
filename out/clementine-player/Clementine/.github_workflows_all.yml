@@ -1,0 +1,1008 @@
+name: all
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: clang-format
+        uses: clementine-player/clang-format-lint-action@master
+        with:
+          style: "{BasedOnStyle: Google, DerivePointerBinding: false, Standard: Cpp11}"
+          source: ./src
+          clangFormatVersion: 9
+
+
+  push_translations:
+    name: Push translation sources to Transifex
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:bionic
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          build-essential
+          cmake
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libcdio-dev
+          libchromaprint-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libglib2.0-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqt5x11extras5-dev
+          libsqlite3-dev
+          libtag1-dev
+          pkg-config
+          protobuf-compiler
+          python3-pip
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          libsparsehash-dev
+          ssh
+      - name: Install tx
+        run: pip3 install transifex-client==0.13.9
+      - name: Checkout
+        uses: actions/checkout@v1.2.0
+      - name: tx init
+        env:
+          TX_TOKEN: ${{ secrets.TX_TOKEN }}
+        run: tx init --no-interactive --force
+      - name: cmake
+        working-directory: bin
+        run: cmake ..
+      - name: make
+        working-directory: bin
+        run: make -j2
+      - name: tx config
+        env:
+          TX_TOKEN: ${{ secrets.TX_TOKEN }}
+        run: tx config mapping --execute -r clementine.clementineplayer -f src/translations/translations.pot -s en -t PO --expression 'src/translations/<lang>.po'
+      - name: tx push
+        env:
+          TX_TOKEN: ${{ secrets.TX_TOKEN }}
+        run: tx push -s
+
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-18.04
+    if: github.ref == 'refs/heads/master'
+    needs:
+      - build_bionic_64
+      - build_bullseye_64
+      - build_buster_64
+      - build_fedora_33
+      - build_fedora_34
+      - build_focal_64
+      - build_groovy_64
+      - build_hirsute_64
+      - build_mac
+      - build_mingw
+      - build_source
+      - build_stretch_64
+    steps:
+      - uses: actions/checkout@v1.2.0
+      - uses: actions/download-artifact@v2
+        with:
+          path: release_artifacts
+      - name: Create draft pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          VERSION=$(echo release_artifacts/**/*.tar.xz | sed -e 's/.*clementine-\(.*\).tar.xz/\1/')
+          echo "Version: ${VERSION}"
+          assets=()
+          for asset in $(find release_artifacts -type f); do
+            echo "Adding asset: ${asset}"
+            assets+=("-a" "$asset")
+          done
+          hub release create -p "${assets[@]}" -m "$VERSION" -t "$GITHUB_SHA" "$VERSION"
+
+  build_source:
+    name: Build source tarball
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:focal
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          cmake
+          fakeroot
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libboost-serialization-dev
+          libcdio-cdda2
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libplist-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqca-qt5-2-dev
+          libqca-qt5-2-plugins
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          libusbmuxd-dev
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: cmake ..
+      - name: Build source tarball
+        working-directory: bin
+        run: ../dist/maketarball.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_source
+          path: bin/clementine-*.tar.xz
+
+  build_fedora_34:
+    name: Build Fedora 34 RPM
+    runs-on: ubuntu-18.04
+    container:
+      image: fedora:34
+    env:
+      RPM_BUILD_NCPUS: "2"
+    steps:
+      - name: Install dependencies
+        run: >
+          dnf install --assumeyes
+          @development-tools
+          alsa-lib-devel
+          boost-devel
+          cmake
+          cryptopp-devel
+          dbus-devel
+          desktop-file-utils
+          fftw-devel
+          gcc-c++
+          gettext
+          git
+          glew-devel
+          gstreamer1-devel
+          gstreamer1-plugins-base-devel
+          hicolor-icon-theme
+          libappstream-glib
+          libcdio-devel
+          libchromaprint-devel
+          libgpod-devel
+          liblastfm-qt5-devel
+          libmtp-devel
+          libnotify-devel
+          openssh
+          pkgconfig
+          protobuf-compiler
+          protobuf-devel
+          pulseaudio-libs-devel
+          qca-qt5-devel
+          qca-qt5-ossl
+          qt5-linguist
+          qt5-qtbase-devel
+          qt5-qtx11extras-devel
+          qt5-rpm-macros
+          rpmdevtools
+          sha2-devel
+          sparsehash-devel
+          sqlite-devel
+          taglib-devel
+          tar
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: cmake ..
+      - name: Build source tarball
+        working-directory: bin
+        run: ../dist/maketarball.sh
+      - name: Create rpmbuild directory
+        run: mkdir -p ~/rpmbuild/SOURCES
+      - name: Move source tarball
+        working-directory: bin
+        run: mv clementine-*.tar.xz ~/rpmbuild/SOURCES
+      - name: Build RPM
+        working-directory: bin
+        run: rpmbuild -ba ../dist/clementine.spec
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_fedora_34
+          path: ~/rpmbuild/RPMS/*/clementine-*.rpm
+
+  build_fedora_33:
+    name: Build Fedora 33 RPM
+    runs-on: ubuntu-18.04
+    container:
+      image: fedora:33
+    env:
+      RPM_BUILD_NCPUS: "2"
+    steps:
+      - name: Install dependencies
+        run: >
+          dnf install --assumeyes
+          @development-tools
+          alsa-lib-devel
+          boost-devel
+          cmake
+          cryptopp-devel
+          dbus-devel
+          desktop-file-utils
+          fftw-devel
+          gcc-c++
+          gettext
+          git
+          glew-devel
+          gstreamer1-devel
+          gstreamer1-plugins-base-devel
+          hicolor-icon-theme
+          libappstream-glib
+          libcdio-devel
+          libchromaprint-devel
+          libgpod-devel
+          liblastfm-qt5-devel
+          libmtp-devel
+          libnotify-devel
+          openssh
+          pkgconfig
+          protobuf-compiler
+          protobuf-devel
+          pulseaudio-libs-devel
+          qca-qt5-devel
+          qca-qt5-ossl
+          qt5-linguist
+          qt5-qtbase-devel
+          qt5-qtx11extras-devel
+          qt5-rpm-macros
+          rpmdevtools
+          sha2-devel
+          sparsehash-devel
+          sqlite-devel
+          taglib-devel
+          tar
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: cmake ..
+      - name: Build source tarball
+        working-directory: bin
+        run: ../dist/maketarball.sh
+      - name: Create rpmbuild directory
+        run: mkdir -p ~/rpmbuild/SOURCES
+      - name: Move source tarball
+        working-directory: bin
+        run: mv clementine-*.tar.xz ~/rpmbuild/SOURCES
+      - name: Build RPM
+        working-directory: bin
+        run: rpmbuild -ba ../dist/clementine.spec
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_fedora_33
+          path: ~/rpmbuild/RPMS/*/clementine-*.rpm
+
+  build_mingw:
+    name: Build Windows Installer
+    runs-on: ubuntu-18.04
+    container:
+      image: eu.gcr.io/clementine-data/mingw-w64:latest
+    env:
+      PKG_CONFIG_PATH: /target/lib/pkgconfig
+    steps:
+      - name: Fix liblastfm includes
+        run: ln -s /target/include/lastfm /target/include/lastfm5
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DCMAKE_TOOLCHAIN_FILE=../Toolchain-mingw32.cmake
+          -DCMAKE_BUILD_TYPE=Release
+      - name: make
+        working-directory: bin
+        run: make -j2
+      - name: Copy output exes
+        working-directory: dist/windows
+        run: cp ../../bin/*.exe .
+      - name: Copy base runtime DLLs
+        run: >
+          cp
+          /usr/lib/gcc/i686-w64-mingw32/*-posix/libgcc_s_sjlj-1.dll
+          /usr/lib/gcc/i686-w64-mingw32/*-posix/libstdc++-6.dll
+          /usr/i686-w64-mingw32/lib/libwinpthread-1.dll
+          dist/windows
+      - name: Copy DLL depdendencies
+        working-directory: /target/bin
+        run: >
+            cp
+            glew32.dll
+            libcdio-19.dll
+            libchromaprint.dll
+            libcrypto-1_1.dll
+            libfaad-2.dll
+            libffi-7.dll
+            libfftw3-3.dll
+            libFLAC-8.dll
+            libgcrypt-20.dll
+            libgio-2.0-0.dll
+            libglib-2.0-0.dll
+            libgmodule-2.0-0.dll
+            libgmp-10.dll
+            libgnutls-30.dll
+            libgobject-2.0-0.dll
+            libgpg-error-0.dll
+            libgpod.dll
+            libgstapp-1.0-0.dll
+            libgstaudio-1.0-0.dll
+            libgstbase-1.0-0.dll
+            libgstfft-1.0-0.dll
+            libgstnet-1.0-0.dll
+            libgstpbutils-1.0-0.dll
+            libgstreamer-1.0-0.dll
+            libgstriff-1.0-0.dll
+            libgstrtp-1.0-0.dll
+            libgstrtsp-1.0-0.dll
+            libgstsdp-1.0-0.dll
+            libgsttag-1.0-0.dll
+            libgstvideo-1.0-0.dll
+            libgthread-2.0-0.dll
+            libhogweed-6.dll
+            libiconv-2.dll
+            libintl-8.dll
+            liblastfm5.dll
+            libmms-0.dll
+            libmp3lame-0.dll
+            libnettle-8.dll
+            libogg-0.dll
+            liboil-0.3-0.dll
+            libopus-0.dll
+            liborc-0.4-0.dll
+            liborc-test-0.4-0.dll
+            libp11-kit-0.dll
+            libpcre-1.dll
+            libplist.dll
+            libprotobuf-17.dll
+            libpsl-5.dll
+            libssl-1_1.dll
+            libsoup-2.4-1.dll
+            libspeex-1.dll
+            libspotify.dll
+            libsqlite3-0.dll
+            libtag.dll
+            libtasn1-6.dll
+            libunistring-2.dll
+            libvorbis-0.dll
+            libvorbisenc-2.dll
+            libxml2-2.dll
+            libwavpack-1.dll
+            Qt5Concurrent.dll
+            Qt5Core.dll
+            Qt5Gui.dll
+            Qt5Network.dll
+            Qt5OpenGL.dll
+            Qt5Sql.dll
+            Qt5Svg.dll
+            Qt5Widgets.dll
+            Qt5WinExtras.dll
+            Qt5Xml.dll
+            zlib1.dll
+            ${GITHUB_WORKSPACE}/dist/windows
+      - run: mkdir dist/windows/imageformats
+      - name: Copy Qt imageformat plugin DLLs
+        working-directory: /target/plugins
+        run: >
+          cp
+          imageformats/qgif.dll
+          imageformats/qjpeg.dll
+          imageformats/qsvg.dll
+          ${GITHUB_WORKSPACE}/dist/windows/imageformats
+      - run: mkdir dist/windows/platforms
+      - name: Copy Qt platforms plugin DLLs
+        working-directory: /target/plugins
+        run: >
+          cp
+          platforms/qwindows.dll
+          ${GITHUB_WORKSPACE}/dist/windows/platforms
+      - run: mkdir dist/windows/styles
+      - name: Copy Qt style plugin DLLs
+        working-directory: /target/plugins
+        run: >
+          cp
+          styles/qwindowsvistastyle.dll
+          ${GITHUB_WORKSPACE}/dist/windows/styles
+      - run: mkdir dist/windows/gio-modules
+      - name: Copy GIO modules
+        run: cp /target/lib/gio/modules/libgiognutls.dll dist/windows/gio-modules
+      - run: mkdir dist/windows/gstreamer-plugins
+      - name: Copy gstreamer plugins
+        working-directory: /target/lib/gstreamer-1.0
+        run: >
+          cp
+          libgstaiff.dll
+          libgstapetag.dll
+          libgstapp.dll
+          libgstasf.dll
+          libgstasfmux.dll
+          libgstaudioconvert.dll
+          libgstaudiofx.dll
+          libgstaudioparsers.dll
+          libgstaudioresample.dll
+          libgstaudiotestsrc.dll
+          libgstautodetect.dll
+          libgstcdio.dll
+          libgstcoreelements.dll
+          libgstdirectsound.dll
+          libgstequalizer.dll
+          libgstfaad.dll
+          libgstflac.dll
+          libgstgdp.dll
+          libgstgio.dll
+          libgsticydemux.dll
+          libgstid3demux.dll
+          libgstid3tag.dll
+          libgstisomp4.dll
+          libgstlame.dll
+          libgstlibav.dll
+          libgstmms.dll
+          libgstogg.dll
+          libgstopus.dll
+          libgstopusparse.dll
+          libgstpbtypes.dll
+          libgstplayback.dll
+          libgstreplaygain.dll
+          libgstrtp.dll
+          libgstrtsp.dll
+          libgstsoup.dll
+          libgstspectrum.dll
+          libgstspeex.dll
+          libgsttaglib.dll
+          libgsttcp.dll
+          libgsttypefindfunctions.dll
+          libgstudp.dll
+          libgstvolume.dll
+          libgstvorbis.dll
+          libgstwavpack.dll
+          libgstwavparse.dll
+          ${GITHUB_WORKSPACE}/dist/windows/gstreamer-plugins
+      - name: Build Windows installer
+        working-directory: dist/windows
+        run: makensis clementine.nsi
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_mingw
+          path: dist/windows/ClementineSetup*.exe
+
+  build_stretch_64:
+    name: Build Debian Stretch 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: debian:stretch
+    steps:
+      - name: Install dependencies
+        run: >
+          apt-get update && apt-get install -y
+          build-essential
+          cmake
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libglib2.0-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          pkg-config
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=stretch
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_stretch_64
+          path: bin/clementine_*.deb
+
+  build_bionic_64:
+    name: Build Ubuntu Bionic 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:bionic
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          build-essential
+          cmake
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libcdio-dev
+          libchromaprint-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libglib2.0-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqt5x11extras5-dev
+          libsqlite3-dev
+          libtag1-dev
+          pkg-config
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          libsparsehash-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=bionic
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_bionic_64
+          path: bin/clementine_*.deb
+
+  build_bullseye_64:
+    name: Build Debian Bullseye 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: debian:bullseye
+    steps:
+      - name: Install dependencies
+        run: >
+          apt-get update && apt-get install -y
+          build-essential
+          cmake
+          debhelper
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libglib2.0-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          pkg-config
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=bullseye
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_bullseye_64
+          path: bin/clementine_*.deb
+
+  build_buster_64:
+    name: Build Debian Buster 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: debian:buster
+    steps:
+      - name: Install dependencies
+        run: >
+          apt-get update && apt-get install -y
+          build-essential
+          cmake
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libglib2.0-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          pkg-config
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=buster
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_buster_64
+          path: bin/clementine_*.deb
+
+  build_focal_64:
+    name: Build Ubuntu Focal 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:focal
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          cmake
+          fakeroot
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libboost-serialization-dev
+          libcdio-cdda2
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libplist-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqca-qt5-2-dev
+          libqca-qt5-2-plugins
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          libusbmuxd-dev
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=focal
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_focal_64
+          path: bin/clementine_*.deb
+
+  build_groovy_64:
+    name: Build Ubuntu Groovy 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:groovy
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          cmake
+          dpkg-dev
+          debhelper
+          fakeroot
+          g++
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libboost-serialization-dev
+          libcdio-cdda2
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libplist-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqca-qt5-2-dev
+          libqca-qt5-2-plugins
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          libusbmuxd-dev
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=groovy
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_groovy_64
+          path: bin/clementine_*.deb
+
+  build_hirsute_64:
+    name: Build Ubuntu Hirsute 64-bit deb
+    runs-on: ubuntu-18.04
+    container:
+      image: ubuntu:hirsute
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: >
+          apt-get update && apt-get install -y
+          cmake
+          dpkg-dev
+          debhelper
+          fakeroot
+          g++
+          gettext
+          git
+          libasound2-dev
+          libboost-dev
+          libboost-serialization-dev
+          libcdio-cdda2
+          libcdio-dev
+          libchromaprint-dev
+          libcrypto++-dev
+          libdbus-1-dev
+          libfftw3-dev
+          libglew1.5-dev
+          libgpod-dev
+          libgstreamer-plugins-base1.0-dev
+          libgstreamer1.0-dev
+          liblastfm5-dev
+          libmtp-dev
+          libmygpo-qt-dev
+          libplist-dev
+          libprotobuf-dev
+          libpulse-dev
+          libqca-qt5-2-dev
+          libqca-qt5-2-plugins
+          libqt5x11extras5-dev
+          libsparsehash-dev
+          libsqlite3-dev
+          libtag1-dev
+          libusbmuxd-dev
+          protobuf-compiler
+          qtbase5-dev
+          qttools5-dev-tools
+          qttools5-dev
+          ssh
+      - uses: actions/checkout@v1.2.0
+      - name: cmake
+        working-directory: bin
+        run: >
+          cmake ..
+          -DWITH_DEBIAN=ON
+          -DDEB_ARCH=amd64
+          -DDEB_DIST=hirsute
+          -DFORCE_GIT_VERSION=
+          -DENABLE_SPOTIFY_BLOB=OFF
+      - name: make
+        working-directory: bin
+        run : make -j2 deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_hirsute_64
+          path: bin/clementine_*.deb
+
+  build_mac:
+    name: Build Mac DMG
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v1.2.0
+      - name: Install dependencies
+        run: brew bundle
+
+      - name: Build libgpod
+        shell: bash
+        env:
+          PERL_MM_USE_DEFAULT: 1
+        run: |
+          sudo cpan install XML::Parser
+          wget https://downloads.sourceforge.net/project/gtkpod/libgpod/libgpod-0.8/libgpod-0.8.3.tar.bz2
+          tar -xvf libgpod-0.8.3.tar.bz2
+          cd libgpod-0.8.3
+          wget https://raw.githubusercontent.com/macports/macports-ports/master/multimedia/libgpod/files/autogen.sh
+          wget https://raw.githubusercontent.com/macports/macports-ports/master/multimedia/libgpod/files/patch-tools-generic-callout.c.diff
+          patch -p0 < patch-tools-generic-callout.c.diff
+          patch -p1 < $GITHUB_WORKSPACE/3rdparty/libgpod/patches/0001-Look-for-libplist-2.0.patch
+          chmod u+x autogen.sh
+          ./autogen.sh
+          ./configure --disable-more-warnings \
+                      --disable-silent-rules \
+                      --disable-udev \
+                      --disable-pygobject \
+                      --with-python=no
+          make -j2
+          sudo make install
+
+      - name: Fix liblastfm includes
+        run: ln -s /usr/local/include/lastfm /usr/local/include/lastfm5
+      - name: cmake
+        env:
+          PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
+          Qt5_DIR: /usr/local/opt/qt5/lib/cmake/Qt5
+          Qt5LinguistTools_DIR: /usr/local/opt/qt5/lib/cmake/Qt5LinguistTools
+          GST_SCANNER_PATH: /usr/local/opt/gstreamer/libexec/gstreamer-1.0/gst-plugin-scanner
+          GST_PLUGIN_PATH: /usr/local/lib/gstreamer-1.0
+          DEVELOPER_DIR: /Applications/Xcode_10.3.app/Contents/Developer
+        working-directory: bin
+        run: >
+          cmake ..
+          -Wno-dev
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=x86_64
+          -DGETTEXT_MSGMERGE_EXECUTABLE=/usr/local/opt/gettext/bin/msgmerge
+          -DGETTEXT_MSGFMT_EXECUTABLE=/usr/local/opt/gettext/bin/msgfmt
+          -DGETTEXT_XGETTEXT_EXECUTABLE=/usr/local/opt/gettext/bin/xgettext
+      - name: make
+        working-directory: bin
+        run: make -j2
+      - name: Copy icon files and resources
+        working-directory: bin
+        run: make install
+      - name: Build DMG
+        working-directory: bin
+        run: make dmg
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release_mac
+          path: bin/clementine-*.dmg

@@ -1,0 +1,33 @@
+name: Daily test sync
+on:
+  schedule:
+  - cron: '20 20 * * *'
+  workflow_dispatch: {}
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'tabatkins'
+    steps:
+    - uses: actions/checkout@v2.3.4
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: install dependencies
+      run: |
+        pip install -r .github/workflows/update-tests/requirements.txt
+        pip install --editable .
+        bikeshed update
+    - name: update tests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        rm -rf tests/github
+        python .github/workflows/update-tests/update.py
+        # paths need to be relative to tests/
+        (cd tests; find github -type f) | xargs bikeshed test --rebase
+    - name: Create/Update PR
+      uses: peter-evans/create-pull-request@v3.10.1
+      with:
+        branch: daily-test-sync
+        commit-message: 'chore: Sync Bikeshed files from specs.data list'
+        title: 'Daily sync of Bikeshed files from specs.data'

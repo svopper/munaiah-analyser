@@ -1,0 +1,278 @@
+name: HLWM CI
+
+on:
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - '.mergify.yml'
+  pull_request:
+    paths-ignore:
+    - '.mergify.yml'
+
+jobs:
+  build-test-current:
+    # Name the Job
+    name: Build and test on current ubuntu
+    # Set the type of machine to run on
+    runs-on: ubuntu-latest
+    container: hlwm/ci:focal
+    env:
+      HLWM_BUILDDIR: build
+      CCACHE_LOGFILE: /github/home/ccache.log
+      CCACHE_NOHASHDIR: 1
+
+    steps:
+      # Checks out a copy of your repository on the ubuntu-latest machine
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v1
+        name: Cache ~/.ccache
+        with:
+          path: ~/.ccache
+          key: focal-gcc-ccache-${{ github.run_number }}
+          # since the every new gha run gets a new key, we need to search
+          # for existing cache entries more sloppily:
+          restore-keys: |
+            focal-gcc-ccache-
+
+      - uses: actions/cache@v1
+        name: Cache .tox-cache
+        with:
+          path: .tox-cache
+          key: focal-tox
+
+      - name: CMake
+        run: |
+          ci/build.py --cmake --cxx=g++-9 --cc=gcc-9 --build-type=Debug --ccache=$HOME/.ccache
+
+      - name: Compile
+        run: |
+          ci/build.py --compile
+
+      - name: Install to temp directory
+        run: |
+          ci/build.py --install
+
+      - name: ccache statistics
+        run: |
+          ccache -s
+
+      - name: ccache log
+        run: |
+          cat "$CCACHE_LOGFILE"
+
+      - name: Test
+        run: |
+          ci/build.py --run-tests
+
+      - name: Codecov report
+        continue-on-error: true
+        run: |
+          wget -O codecov-io.bash https://codecov.io/bash
+          bash codecov-io.bash -f coverage.info
+
+  build-clang:
+    name: Build with Clang, run linters and static analyzers
+    runs-on: ubuntu-latest
+    container: hlwm/ci:focal
+    env:
+      HLWM_BUILDDIR: build
+      CCACHE_LOGFILE: /github/home/ccache.log
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v1
+        name: Cache ~/.ccache
+        with:
+          path: ~/.ccache
+          key: focal-clang-ccache-${{ github.run_number }}
+          restore-keys: |
+            focal-clang-ccache-
+
+      - uses: actions/cache@v1
+        name: Cache .tox-cache
+        with:
+          path: .tox-cache
+          key: focal-tox # same name as in build-test-current
+
+      - name: Check usage of std-prefix
+        run: |
+          ci/build.py --check-using-std
+
+      - name: Check python using flake8
+        run: |
+          ci/build.py --flake8
+
+      - name: CMake
+        run: |
+          ci/build.py --cmake --cxx=$PWD/ci/clang++-and-tidy.sh --cc=$PWD/ci/clang-and-tidy.sh --build-type=Debug --ccache=$HOME/.ccache
+
+      - name: Compile
+        run: |
+          ci/build.py --compile
+
+      - name: ccache statistics
+        run: |
+          ccache -s
+
+      - name: ccache log
+        run: |
+          cat "$CCACHE_LOGFILE"
+
+      - name: Check includes using iwyu
+        run: |
+          ci/build.py --iwyu
+
+  build-old-32bit:
+    name: Build for 32bit with ancient GCC on Ubuntu 14.04
+    runs-on: ubuntu-latest
+    container: hlwm/ci:trusty
+    needs: build-doc  # using the tarball
+    steps:
+      - name: Download source tarball
+        uses: actions/download-artifact@v2
+        # we do not specify a name, hence all artifacts are downloaded
+
+      - uses: actions/cache@v1
+        name: Cache ~/.ccache
+        with:
+          path: ~/.ccache
+          key: ccache-gcc-ancient-${{ github.run_number }}
+          restore-keys: |
+            ccache-gcc-ancient-
+
+      - name: Extract tarball
+        run: |
+          tar xvf artifact/herbstluftwm*.tar.gz
+
+      - name: Sanity check tarball content
+        run: |
+          cd herbstluftwm-*/doc/
+          echo Checking that generated file have at least 10 lines
+          test "$(wc -l hlwm-objects-gen.txt|cut -d' ' -f1)" -gt 10 || exit 1
+          test "$(wc -l hlwm-doc.json|cut -d' ' -f1)" -gt 10 || exit 1
+
+      - name: Build
+        env:
+          CC: gcc-4.8
+          CXX: g++-4.8
+          CXXFLAGS: -m32
+          CFLAGS: -m32
+        run: |
+          cd herbstluftwm-*/
+          find ~/.ccache | wc -l
+          ccache -z --max-size=500M
+          # ccache too old for --show-config
+          mkdir build
+          cd build
+          cmake -GNinja -DENABLE_CCACHE=YES ..
+          ninja -v -k10
+          ccache -s
+          find ~/.ccache | wc -l
+
+      - name: Install
+        env:
+          DESTDIR: ${{ github.workspace }}/install-herbstluftwm/
+        run: |
+          cd herbstluftwm-*/build/
+          mkdir -v -p $DESTDIR
+          ninja -v install
+          # check that the man page has been installed:
+          find $DESTDIR -name 'herbstluftwm.1' -printf '%P\n' | grep . # grep for the right exit-status
+
+  diff-objects:
+    name: Diff object tree
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2  # fetch previous commits
+
+      - name: Extract git ref of target branch (on pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          # github actions automatically creates
+          # a merge commit, so we can simply compare
+          # $GITHUB_REF with github.base_ref
+          #
+          # We only need to fetch it first
+          git fetch origin ${{ github.base_ref }}
+          git update-ref ${{ github.base_ref }} origin/${{ github.base_ref }}
+          echo ${{ github.base_ref }} > old_commit
+
+          git tag "#"${{ github.event.pull_request.number }} $GITHUB_SHA
+          echo "#"${{ github.event.pull_request.number }} > new_commit
+
+      - name: Extract git ref of previous commit (on push)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          git tag previous-commit "${GITHUB_SHA}~1"
+          echo previous-commit > old_commit
+
+          git update-ref ${GITHUB_REF} ${GITHUB_SHA}
+          echo ${GITHUB_REF} > new_commit
+
+      - name: Generate diff
+        run: |
+          echo "old commit: $(< old_commit) -> $(git rev-parse $(< old_commit))"
+          echo "new commit: $(< new_commit) -> $(git rev-parse $(< new_commit))"
+          ci/diff-json-doc.py --no-tmp-dir "$(< old_commit)" "$(< new_commit)"
+
+      - name: Post diff as comment (on pull requst)
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.HLWM_BOT_GITHUB_TOKEN }}
+        run: |
+          if [ -n "$GITHUB_TOKEN" ] ; then
+            ci/diff-json-doc.py --no-tmp-dir --post-comment ${{ github.event.pull_request.number }} \
+              "$(< old_commit)" "$(< new_commit)"
+          else
+            echo "Skipping comment posting because of absence of secret"
+          fi
+
+  build-doc:
+    name: Build Documentation and website
+    runs-on: ubuntu-latest
+    env:
+      BUILD: build-${{ github.run_number }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: install asciidoc
+        run: sudo apt-get install --no-install-recommends asciidoc xsltproc docbook-xsl
+      - name: restrict cmake to doc
+        run: |
+          cat > CMakeLists.txt <<EOF
+          project(Herbstluftwm)
+          file(STRINGS VERSION VERSION) # read file 'VERSION'
+          set(DOCDIR /tmp/)
+          set(MANDIR /tmp/)
+          add_subdirectory(doc)
+          EOF
+      - name: run cmake
+        run: |
+          mkdir $BUILD
+          cd $BUILD
+          cmake -DWITH_DOCUMENTATION=YES ..
+      - name: build doc
+        run: |
+          cd $BUILD
+          make all_doc 2> >(tee asciidoc-stderr.log)
+          echo == Checking that asciidoc built without warnings ==
+          ! grep WARNING asciidoc-stderr.log # grep must not find warnings
+      - name: build website
+        run: |
+          cd www/
+          make 2> >(tee asciidoc-stderr.log)
+          ! grep WARNING asciidoc-stderr.log # grep must not find warnings
+      - name: build source tarball
+        run: |
+          builddir=$BUILD ci/mktar.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: herbstluftwm*.tar.gz

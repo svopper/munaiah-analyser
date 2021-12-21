@@ -1,0 +1,37 @@
+name: CI tests at GitHub
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  check:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 flake8-import-order \
+          attrs configobj pycotap pysol-cards random2 setuptools six
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Lint with flake8
+      run: |
+        flake8 . --show-source
+    - name: Run unit tests
+      run: |
+        python -m unittest -v
+    - name: Individually import each Python module
+      run: |
+        python scripts/gen_individual_importing_tests.py
+        prove tests/individually-importing/*.py

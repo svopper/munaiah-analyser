@@ -1,0 +1,67 @@
+name: windows
+on:
+  push:
+    branches:
+      - master
+jobs:
+  compile:
+    runs-on: windows-latest
+    env:
+      OF_URL: https://openframeworks.cc/versions/v0.11.0/of_v0.11.0_msys264_release.zip
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: unzip git
+          msystem: MINGW64
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Download openFrameworks and add ofxPiMapper to addons
+        run: |
+          mkdir .ofxPiMapper
+          mv ./* .ofxPiMapper/
+          wget ${OF_URL} --tries=10 --quiet
+          echo "Unarchive openFrameworks"
+          OF_ARCHIVE_NAME=$(basename -- "$OF_URL")
+          unzip ${OF_ARCHIVE_NAME}
+          rm ${OF_ARCHIVE_NAME}
+          OF_EXTRACT_NAME=$(basename ${OF_ARCHIVE_NAME} .zip)
+          mv ${OF_EXTRACT_NAME} openFrameworks
+          mv .ofxPiMapper openFrameworks/addons/ofxPiMapper
+      - name: Install openFrameworks Dependencies
+        working-directory: ./openFrameworks/scripts/msys2
+        run: ./install_dependencies.sh --noconfirm
+      - name: Apply patches
+        working-directory: ./openFrameworks/addons/ofxPiMapper/patches/msys2
+        run: ./patch.sh
+      - name: Compile openFrameworks
+        working-directory: ./openFrameworks/scripts/msys2
+        run: ./compileOF.sh
+      - name: Compile example_basic
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_basic
+        run: mv addons.make.norpi addons.make && make
+      - name: Compile example_camera
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_camera
+        run: mv addons.make.norpi addons.make && make
+      - name: Compile example_fbo-sources
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_fbo-sources
+        run: mv addons.make.norpi addons.make && make
+      - name: Compile example_pocketvj
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_pocketvj
+        run: mv addons.make.norpi addons.make && make
+      - name: Install ofxJSON dependency
+        working-directory: ./openFrameworks/addons/
+        run: git clone https://github.com/jeffcrouse/ofxJSON.git --depth 1
+      - name: Compile example_remote-client
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_remote-client
+        run: mv addons.make.norpi addons.make && make
+      - name: Compile example_remote-server
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_remote-server
+        run: mv addons.make.norpi addons.make && make
+      - name: Compile example_simpler
+        working-directory: ./openFrameworks/addons/ofxPiMapper/example_simpler
+        run: mv addons.make.norpi addons.make && make

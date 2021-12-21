@@ -1,0 +1,33 @@
+name: Report Code Coverage
+
+on:
+  schedule:
+    - cron: '46 2 * * *' # daily at 2:46am
+
+env:
+  MAILER_DSN: null://null
+  ILIOS_LOCALE: en
+  ILIOS_SECRET: ThisTokenIsNotSoSecretChangeIt
+  ILIOS_FILE_SYSTEM_STORAGE_PATH: /tmp
+  SYMFONY_DEPRECATIONS_HELPER: disabled=1
+  CC_TEST_REPORTER_ID: c2e072c72320901c23741e4c25bfd28e149441b5a19ba9abb8cf80ca0363ff9a
+jobs:
+  coverage:
+    name: Test and Calculate Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use PHP 8.0
+      uses: shivammathur/setup-php@2.15.0
+      with:
+        php-version: 8.0
+        coverage: pcov
+        extensions: apcu
+    - name: install dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: calculate
+      uses: paambaati/codeclimate-action@v3.0.0
+      with:
+        coverageCommand: vendor/bin/phpunit --coverage-clover build/coverage.xml
+        coverageLocations:
+          build/coverage.xml:clover

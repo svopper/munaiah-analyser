@@ -1,0 +1,30 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      max-parallel: 6
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        node-version: [8.x, 10.x, 12.x]
+    name: ${{ matrix.operating-system }} - ${{ matrix.node-version }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Replace theme.xml
+      run: mv workspace/assets/css/vars/theme-ci.xml workspace/assets/css/vars/theme.xml
+      shell: bash
+    - name: npm install
+      run: npm install
+      working-directory: workspace/assets
+      env:
+        CI: true
+    - name: grunt ci
+      working-directory: workspace/assets
+      run: npm run grunt ci
+      env:
+        NODE_OPTIONS: --max_old_space_size=8192

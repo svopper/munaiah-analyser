@@ -1,0 +1,70 @@
+name: Ruby
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Every Friday at 3am UTC
+    - cron: '0 3 * * 6'
+
+jobs:
+  html_proofer:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+    - uses: actions/cache@v2
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+    - name: Install pre-dependencies
+      run: |
+        sudo apt install -y build-essential patch ruby-dev zlib1g-dev liblzma-dev
+    - name: Install dependencies
+      run: |
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+        sudo snap install --edge zola
+    - name: Run tests
+      run: script/ci.rb
+      env:
+        RUN: html_proofer
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+    - uses: actions/cache@v2
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+    - name: Install pre-dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential patch ruby-dev zlib1g-dev liblzma-dev
+    - name: Install dependencies
+      run: |
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+        sudo snap install --edge zola
+        sudo pip install codespell
+    - name: Run tests
+      run: script/ci.rb
+      env:
+        RUN: test

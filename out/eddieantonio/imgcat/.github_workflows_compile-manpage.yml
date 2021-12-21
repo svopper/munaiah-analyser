@@ -1,0 +1,19 @@
+name: Build manpage
+on: push
+
+jobs:
+  render:
+    name: Build manpage from pandoc markdown source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pandoc
+        run: sudo apt-get install pandoc
+      - name: Checkout imgcat
+        uses: actions/checkout@v2
+      - name: Build man page
+        run: make -B docs/imgcat.1
+      - name: Commit it back if it has changed
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore(docs): build man page"
+          file_pattern: "docs/imgcat.1"

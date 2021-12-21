@@ -1,0 +1,18 @@
+name: "Tests"
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - run: docker-compose build
+      - run: docker-compose run --rm composer
+      - run: docker-compose run --rm phpunit --do-not-cache-result --coverage-clover tests/coverage/clover.xml
+      - run: docker-compose run --rm phpstan
+      - run: docker-compose run --rm phpcs
+      - uses: sudo-bot/action-scrutinizer@latest
+        with:
+          cli-args: "--format=php-clover tests/coverage/clover.xml"

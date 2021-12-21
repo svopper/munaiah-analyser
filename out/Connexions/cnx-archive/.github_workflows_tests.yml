@@ -1,0 +1,42 @@
+---
+name: tests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+jobs:
+  tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: ["2.7"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Lint
+        run: |
+          pip install pep8
+          pep8 --exclude=tests,migrations *.py cnxarchive/
+          pep8 --max-line-length=300 cnxarchive/tests
+      - name: Test
+        run: |
+          docker-compose -f .ci-compose.yml up -d
+          while ! echo | psql 'user=postgres host=localhost port=5433'; do docker-compose -f .ci-compose.yml logs db | tail; sleep 5; done
+          docker-compose -f .ci-compose.yml exec -T db /bin/bash -c "echo 'ALTER USER cnxarchive WITH LOGIN SUPERUSER' | psql -U postgres postgres"
+          docker-compose -f .ci-compose.yml exec -T db /bin/bash -c "echo 'CREATE SCHEMA venv' | psql -U cnxarchive cnxarchive-testing"
+          while sleep 5; do docker ps -a; if [[ -n "`docker ps | grep cnx-archive_archive_1 | grep ' Up '`" ]]; then break; elif [[ -n "`docker ps -a | grep cnx-archive_archive_1 | grep ' Exited'`" ]]; then docker logs cnx-archive_archive_1; exit 1;  fi; done
+          docker-compose -f .ci-compose.yml exec -T --user root archive /bin/bash -c "pip install coverage codecov"
+          docker-compose -f .ci-compose.yml exec -T archive /bin/bash -c "cd /src; TESTING_CONFIG=cnxarchive/tests/.ci-testing.ini coverage run --source=cnxarchive setup.py test"
+          pip install twine wheel
+          python setup.py bdist_wheel
+          twine check dist/*
+          ci_env=`bash <(curl -s https://codecov.io/env)`
+          docker-compose -f .ci-compose.yml exec -T $ci_env archive /bin/bash -c "bash <(curl -s https://codecov.io/bash)"

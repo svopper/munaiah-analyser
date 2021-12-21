@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+  schedule:
+    # Daily at 3:21
+    - cron: '21 3 * * *'
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - uses: pre-commit/action@v2.0.0
+
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version:
+          - name: pypy-3.7
+            toxenv: pypy3-noextra-build
+          - name: pypy-3.7
+            toxenv: pypy3-noextra-tests
+          - name: pypy-3.7
+            toxenv: pypy3-format-build
+          - name: pypy-3.7
+            toxenv: pypy3-format-tests
+          - name: pypy-3.7
+            toxenv: pypy3-format_nongpl-build
+          - name: pypy-3.7
+            toxenv: pypy3-format_nongpl-tests
+          - name: 3.7
+            toxenv: py37-noextra-build
+          - name: 3.7
+            toxenv: py37-noextra-tests
+          - name: 3.7
+            toxenv: py37-format-build
+          - name: 3.7
+            toxenv: py37-format-tests
+          - name: 3.7
+            toxenv: py37-format_nongpl-build
+          - name: 3.7
+            toxenv: py37-format_nongpl-tests
+          - name: 3.8
+            toxenv: py38-noextra-build
+          - name: 3.8
+            toxenv: py38-noextra-tests
+          - name: 3.8
+            toxenv: py38-format-build
+          - name: 3.8
+            toxenv: py38-format-tests
+          - name: 3.8
+            toxenv: py38-format_nongpl-build
+          - name: 3.8
+            toxenv: py38-format_nongpl-tests
+          - name: 3.9
+            toxenv: py39-noextra-build
+          - name: 3.9
+            toxenv: py39-noextra-tests
+          - name: 3.9
+            toxenv: py39-format-build
+          - name: 3.9
+            toxenv: py39-format-tests
+          - name: 3.9
+            toxenv: py39-format_nongpl-build
+          - name: 3.9
+            toxenv: py39-format_nongpl-tests
+          - name: "3.10"
+            toxenv: py310-noextra-build
+          - name: "3.10"
+            toxenv: py310-noextra-tests
+          - name: "3.10"
+            toxenv: py310-format-build
+          - name: "3.10"
+            toxenv: py310-format-tests
+          - name: "3.10"
+            toxenv: py310-format_nongpl-build
+          - name: "3.10"
+            toxenv: py310-format_nongpl-tests
+          - name: 3.9
+            toxenv: docs-dirhtml
+          - name: 3.9
+            toxenv: docs-doctest
+          - name: 3.9
+            toxenv: docs-linkcheck
+          - name: 3.9
+            toxenv: docs-spelling
+          - name: 3.9
+            toxenv: docs-style
+          - name: 3.9
+            toxenv: readme
+          - name: 3.9
+            toxenv: safety
+          - name: 3.9
+            toxenv: secrets
+          - name: 3.9
+            toxenv: style
+        exclude:
+          - os: windows-latest
+            python-version:
+              name: 3.9
+              toxenv: readme
+          - os: windows-latest
+            python-version:
+              name: 3.9
+              toxenv: docs-linkcheck
+          - os: windows-latest
+            python-version:
+              name: 3.9
+              toxenv: docs-style
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-noextra-build
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-noextra-tests
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-format-build
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-format-tests
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-format_nongpl-build
+          - os: windows-latest
+            python-version:
+              name: pypy-3.7
+              toxenv: pypy3-format_nongpl-tests
+          - os: windows-latest
+            python-version:
+              name: "3.10"
+              toxenv: py310-noextra-tests
+          - os: windows-latest
+            python-version:
+              name: "3.10"
+              toxenv: py310-format-tests
+          - os: windows-latest
+            python-version:
+              name: "3.10"
+              toxenv: py310-format_nongpl-tests
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version.name }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version.name }}
+    - name: Ensure we have new enough versions to respect python_version
+      run: python -m pip install -U pip setuptools
+    - name: Install dependencies
+      run: >
+        sudo apt-get update &&
+        sudo apt-get install -y libenchant-dev libxml2-dev libxslt-dev
+      if: runner.os == 'Linux' && startsWith(matrix.python-version.toxenv, 'docs-')
+    - name: Install dependencies
+      run: brew install enchant
+      if: runner.os == 'macOS' && startsWith(matrix.python-version.toxenv, 'docs-')
+    - name: Install tox
+      run: python -m pip install tox
+    - name: Run tox
+      run: python -m tox -e "${{ matrix.python-version.toxenv }}"

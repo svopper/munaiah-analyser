@@ -1,0 +1,55 @@
+name: Continuous Integration
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    paths:
+      - "**.py"
+      - "**/requirements.txt"
+      - .coveragerc
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+
+      - name: Cache pip packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: test-pip-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: test-pip-${{ runner.os }}-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip setuptools wheel
+          python -m pip install pycodestyle -r requirements.txt \
+                                -r test/requirements.txt coveralls==1.11.1
+
+      - name: Set up vmbot environment
+        run: |
+          cp vmbot/example/config.py ./
+          python -c "from vmbot.helpers import database as db; db.init_db()"
+      - name: Run linter
+        id: run-lint
+        run: pycodestyle --max-line-length=100 --ignore=W503,W606
+                         --exclude=vmbot/jabberbot.py vmbot/ tools/ test/
+      - name: Run unit tests
+        id: run-tests
+        if: "${{ !cancelled() && steps.run-lint.conclusion != 'skipped' }}"
+        run: coverage run -m unittest discover
+
+      - name: Upload coverage
+        env:
+          COVERALLS_REPO_TOKEN: "${{ secrets.COVERALLS_REPO_TOKEN }}"
+        run: coveralls
+      - name: Display coverage
+        if: "${{ !cancelled() && steps.run-tests.conclusion != 'skipped' }}"
+        run: coverage report

@@ -1,0 +1,42 @@
+name: Plugin (Linux)
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - .github/workflows
+      - src/SampSharp/**
+      - SampSharp.sln
+
+  pull_request:
+    branches: [ master ]
+    paths:
+      - .github/workflows
+      - src/SampSharp/**
+      - SampSharp.sln
+
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Install deps
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get upgrade -y -qq gcc g++
+          sudo apt-get install -y -qq gcc-multilib g++-multilib
+          gcc --version
+          g++ --version
+        
+      - name: Build plugin
+        run: make
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: plugin-bin
+          path: bin/

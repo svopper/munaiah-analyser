@@ -1,0 +1,24 @@
+name: Build a source package
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Build a .tar.gz source package
+        run: |
+          export REF=$(echo ${GITHUB_REF} | cut -d '/' -f 3)
+          git archive --format=tar.gz --prefix=yubioath-desktop/ -o yubioath-desktop-$REF.tar.gz HEAD
+          mkdir deploy
+          mv yubioath-desktop-$REF.tar.gz deploy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: yubioath-desktop-source-package
+          path: deploy

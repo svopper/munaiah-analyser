@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+
+  build_linux:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+        config:
+          - { name: "cmake_gcc", cc: "gcc", cxx: "g++", tool: "cmake", args: "" }
+          - { name: "cmake_gcc_no_nls", cc: "gcc", cxx: "g++", tool: "cmake", args: "-DENABLE_NLS=OFF" }
+          - { name: "cmake_gcc_py2", cc: "gcc", cxx: "g++", tool: "cmake", args: "-DENABLE_PYTHON2=ON" }
+          - { name: "cmake_gcc_coverage", cc: "gcc", cxx: "g++", tool: "cmake", args: "-DENABLE_CODE_COVERAGE=ON" }
+          - { name: "cmake_clang", cc: "clang", cxx: "clang++", tool: "cmake", args: "" }
+          - { name: "autotools_gcc", cc: "gcc", cxx: "g++", tool: "autotools", args: "" }
+          - { name: "autotools_clang", cc: "clang", cxx: "clang++", tool: "autotools", args: "" }
+
+    name: ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-add-repository --yes ppa:ondrej/php
+        sudo apt-get update -qq
+        sudo apt-get --yes --no-install-recommends install devscripts equivs python3-pip libenchant-dev autopoint cmake lcov pkg-config libncursesw5-dev gem2deb libperl-dev python2-dev python3-dev libaspell-dev liblua5.3-dev tcl8.6-dev guile-2.0-dev libv8-dev libcurl4-gnutls-dev libgcrypt20-dev libgnutls28-dev zlib1g-dev curl libcpputest-dev php8.0-dev libphp8.0-embed libargon2-0-dev libsodium-dev pylint python3-bandit asciidoctor
+        sudo -H pip3 install --ignore-installed msgcheck
+
+    - name: Test patches
+      run: ./tools/build-debian.sh test-patches
+
+    - name: Check gettext files
+      run: msgcheck po/*.po
+
+    - name: Check Python scripts
+      run: |
+        pylint --additional-builtins=_ doc/docgen.py
+        pylint doc/python_stub.py
+        pylint tests/scripts/python/testapigen.py tests/scripts/python/testapi.py tests/scripts/python/unparse.py
+        bandit doc/docgen.py doc/python_stub.py
+        bandit tests/scripts/python/testapigen.py tests/scripts/python/testapi.py tests/scripts/python/unparse.py
+
+    - name: Check Python stub file
+      run: ./doc/python_stub.py | diff - src/plugins/python/weechat.pyi
+
+    - name: Build and run tests
+      env:
+        CC: ${{ matrix.config.cc }}
+        CXX: ${{ matrix.config.cxx }}
+        BUILDTOOL: ${{ matrix.config.tool }}
+        BUILDARGS: ${{ matrix.config.args }}
+      run: ./tools/build-test.sh
+
+    - name: Run WeeChat
+      env:
+        TERM: xterm-256color
+      run: |
+        weechat --help
+        weechat-curses --help
+        weechat --colors
+        weechat --license
+        weechat --version
+        weechat --temp-dir --run-command "/debug dirs;/debug libs" --run-command "/quit"
+
+    - name: Code coverage
+      if: ${{ matrix.config.name == 'cmake_gcc_coverage' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        cd build-tmp-*
+        lcov --directory . --capture --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --list coverage.info
+        bash <(curl -s https://codecov.io/bash) -f coverage.info || echo 'Codecov error'
+
+  build_macos:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+        config:
+          - { name: "cmake_gcc", cc: "gcc", cxx: "g++" }
+          - { name: "cmake_clang", cc: "clang", cxx: "clang++" }
+
+    name: ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install asciidoctor lua ruby
+
+    - name: Build
+      env:
+        CC: ${{ matrix.config.cc }}
+        CXX: ${{ matrix.config.cxx }}
+      run: |
+        mkdir build-tmp && cd build-tmp
+        cmake .. -DENABLE_MAN=ON -DENABLE_DOC=ON -DENABLE_PHP=OFF
+        make VERBOSE=1 -j2
+        sudo make install
+
+    - name: Run WeeChat
+      env:
+        TERM: xterm-256color
+      run: |
+        weechat --help
+        weechat-curses --help
+        weechat --colors
+        weechat --license
+        weechat --version
+        weechat --temp-dir --run-command "/debug dirs;/debug libs" --run-command "/quit"

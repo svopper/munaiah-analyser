@@ -1,0 +1,41 @@
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04 # required for latest QuantLib
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+
+    steps:
+      - name: install dependencies
+        run: | 
+          sudo add-apt-repository ppa:edd/misc -y
+          sudo apt-get update
+          sudo apt-get install libquantlib0-dev
+          
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build
+        run: |
+           python setup.py build_ext --inplace
+
+      - name: Run tests
+        run: |
+           python -m unittest discover -v
+

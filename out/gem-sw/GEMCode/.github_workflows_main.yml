@@ -1,0 +1,32 @@
+name: GEMCode CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ for-CMSSW_11_1_X ]
+
+jobs:
+  service-x-build:
+    name: Mirror, run GitLab CI
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip service-x]') && github.event_name != 'pull_request'"
+    steps:
+    - name: Look at key environment variables
+      run: echo -e "GITHUB_REF=${{ github.ref }}\nGITHUB_HEAD_REF=${{ github.head_ref }}\nGITHUB_BASE_REF=${{ github.base_ref }}\nGITHUB_ACTOR=${{ github.actor }}\nGITHUB_REPOSITORY=${{ github.repository }}\nGITHUB_SHA=${{ github.sha }}\nTIME=${{ steps.current-time.outputs.formattedTime }}"
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
+    - uses: actions/checkout@v1
+    - name: Mirror + trigger CI
+      uses: aperloff/gitlab-mirror-and-ci-action@master
+      with:
+        args: "https://gitlab.cern.ch/dildick/GEMCode"
+      env:
+        GITLAB_HOSTNAME: "gitlab.cern.ch"
+        GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
+        GITLAB_PASSWORD: ${{ secrets.GITLAB_PASSWORD }}
+        GITLAB_PROJECT_ID: "103786"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CHECKOUT_BRANCH: for-CMSSW_11_1_X
+        POLL_TIMEOUT: 60

@@ -1,0 +1,27 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  release:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        ruby: ["2.5", "2.6", "2.7", "3.0", "head", "jruby", "jruby-head"]
+    name: ${{ matrix.os }} (ruby ${{  matrix.ruby }})
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Test
+        run: bundle exec rake

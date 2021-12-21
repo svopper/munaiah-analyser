@@ -1,0 +1,29 @@
+name: pim-web
+
+on:
+  push:
+    branches:
+    - master
+    paths:
+      - 'web/**'
+      - 'common/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12.18.4
+          registry-url: https://npm.pkg.github.com/
+      - name: build & publish
+        run: |
+          npm ci
+          npm run build
+          npm version patch
+          npm publish
+        working-directory: web
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

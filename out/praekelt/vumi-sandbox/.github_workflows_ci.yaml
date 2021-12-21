@@ -1,0 +1,43 @@
+name: continuous integration
+on:
+  - push
+  - pull_request
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['2.x']
+        nodejs-version: ['4', '6', '8']
+        include:
+          - python-version: 'pypy2'
+            nodejs-version: '8'
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: setup redis
+        uses: shogo82148/actions-setup-redis@v1
+        with:
+          redis-version: '6.x'
+      - name: setup nodejs
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.nodejs-version }}
+      - name: install deps
+        run: |
+          pip install wheel
+          pip install -e .
+      - name: run tests
+        env:
+          VUMITEST_REDIS_DB: '1'
+        run: |
+          export VUMI_TEST_NODE_PATH="$(which node)"
+          echo "node path: ${VUMI_TEST_NODE_PATH}"
+          echo "node version: $(${VUMI_TEST_NODE_PATH} --version)"
+          trial vxsandbox

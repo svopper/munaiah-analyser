@@ -1,0 +1,85 @@
+name: Build
+
+on:
+  create:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  schedule:
+    - cron: "0 8 * * *"
+
+jobs:
+  test:
+    name: test ${{ matrix.py }} - ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        py:
+          - 3.10.0
+          - 3.9
+          - 3.8
+          - 3.7
+          - 3.6
+          - pypy3
+    steps:
+      - name: Setup Python for test ${{ matrix.py }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: Install OS dependencies
+        run: sudo apt-get install -y libsnappy-dev && pip install python-snappy
+      - uses: actions/checkout@v2
+      - name: Install Testing Dependencies
+        run: pip install -r developer_requirements.txt
+      - name: Run Tests
+        run: SKIP_BLACK="1" ./run-tests.sh && codecov
+      - name: Make Wheel
+        if: ${{ matrix.py == '3.10.0' }}
+        uses: RalfG/python-wheels-manylinux-build@v0.3.2-manylinux2014_x86_64
+        with:
+          build-requirements: 'cython'
+          python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310'
+      - name: Archive wheels
+        if: ${{ matrix.py == '3.10.0' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-wheels
+          path: dist/*-manylinux*.whl
+          if-no-files-found: error
+      - name: Make release
+        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' && matrix.py == '3.10.0' }}
+        continue-on-error: true
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{github.repository}}/releases -d '{"tag_name": "${{github.event.ref}}"}'
+      - name: Get release id
+        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' && matrix.py == '3.10.0' }}
+        id: get_release_id
+        run: |
+          release_id=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{github.repository}}/releases/tags/${{github.event.ref}} | jq -r '.id')
+          echo ${release_id}
+          echo "release_id=${release_id}" >> $GITHUB_ENV
+      # https://github.com/actions/upload-release-asset/issues/47#issuecomment-659071145
+      - name: Push wheels to repo release
+        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' && matrix.py == '3.10.0' }}
+        uses: actions/github-script@v2
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const fs = require('fs').promises;
+
+            const { repo: { owner, repo }, sha } = context;
+            console.log({ owner, repo, sha });
+
+            for (let file of await fs.readdir('dist')) {
+              if (file.includes('manylinux')) {
+                console.log('uploading', file);
+
+                await github.repos.uploadReleaseAsset({
+                  owner, repo,
+                  release_id: ${{ env.release_id }},
+                  name: file,
+                  data: await fs.readFile(`dist/${file}`)
+                });
+              }
+            }

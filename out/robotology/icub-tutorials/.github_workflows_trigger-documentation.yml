@@ -1,0 +1,21 @@
+name: Trigger Documentation
+
+on:
+  push:
+    branches:
+    - 'master'
+
+jobs:
+  docs:
+    name: "Trigger"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repository Dispatch
+      uses: peter-evans/repository-dispatch@v1.1.1
+      with:
+        token: ${{ secrets.BOT_TRIGGER_ROBOTOLOGY_DOCUMENTATION }}
+        repository: robotology/robotology-documentation
+        event-type: build_documentation
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+        

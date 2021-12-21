@@ -1,0 +1,156 @@
+name: Testing
+on: [push]
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: quails
+          POSTGRES_DB: quails_test
+          POSTGRES_PASSWORD: "quails"
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        env:
+          BUNDLE_WITHOUT: development:webkit
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - name: Find yarn cache location
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: JS package cache
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install packages
+        run: |
+          yarn install --pure-lockfile
+      - name: Setup test database
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgresql://quails:quails@localhost/quails_test?pool=5
+        run: |
+          bin/rails db:setup
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgresql://quails:quails@localhost/quails_test?pool=5
+          COVERAGE: 1
+          PARALLEL_WORKERS: 1
+          MINITEST_REPORTER: Minitest::Reporters::SpecReporter
+        run: bin/rake test
+      - name: Code coverage results
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: Coverage
+          path: coverage/
+  system_tests:
+    name: System tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Webkit
+            js_driver: webkit
+            js_browser: nil
+            bundle_without: "development"
+          - name: Chrome
+            js_driver: selenium
+            js_browser: headless_chrome
+            bundle_without: "development:webkit"
+          - name: Firefox
+            js_driver: selenium
+            js_browser: headless_firefox
+            bundle_without: "development:webkit"
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: quails
+          POSTGRES_DB: quails_test
+          POSTGRES_PASSWORD: "quails"
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Qt5
+        if: ${{ matrix.js_driver == 'webkit' }}
+        run: sudo apt-get update && sudo apt-get install g++ qt5-default libqt5webkit5-dev gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-x
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        env:
+          BUNDLE_WITHOUT: ${{ matrix.bundle_without }}
+        with:
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+#      - name: Install gems
+#        run: |
+#          bundle config path vendor/bundle
+#          bundle install --jobs 4 --retry 3
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - name: Find yarn cache location
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: JS package cache
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install packages
+        run: |
+          yarn install --pure-lockfile
+      - name: Setup test database
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgresql://quails:quails@localhost/quails_test?pool=5
+        run: |
+          bin/rails db:setup
+      - name: Create dir for XDG_RUNTIME_DIR
+        run: mkdir -p /tmp/runtime-runner; chmod 0777 /tmp/runtime-runner
+      - name: Run tests
+        env:
+          # To prevent ugly xvfb warning
+          XDG_RUNTIME_DIR: '/tmp/runtime-runner'
+          RAILS_ENV: test
+          DATABASE_URL: postgresql://quails:quails@localhost/quails_test?pool=5
+          COVERAGE: 1
+          MINITEST_REPORTER: Minitest::Reporters::SpecReporter
+          JS_DRIVER: ${{ matrix.js_driver }}
+          JS_BROWSER: ${{ matrix.js_browser }}
+        run: xvfb-run bin/rake test:system
+      - name: Screenshots
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Screenshots-${{ matrix.js_driver }}-${{ matrix.js_browser }}
+          path: tmp/screenshots

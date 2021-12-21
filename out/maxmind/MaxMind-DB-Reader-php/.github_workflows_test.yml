@@ -1,0 +1,64 @@
+name: PHPUnit
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '45 3 * * SUN'
+
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    container: shivammathur/node:latest-${{ matrix.arch }}
+    strategy:
+      matrix:
+        arch: ["amd64", "i386"]
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4', '8.0']
+        php-extensions: ['bcmath', 'gmp']
+    name: "PHP ${{ matrix.php-versions }} (with ${{ matrix.php-extensions }}) test on ${{ matrix.operating-system }}/${{ matrix.arch }}"
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
+          tools: "composer, phpize"
+          coverage: xdebug
+
+      - name: Checkout
+        # We use v1 due to https://github.com/actions/checkout/issues/334
+        uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      - name: Install libmaxminddb
+        run: |
+              mkdir -p "$HOME/libmaxminddb"
+              git clone --recursive git://github.com/maxmind/libmaxminddb
+              cd libmaxminddb
+              ./bootstrap
+              ./configure --prefix="$HOME/libmaxminddb"
+              make
+              make install
+
+      - name: Build extension
+        run: |
+              export CFLAGS="-L$HOME/libmaxminddb/lib"
+              export CPPFLAGS="-I$HOME/libmaxminddb/include"
+              cd ext
+              phpize
+              ./configure --with-maxminddb --enable-maxminddb-debug
+              make clean
+              make
+              NO_INTERACTION=1 make test
+              cd ..
+
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Test with phpunit without extension
+        run: vendor/bin/phpunit --coverage-text
+
+      - name: Test with phpunit using extension
+        run: php -d extension=ext/modules/maxminddb.so vendor/bin/phpunit

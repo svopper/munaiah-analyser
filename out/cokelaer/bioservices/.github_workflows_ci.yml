@@ -1,0 +1,33 @@
+name: Core Testing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches-ignore: []
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 5
+      matrix:
+        python: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.X
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install the package itself
+      run: |
+          pip install .
+
+    - name: Test with pytest
+      run: |
+        pip install -r requirements_dev.txt
+        pytest -n 1 --cov-report term --cov=bioservices.services --cov bioservices.xmltools test/test_*py
+

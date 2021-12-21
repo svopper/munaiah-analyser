@@ -1,0 +1,71 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [7.3, 7.4]
+        dependency-version: [prefer-stable]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mailparse
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-suggest --no-progress
+
+      - name: Execute tests
+        run: composer test
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+  php-cs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: composer update --no-progress --ignore-platform-reqs
+
+      - name: Execute phpcs
+        run: composer check-format
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          extensions: mailparse
+          coverage: pcov
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-suggest --no-progress
+
+      - name: Execute code coverage
+        run: composer test-with-coverage
+
+      - name: Upload code coverage
+        if: github.event_name != 'pull_request'
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+
+      - name: Check code coverage
+        run: php vendor/bin/coverage-check coverage.xml 100

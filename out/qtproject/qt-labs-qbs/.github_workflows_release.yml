@@ -1,0 +1,244 @@
+name: Build release packages
+
+on:
+  push:
+    branches-ignore:
+      - 'gerrit/*'
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    name: ${{ matrix.config.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: 'Build on Linux (gcc)',
+            options: 'qbs.installPrefix:""
+                      modules.cpp.compilerWrapper:ccache
+                      modules.qbsbuildconfig.enableAddressSanitizer:false
+                      modules.qbsbuildconfig.enableUnitTests:false
+                      modules.qbsbuildconfig.enableBundledQt:true
+                      products.qbs_archive.targetName:qbs-linux-${{ github.run_id }}',
+            script: './scripts/build-qbs-with-qbs.sh',
+            cacheid: 'gcc-release',
+          }
+    env:
+      BUILD_OPTIONS: ${{ matrix.config.options }}
+      WITH_TESTS: 0
+    steps:
+    - uses: actions/checkout@v1
+    - name: Create .ccache dir
+      run: mkdir -p ~/.ccache
+    - name: test
+      run: echo ${{ github.ref }}
+    - name: prepare timestamp
+      id: get-timestamp
+      run: echo ::set-output name=timestamp::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-${{ matrix.config.cacheid }}-ccache-${{ steps.get-timestamp.outputs.timestamp }}
+        restore-keys: ${{ runner.os }}-${{ matrix.config.cacheid }}-ccache-
+    - name: Pull the Focal Image
+      run: docker-compose pull focal
+    - name: Print ccache stats
+      run: docker-compose run focal ccache -s
+    - name: Build Qbs
+      run: docker-compose run focal ${{ matrix.config.script }}
+    - name: Print ccache stats
+      run: docker-compose run focal ccache -s
+    - name: Get archive name
+      id: get-archive-name
+      run: echo ::set-output name=archive-name::$(git describe)
+    - name: Upload artifacts
+      uses: 'actions/upload-artifact@v2'
+      with:
+        name: qbs-linux-${{ github.run_id }}.tar.gz
+        path: release/qbs-linux-${{ github.run_id }}.tar.gz
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-10.15
+    timeout-minutes: 60
+    env:
+      BUILD_OPTIONS: |
+        qbs.installPrefix:""
+        modules.cpp.compilerWrapper:ccache
+        modules.qbsbuildconfig.enableUnitTests:false
+        modules.qbsbuildconfig.enableAddressSanitizer:false
+        modules.qbsbuildconfig.enableBundledQt:true
+        products.qbs_archive.targetName:qbs-macos-${{ github.run_id }}
+      WITH_TESTS: 0
+    steps:
+    - uses: actions/checkout@v1
+    - name: Create .ccache dir
+      run: mkdir -p ~/.ccache
+    - name: prepare timestamp
+      id: get-timestamp
+      run: echo ::set-output name=timestamp::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-release-ccache-${{ steps.get-timestamp.outputs.timestamp }}
+        restore-keys: ${{ runner.os }}-release-ccache-
+    - name: Install required packages
+      run: |
+        brew install ccache p7zip
+        python3 -m pip install --user beautifulsoup4 lxml
+    - name: Install Qt
+      uses: ./.github/actions/download-qt
+      with:
+        toolchain: clang_64
+    - name: Install Qt Creator
+      uses: ./.github/actions/download-qtc
+      with:
+        version: 4.14.2
+    - name: Setup Qbs
+      run: |
+        qbs setup-toolchains --detect
+        qbs setup-qt --detect
+        qbs config profiles.qt.baseProfile xcode-macosx-x86_64
+        qbs config defaultProfile qt
+        qbs config --list
+    - name: Print ccache stats
+      run: ccache -s
+    - name: Build Qbs
+      run: scripts/build-qbs-with-qbs.sh
+    - name: Print ccache stats
+      run: ccache -s
+    - name: Upload artifacts
+      uses: 'actions/upload-artifact@v2'
+      with:
+        name: qbs-macos-${{ github.run_id }}.tar.gz
+        path: release/qbs-macos-${{ github.run_id }}.tar.gz
+
+  build-windows-with-docker:
+    name: Build on Windows (Docker)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      WITH_TESTS: 0
+      QT_ASSUME_STDERR_HAS_CONSOLE: 1
+      CLCACHE_DIR: C:\.ccache
+    steps:
+    - uses: actions/checkout@v1
+    - name: Create .ccache dir
+      run: mkdir -p ~/.ccache
+      shell: bash
+    - name: prepare timestamp
+      id: get-timestamp
+      run: echo ::set-output name=timestamp::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      shell: bash
+    - name: clcache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-release-msvc-docker-clcache-${{ steps.get-timestamp.outputs.timestamp }}
+        restore-keys: ${{ runner.os }}-release-msvc-docker-clcache-
+    - name: Pull the Windows Image
+      run: docker-compose pull windows
+    - name: Print clcache stats
+      run: docker-compose run --rm windows clcache -s
+    - name: Build Qbs
+      run: >
+        docker-compose run --rm windows qbs build
+        -p dist
+        qbs.buildVariant:release
+        modules.cpp.compilerWrapper:clcache
+        modules.qbsbuildconfig.enableBundledQt:true
+        modules.qbsbuildconfig.enableUnitTests:false
+        modules.cpp.treatWarningsAsErrors:true
+        project.withDocumentation:true
+        config:release-64 profile:qt64
+        config:release profile:qt
+    - name: Print clcache stats
+      run: docker-compose run --rm windows clcache -s
+    - name: Get archive name
+      id: get-archive-name
+      run: echo ::set-output name=archive-name::$(git describe)
+      shell: bash
+    - name: Upload artifacts
+      uses: 'actions/upload-artifact@v2'
+      with:
+        name: qbs-windows-${{ github.run_id }}
+        path: |
+          release/qbs.*.nupkg
+          release/qbs-windows-*.zip
+          release-64/qbs-windows-*.zip
+
+  create-archives:
+    name: Create Archives
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-windows-with-docker]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Get version name
+      id: get-version-name
+      run: echo ::set-output name=version-name::$(cat VERSION)
+    - name: Create directories
+      run: |
+        mkdir release
+        mkdir tmp
+    - name: Copy sources
+      run: rsync -av --exclude='.git/' --exclude='tmp/' . ./tmp/qbs-src-${{ steps.get-version-name.outputs.version-name }}
+    - name: Zip Archive
+      run: |
+        cd tmp/
+        zip -r ../release/qbs-src-${{ steps.get-version-name.outputs.version-name }}.zip qbs-src-${{ steps.get-version-name.outputs.version-name }}
+    - name: Tarball Archive
+      run: |
+        cd tmp/
+        tar czf ../release/qbs-src-${{ steps.get-version-name.outputs.version-name }}.tar.gz qbs-src-${{ steps.get-version-name.outputs.version-name }}
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v1
+      with:
+        name: qbs-linux-${{ github.run_id }}.tar.gz
+        path: ./tmp
+    - name: Repack Linux artifact
+      run: |
+        mkdir -p tmp/qbs-linux-x86_64-${{ steps.get-version-name.outputs.version-name }}
+        tar xzf ./tmp/qbs-linux-${{ github.run_id }}.tar.gz -C tmp/qbs-linux-x86_64-${{ steps.get-version-name.outputs.version-name }}
+        cd tmp/
+        tar czf ../release/qbs-linux-x86_64-${{ steps.get-version-name.outputs.version-name }}.tar.gz qbs-linux-x86_64-${{ steps.get-version-name.outputs.version-name }}
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v1
+      with:
+        name: qbs-windows-${{ github.run_id }}
+        path: ./tmp
+    - name: Copy Windows artifacts
+      run: |
+        cp ./tmp/release/qbs.*.nupkg ./release
+        cp ./tmp/release/qbs-windows-x86-*.zip ./release
+        cp ./tmp/release-64/qbs-windows-x86_64-*.zip ./release
+    - name: Copy changelog
+      run: cp changelogs/changes-${{ steps.get-version-name.outputs.version-name }}.md release || echo "changelog not found"
+    - name: Generate checksums
+      run: |
+        cd release/
+        find . -type f -printf '%f\n' | grep -v .txt | xargs md5sum > md5sums.txt
+        find . -type f -printf '%f\n' | grep -v .txt | xargs sha256sum > sha256sums.txt
+    - name: Get archive name
+      id: get-archive-name
+      run: echo ::set-output name=archive-name::$(git describe)
+    - name: Upload artifacts
+      uses: 'actions/upload-artifact@v2'
+      with:
+        name: qbs-release-${{ steps.get-archive-name.outputs.archive-name }}
+        path: |
+          release/qbs-src-*.zip
+          release/qbs-src-*.tar.gz
+          release/qbs-linux-*.tar.gz
+          release/qbs.*.nupkg
+          release/qbs-windows-x86-*.zip
+          release/qbs-windows-x86_64-*.zip
+          release/changes-*.md
+          release/md5sums.txt
+          release/sha256sums.txt
+

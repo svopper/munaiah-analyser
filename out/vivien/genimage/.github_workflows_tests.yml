@@ -1,0 +1,40 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-20.04
+          pkgs: device-tree-compiler rauc simg2img u-boot-tools
+        - os: ubuntu-18.04
+          pkgs: device-tree-compiler simg2img u-boot-tools
+
+    steps:
+    - name: Inspect environment
+      run: |
+        whoami
+        lsb_release -a
+        gcc --version
+
+    - uses: actions/checkout@v2
+
+    - name: Install required packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install dosfstools fakeroot genext2fs genisoimage libconfuse-dev mtd-utils mtools qemu-utils qemu-utils squashfs-tools ${{ matrix.pkgs }}
+
+    - name: Build & Test (with ${{ matrix.options }})
+      run: |
+        ./autogen.sh
+        ./configure
+        AM_COLOR_TESTS=always make distcheck
+
+    - name: Dump test log
+      if: ${{ failure() }}
+      run: |
+        find -name test-suite.log -print0 | xargs -0 cat
+

@@ -1,0 +1,130 @@
+name: Build
+
+on:
+  # Build on new commits, tags, or pull requests.
+  create:
+  push:
+  pull_request:
+  schedule:
+    # Run every week just to make sure the CI environment still works. 
+    - cron: '0 0 * * 0'
+
+jobs:
+  build-ubuntu:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Apt Dependencies
+      run: sudo apt update && sudo apt install ninja-build qtbase5-dev libboost-dev libboost-date-time-dev libboost-filesystem-dev libboost-iostreams-dev rapidjson-dev libasound2-dev librtmidi-dev libminizip-dev doctest-dev
+    - name: Install Other Dependencies
+      run: vcpkg install pugixml
+    - name: Create Build Directory
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    - name: Generate Project
+      working-directory: ${{runner.workspace}}/build
+      # We could use the -S and -B options, but we only have CMake 3.12 here.
+      run: cmake ${GITHUB_WORKSPACE} -G Ninja -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    - name: Build
+      run: ninja -C ${{runner.workspace}}/build
+    - name: Test
+      run: ${{runner.workspace}}/build/bin/pte_tests
+
+  build-osx:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      # CMake 3.17 is already installed
+      run: brew install boost doctest minizip ninja pugixml qt5 pugixml rapidjson rtmidi
+    - name: Generate Project
+      run: cmake -S ${GITHUB_WORKSPACE} -B ${{runner.workspace}}/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+    - name: Build
+      run: cmake --build ${{runner.workspace}}/build
+    - name: Test
+      run: ${{runner.workspace}}/build/bin/pte_tests
+    - name: Build Installer
+      run: cmake --build ${{runner.workspace}}/build --target package
+    - name: Upload Installer
+      uses: actions/upload-artifact@v2
+      with:
+        name: "powertabeditor-osx.dmg"
+        path: ${{runner.workspace}}/build/powertabeditor-osx.dmg
+        if-no-files-found: error
+
+  build-windows:
+
+    runs-on: windows-latest
+
+    # Run both 32-bit and 64-bit builds.
+    strategy:
+      matrix:
+        arch: [x64, x86]
+        include:
+          - arch: x64
+            cmake_arch: x64
+            qt_arch: win64_msvc2019_64
+          - arch: x86
+            cmake_arch: Win32
+            qt_arch: win32_msvc2019
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      run: vcpkg install --triplet ${{ matrix.arch }}-windows boost-algorithm boost-date-time boost-endian boost-filesystem boost-functional boost-iostreams boost-range boost-rational boost-signals2 boost-stacktrace doctest minizip pugixml rapidjson
+
+    # Building Qt via vcpkg would take a while ...
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        arch: ${{ matrix.qt_arch }}
+        version: 5.15.2
+
+    - name: Generate Project
+      run: cmake -A ${{ matrix.cmake_arch }} -B ./build -DPTE_ENABLE_PCH=1 -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    - name: Build
+      run: cmake --build ./build --config Release
+    - name: Test
+      run: ./build/bin/pte_tests.exe
+
+    - uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Fetch VC redist
+      run: |
+        cd installer/windows
+        mkdir redist
+        Invoke-WebRequest https://aka.ms/vs/16/release/vc_redist.${{ matrix.arch }}.exe -OutFile redist/vc_redist.${{ matrix.arch }}.exe
+
+    - name: Cache Wix
+      id: cache-wix
+      uses: actions/cache@v2
+      with:
+        path: installer/windows/wix314-binaries.zip
+        key: ${{ runner.os }}-wix314-4118
+
+    # Use Wix 3.14 (e.g. for issue #305). Wix 3.11 is present in the CI environment.
+    - name: Fetch Wix
+      if: steps.cache-wix.outputs.cache-hit != 'true'
+      run: |
+        cd installer/windows
+        Invoke-WebRequest -Uri http://static.wixtoolset.org/releases/v3.14.0.4118/wix314-binaries.zip -OutFile wix314-binaries.zip
+
+    # The qwindowsvistastyle plugin also needs to be installed, but isn't installed to the bin dir
+    # when building with the Qt package from install-qt-action ...
+    - name: Build Installer
+      run: |
+        mkdir ./build/bin/styles
+        cp "${env:QT_PLUGIN_PATH}/styles/qwindowsvistastyle.dll" ./build/bin/styles
+        cd installer/windows
+        Expand-Archive -Path wix314-binaries.zip
+        msbuild pte_windows_build.sln -p:Configuration=Release -p:Platform=${{ matrix.arch }}
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v2
+      with:
+        name: powertabeditor-windows-${{ matrix.arch }}.exe
+        path: installer/windows/bin/${{ matrix.arch }}/Release/powertabeditor.exe
+        if-no-files-found: error

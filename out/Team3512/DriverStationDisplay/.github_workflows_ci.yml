@@ -1,0 +1,51 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Fetch all history and metadata
+      run: |
+        git fetch --prune --unshallow
+        git checkout -b pr
+        git branch -f main origin/main
+
+    - name: Install clang-format
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install clang-format-10
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install wpiformat
+      run: pip3 install wpiformat
+
+    - name: Run wpiformat
+      run: wpiformat -clang 10
+
+    - name: Verify wpiformat made no changes
+      run: git --no-pager diff --exit-code HEAD
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Qt 5
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.15.0
+
+    - name: Compile client
+      run: |
+        mkdir -p build && cd build
+        qmake ..
+        make -j$(nproc)

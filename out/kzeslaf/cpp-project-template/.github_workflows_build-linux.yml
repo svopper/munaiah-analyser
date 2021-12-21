@@ -1,0 +1,29 @@
+name: build-linux
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: "${{ matrix.build_type }}, cppstd: ${{ matrix.cppstd }}"
+    runs-on: "ubuntu-18.04"
+
+    strategy:
+        fail-fast: false
+        matrix:
+          build_type: ["Debug", "Release"]
+          cppstd: ["14", "17"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Test
+        run: |
+          #
+          git submodule init
+          git submodule update
+          #
+          mkdir build
+          cd build
+          #
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=${{ matrix.cppstd }}
+          cmake --build . -- VERBOSE=1 -j2
+          #
+          test/test-libmymath

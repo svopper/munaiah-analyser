@@ -1,0 +1,39 @@
+name: Ruby
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: [ '2.5', '2.6', '2.7', '3.0', 'ruby-head', 'jruby-9.2', 'jruby-head' ]
+    steps:
+    - uses: actions/checkout@v1
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+    - name: Build and test with Rake
+      run: |
+        gem i test-unit
+        RUBYOPT='--disable-did_you_mean' rake
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7.1
+    - name: Test performance and accuracy
+      run: |
+        gem install bundler
+        bundle install --jobs 4 --retry 2
+        RUBYOPT='--disable-did_you_mean' bundle exec rake test:accuracy
+        RUBYOPT='--disable-did_you_mean' bundle exec rake benchmark:memory

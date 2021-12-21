@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push
+
+jobs:
+  php-tests:
+    runs-on: ${{ matrix.os }}
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: database_ci
+        ports:
+          - 33306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      matrix:
+        php: [8.0]
+        dependency-version: [prefer-stable]
+        os: [ubuntu-latest]
+
+    name: PHP ${{ matrix.php }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+            php-version: ${{ matrix.php }}
+            extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+            coverage: none
+
+      - name: Verify MySQL connection
+        run: |
+          mysql --version
+          sudo apt-get install -y mysql-client
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -e "SHOW DATABASES"
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-suggest
+
+      - name: Install NPM dependencies
+        run: |
+          npm --version
+          npm install
+
+      - name: Compile assets
+        run: npm run dev
+
+      - name: Prepare Laravel app
+        run: |
+          cp .env.ci .env.testing
+          php artisan key:generate --env=testing
+
+      - name: Execute tests
+        env:
+          DB_PORT: ${{ job.services.mysql.ports[3306] }}
+          DB_USERNAME: root
+        run: php artisan test
+
+      - name: Deploy to Forge
+        if: github.ref == 'refs/heads/dev'
+        run: curl "${{ secrets.FORGE_DEPLOYMENT_WEBHOOK }}"

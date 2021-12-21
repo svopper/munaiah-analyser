@@ -1,0 +1,16 @@
+name: make check
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: autoreconf
+      run: autoreconf -f -i
+    - name: configure
+      run: ./configure
+    - name: weborf tests
+      run: make check || (cat test-suite.log; false)

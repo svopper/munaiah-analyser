@@ -1,0 +1,78 @@
+name: Build Windows
+
+on:
+  push:
+    branches-ignore:
+      - 'coverityScan'
+
+jobs:
+  build-windows:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [windows-2019]
+        arch: ['amd64', 'x86']
+        coverage: [false, true]
+      fail-fast: false
+    env:
+      CC: cl.exe
+      CXX: cl.exe
+      LD: link.exe
+    steps:
+      - name: Chekcout crunch
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          submodules: true
+      - name: Runtime Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Coverage environment
+        shell: bash
+        env:
+          COVERAGE: ${{ matrix.coverage }}
+        run: |
+          echo "Coverage enabled for build? ${{ matrix.coverage }}"
+          echo -n "COVERAGE=" >> $GITHUB_ENV
+          ([ $COVERAGE == "true" ] && echo -n 1 || echo -n 0) >> $GITHUB_ENV
+          if [ $COVERAGE == "true" ]; then
+            echo "BUILD_OPTS=--buildtype=debug" >> $GITHUB_ENV
+            curl -L1O https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/OpenCppCoverageSetup-x64-0.9.9.0.exe
+            MSYS2_ARG_CONV_EXCL=/dir=\;/verysilent ./OpenCppCoverageSetup-x64-0.9.9.0 \
+              /dir="C:\Program Files\OpenCppCoverage" /verysilent
+            rm OpenCppCoverageSetup-x64-0.9.9.0.exe
+          else
+            echo "BUILD_OPTS=" >> $GITHUB_ENV
+          fi
+        working-directory: ${{ runner.temp }}
+      - name: Setup Meson + Ninja
+        shell: bash
+        run: |
+          curl -L1O https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-win.zip
+          python -m pip install --upgrade pip setuptools wheel
+          pip3 install meson
+          unzip ninja-win.zip -d /c/windows/system32
+          rm ninja-win.zip
+        working-directory: ${{ runner.temp }}
+      - name: Version tools
+        shell: bash
+        run: |
+          rm /usr/bin/link.exe
+          $CC || true
+          $LD || true
+          meson --version
+          ninja --version
+      - name: Configure
+        shell: bash
+        run: meson build --prefix=$HOME/.local $BUILD_OPTS
+      - name: Build
+        shell: bash
+        run: ninja -C build
+      - name: Test
+        shell: bash
+        run: ninja -C build test
+      - name: Codecov
+        if: success() && matrix.coverage
+        shell: bash
+        run: bash <(curl -s https://codecov.io/bash) -x "$GCOV";

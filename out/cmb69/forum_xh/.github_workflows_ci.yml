@@ -1,0 +1,31 @@
+name: checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer,phive
+      - name: Install CMSimple_XH
+        run: |
+          curl -fsSL -o CMSimple_XH-1.7.4.zip https://github.com/cmsimple-xh/cmsimple-xh/releases/download/1.7.4/CMSimple_XH-1.7.4.zip
+          unzip -q CMSimple_XH-1.7.4.zip
+      - name: Checkout Forum_XH
+        uses: actions/checkout@v2
+        with:
+          path: 'cmsimplexh/plugins/forum'
+      - name: phive install
+        run: cd cmsimplexh/plugins/forum && phive --no-progress install --trust-gpg-keys 0x0F9684B8B16B7AB0,0x2420BAE0A3BE25C6,0x31C7E470E2138192,0x4AA394086372C20A,0xCF1A108D0E7AE720,0xD5F0CB76E2DD74F8
+      - name: composer install
+        run: cd cmsimplexh/plugins/forum && composer install
+      - name: phing sniff
+        run: cd cmsimplexh/plugins/forum && PATH=tools:vendor/bin:$PATH phing sniff
+      - name: phing stan
+        run: cd cmsimplexh/plugins/forum && PATH=tools:vendor/bin:$PATH phing stan
+      - name: phing mess
+        run: cd cmsimplexh/plugins/forum && PATH=tools:vendor/bin:$PATH phing mess
+      - name: phing unit-tests
+        run: cd cmsimplexh/plugins/forum && PATH=tools:vendor/bin:$PATH phing unit-tests

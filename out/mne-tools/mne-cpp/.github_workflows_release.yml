@@ -1,0 +1,627 @@
+name: Linux|MacOS|Win|WASM
+
+on:
+  push:
+    tags:
+    - v0.*
+    branches:
+    - main
+
+jobs:
+  CreateRelease:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Create new branch with the tag's name (stable release only)
+      if: endsWith(github.ref, 'main') == false
+      run: |
+        currentVersionPatch=`echo ${GITHUB_REF#refs/tags/} | cut -d. -f3`
+        # Only branch off if we have a new minor version bump, which will always result in the patch version to be 0
+        if [[ "$currentVersionPatch" == 0 ]]; then
+          echo Branching off $currentVersionPatch
+          # Setup Git
+          git config --global user.email lorenzesch@hotmail.com
+          git config --global user.name LorenzE
+          # Create new branch named after the new version tag
+          git checkout -b ${GITHUB_REF#refs/tags/}
+          git push origin refs/heads/${GITHUB_REF#refs/tags/}
+        fi
+    - name: Setup Github credentials (dev release only)
+      if: endsWith(github.ref, 'main') == true
+      uses: fusion-engineering/setup-git-credentials@v2
+      with:
+        credentials: ${{secrets.GIT_CREDENTIALS}}
+    - name: Update dev_build tag and release (dev release only)
+      if: endsWith(github.ref, 'main') == true
+      env:
+        GITHUB_USER: LorenzE
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.email lorenzesch@hotmail.com
+        git config --global user.name $GITHUB_USER
+        # Delete current dev_build release remotely.
+        # Must be done before deleting the remote tag associated with the dev_build release.
+        # This prevents a draft release to be left over after we delete the tag remotely.
+        hub release delete dev_build
+        # Delete current tag remotely
+        git push origin :refs/tags/dev_build
+        # Change dev_build tag to point to newest commit
+        git tag dev_build -f -a -m "Development Builds"
+        # Send the new tag
+        git push -f --tag
+        # Create new dev_build release
+        hub release create -m "Development Builds" dev_build --prerelease
+
+  LinuxStatic:
+    runs-on: ubuntu-18.04
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install OpenGL
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install build-essential libgl1-mesa-dev
+    - name: Install Qt
+      run: |
+        # Download the pre-built static version of Qt, which was created with the buildqtbinaries.yml workflow
+        wget -O qt5_5152_static_binaries_linux.tar.gz https://www.dropbox.com/s/o0aw8p8kqqnmwcp/qt5_5152_static_binaries_linux.tar.gz?dl=1
+        mkdir ../Qt5_binaries
+        tar xvzf qt5_5152_static_binaries_linux.tar.gz -C ../ -P
+    # Uncomment this if you want to build Qt statically in this workflow
+    # - name: Compile static Qt version
+    #   run: |
+    #     # Clone Qt5 repo
+    #     cd ..
+    #     git clone https://code.qt.io/qt/qt5.git -b 5.15.2
+    #     cd qt5
+    #     ./init-repository -f --module-subset=qtbase,qtcharts,qtsvg,qt3d
+    #     # Create shadow build folder
+    #     cd ..
+    #     mkdir qt5_shadow
+    #     cd qt5_shadow
+    #     # Configure Qt5
+    #     ../qt5/configure -static -release -prefix "../Qt5_binaries" -skip webengine -nomake tools -nomake tests -nomake examples -no-dbus -no-ssl -no-pch -opensource -confirm-license
+    #     make module-qtbase module-qtsvg module-qtcharts module-qt3d -j4
+    #     make install -j4
+    - name: Configure and compile MNE-CPP
+      run: |
+        ../Qt5_binaries/bin/qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=static
+        make -j4
+        make install -j4
+    - name: Deploy binaries
+      run: |
+        ./tools/deployment/deploy.bat static pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-linux-static-x86_64.tar.gz
+        asset_name: mne-cpp-linux-static-x86_64.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-linux-static-x86_64.tar.gz
+        asset_name: mne-cpp-linux-static-x86_64.tar.gz
+        tag: dev_build
+        overwrite: true
+
+  MacOSStatic:
+    runs-on: macos-latest
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Qt
+      run: |
+        # Download the pre-built static version of Qt, which was created with the buildqtbinaries.yml workflow
+        wget -O qt5_5152_static_binaries_macos.tar.gz https://www.dropbox.com/s/ccigarxk40wlxq0/qt5_5152_static_binaries_macos.tar.gz?dl=1
+        tar xzf qt5_5152_static_binaries_macos.tar.gz -P
+    # Uncomment this if you want to build Qt statically in this workflow
+    # - name: Compile static Qt version
+    #   run: |
+    #     # Clone Qt5 repo
+    #     cd ..
+    #     git clone https://code.qt.io/qt/qt5.git -b 5.15.2
+    #     cd qt5
+    #     ./init-repository -f --module-subset=qtbase,qtcharts,qtsvg,qt3d
+    #     # Create shadow build folder
+    #     cd ..
+    #     mkdir qt5_shadow
+    #     cd qt5_shadow
+    #     # Configure Qt5
+    #     ../qt5/configure -static -release -prefix "../Qt5_binaries" -skip webengine -nomake tools -nomake tests -nomake examples -no-dbus -no-ssl -no-pch -opensource -confirm-license
+    #     make module-qtbase module-qtsvg module-qtcharts module-qt3d -j
+    #     make install -j
+    - name: Configure and compile MNE-CPP
+      run: |
+        ../Qt5_binaries/bin/qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=static MNECPP_CONFIG+=withAppBundles
+        make -j
+        make install -j
+    - name: Deploy binaries
+      run: |
+        ./tools/deployment/deploy.bat static pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-macos-static-x86_64.tar.gz
+        asset_name: mne-cpp-macos-static-x86_64.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-macos-static-x86_64.tar.gz
+        asset_name: mne-cpp-macos-static-x86_64.tar.gz
+        tag: dev_build
+        overwrite: true
+
+  WinStatic:
+    runs-on: windows-2019
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Python 3.7 version
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Install jom
+      run: |
+        Invoke-WebRequest https://www.dropbox.com/s/gbf8sdx8wqxcrnd/jom.zip?dl=1 -OutFile .\jom.zip
+        expand-archive -path "jom.zip"
+        echo "D:\a\mne-cpp\mne-cpp\jom" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Install Qt
+      run: |
+        # Download the pre-built static version of Qt, which was created with the buildqtbinaries.yml workflow
+        Invoke-WebRequest https://www.dropbox.com/s/47s49smjg499gnm/qt5_5152_static_binaries_win.zip?dl=1 -OutFile .\qt5_5152_static_binaries_win.zip
+        expand-archive -path "qt5_5152_static_binaries_win.zip" -destinationpath "..\"
+    # Uncomment this if you want to build Qt statically in this workflow
+    # - name: Compile static Qt version
+    #   run: |
+    #     # Clone Qt5 repo
+    #     cd ..
+    #     git clone https://code.qt.io/qt/qt5.git -b 5.15.2
+    #     cd qt5
+    #     perl init-repository -f --module-subset=qtbase,qtcharts,qtsvg,qt3d
+    #     # Create shadow build folder
+    #     cd ..
+    #     mkdir qt5_shadow
+    #     cd qt5_shadow
+    #     # Setup the compiler
+    #     cmd.exe /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat`" && set > %temp%\vcvars.txt"
+    #     Get-Content "$env:temp\vcvars.txt" | Foreach-Object { if ($_ -match "^(.*?)=(.*)$") { Set-Content "env:\$($matches[1])" $matches[2] } }
+    #     # Configure Qt5
+    #     ..\qt5\configure.bat -release -static -no-pch -optimize-size -opengl desktop -platform win32-msvc -prefix "..\Qt5_binaries" -skip webengine -nomake tools -nomake tests -nomake examples -opensource -confirm-license
+    #     jom -j4
+    #     nmake install
+    - name: Configure and compile MNE-CPP
+      run: |
+        cmd.exe /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat`" && set > %temp%\vcvars.txt"
+        Get-Content "$env:temp\vcvars.txt" | Foreach-Object { if ($_ -match "^(.*?)=(.*)$") { Set-Content "env:\$($matches[1])" $matches[2] } }
+        ..\Qt5_binaries\bin\qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=static
+        jom -j4
+    - name: Deploy binaries
+      run: |
+        ./tools/deployment/deploy.bat static pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-windows-static-x86_64.zip
+        asset_name: mne-cpp-windows-static-x86_64.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-windows-static-x86_64.zip
+        asset_name: mne-cpp-windows-static-x86_64.zip
+        tag: dev_build
+        overwrite: true
+
+  LinuxDynamic:
+    runs-on: ubuntu-18.04
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Python 3.7 version
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Install BrainFlow and LSL submodules
+      run: |
+        git submodule update --init applications/mne_scan/plugins/brainflowboard/brainflow
+        git submodule update --init applications/mne_scan/plugins/lsladapter/liblsl
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.15.2
+        modules: qtcharts
+    - name: Compile BrainFlow submodule
+      run: |
+        cd applications/mne_scan/plugins/brainflowboard/brainflow
+        mkdir build
+        cd build
+        cmake -DCMAKE_INSTALL_PREFIX=../installed ..
+        make
+        make install
+    - name: Compile LSL submodule
+      run: |
+        cd applications/mne_scan/plugins/lsladapter/liblsl
+        mkdir build
+        cd build
+        cmake ..
+        make
+        make install
+    - name: Configure and compile MNE-CPP
+      run: |
+        qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=withBrainFlow MNECPP_CONFIG+=withLsl
+        make -j4
+    - name: Deploy binaries
+      run: |
+        ./tools/deployment/deploy.bat dynamic pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-linux-dynamic-x86_64.tar.gz
+        asset_name: mne-cpp-linux-dynamic-x86_64.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-linux-dynamic-x86_64.tar.gz
+        asset_name: mne-cpp-linux-dynamic-x86_64.tar.gz
+        tag: dev_build
+        overwrite: true
+
+  MacOSDynamic:
+    runs-on: macos-latest
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Python 3.7 version
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Install BrainFlow and LSL submodules
+      run: |
+        git submodule update --init applications/mne_scan/plugins/brainflowboard/brainflow
+        git submodule update --init applications/mne_scan/plugins/lsladapter/liblsl
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.14.2
+        modules: qtcharts
+    - name: Compile BrainFlow submodule
+      run: |
+        mkdir applications/mne_scan/plugins/brainflowboard/brainflow/build
+        cd applications/mne_scan/plugins/brainflowboard/brainflow/build
+        cmake -DCMAKE_INSTALL_PREFIX=../installed -DCMAKE_BUILD_TYPE=Release ..
+        make
+        make install
+    - name: Compile LSL submodule
+      run: |
+        cd applications/mne_scan/plugins/lsladapter/liblsl
+        mkdir build
+        cd build
+        cmake ..
+        make
+        make install
+    - name: Configure and compile MNE-CPP
+      run: |
+        qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=withBrainFlow MNECPP_CONFIG+=withLsl MNECPP_CONFIG+=withAppBundles
+        make -j4
+    - name: Deploy binaries (MacOS)
+      run: |
+        ./tools/deployment/deploy.bat dynamic pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-macos-dynamic-x86_64.tar.gz
+        asset_name: mne-cpp-macos-dynamic-x86_64.tar.gz
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-macos-dynamic-x86_64.tar.gz
+        asset_name: mne-cpp-macos-dynamic-x86_64.tar.gz
+        tag: dev_build
+        overwrite: true
+
+  WinDynamic:
+    runs-on: windows-2019
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Python 3.7 version
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Install BrainFlow and LSL submodules
+      run: |
+        git submodule update --init applications/mne_scan/plugins/brainflowboard/brainflow
+        git submodule update --init applications/mne_scan/plugins/lsladapter/liblsl
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.15.2
+        arch: win64_msvc2019_64
+        modules: qtcharts
+    - name: Install jom
+      run: |
+        Invoke-WebRequest https://www.dropbox.com/s/gbf8sdx8wqxcrnd/jom.zip?dl=1 -OutFile .\jom.zip
+        expand-archive -path "jom.zip"
+        echo "D:\a\mne-cpp\mne-cpp\jom" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Compile BrainFlow submodule
+      run: |
+        cd applications\mne_scan\plugins\brainflowboard\brainflow
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 16 2019" -A x64 -DMSVC_RUNTIME=dynamic -DCMAKE_SYSTEM_VERSION=8.1 -DCMAKE_INSTALL_PREFIX="$env:GITHUB_WORKSPACE\applications\mne_scan\plugins\brainflowboard\brainflow\installed" ..
+        cmake --build . --target install --config Release
+    - name: Compile LSL submodule
+      run: |
+        cd applications\mne_scan\plugins\lsladapter\liblsl
+        mkdir build
+        cd build
+        cmake .. -G "Visual Studio 16 2019" -A x64
+        cmake --build . --config Release --target install
+    - name: Configure and compile MNE-CPP
+      run: |
+        cmd.exe /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat`" && set > %temp%\vcvars.txt"
+        Get-Content "$env:temp\vcvars.txt" | Foreach-Object { if ($_ -match "^(.*?)=(.*)$") { Set-Content "env:\$($matches[1])" $matches[2] } }
+        qmake -r MNECPP_CONFIG+=noTests MNECPP_CONFIG+=noExamples MNECPP_CONFIG+=withBrainFlow MNECPP_CONFIG+=withLsl
+        jom -j4
+    - name: Deploy binaries (Windows)
+      run: |
+        ./tools/deployment/deploy.bat dynamic pack
+    - name: Deploy binaries with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-windows-dynamic-x86_64.zip
+        asset_name: mne-cpp-windows-dynamic-x86_64.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy binaries with dev release on Github
+      if: endsWith(github.ref, 'main') == true
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: mne-cpp-windows-dynamic-x86_64.zip
+        asset_name: mne-cpp-windows-dynamic-x86_64.zip
+        tag: dev_build
+        overwrite: true
+
+  Tests:
+    # Only run for dev releases
+    if: endsWith(github.ref, 'main') == true
+    runs-on: ubuntu-18.04
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Clone mne-cpp test data
+      run: git clone https://github.com/mne-tools/mne-cpp-test-data.git ./bin/mne-cpp-test-data
+    - name: Install Python 3.7 version
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - name: Install Codecov
+      run: |
+        sudo pip install codecov
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.15.2
+        modules: qtcharts
+    - name: Configure and compile MNE-CPP
+      run: |
+        qmake -r MNECPP_CONFIG+=withCodeCov MNECPP_CONFIG+=noApplications MNECPP_CONFIG+=noExamples
+        make -j4
+    - name: Run tests and upload results to Codecov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        QTEST_FUNCTION_TIMEOUT: 900000
+      run: |
+        ./tools/testing/test_all.bat verbose withCoverage
+
+  Doxygen:
+    runs-on: ubuntu-18.04
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Install Qt Dev Tools, Doxygen and Graphviz
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq qttools5-dev-tools doxygen graphviz
+    - name: Run Doxygen and package result
+      run: |
+        git fetch --all
+        git checkout origin/main
+        cd doc/doxygen
+        doxygen mne-cpp_doxyfile
+    - name: Setup Github credentials
+      uses: fusion-engineering/setup-git-credentials@v2
+      with:
+        credentials: ${{secrets.GIT_CREDENTIALS}}
+    - name: Deploy qch docu data base with stable release on Github
+      if: endsWith(github.ref, 'main') == false
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: doc/doxygen/qt-creator_doc/mne-cpp.qch
+        asset_name: mne-cpp-doc-qtcreator.qch
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Deploy qch docu data base with dev release on Github
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: doc/doxygen/qt-creator_doc/mne-cpp.qch
+        asset_name: mne-cpp-doc-qtcreator.qch
+        tag: dev_build
+        overwrite: true
+    - name: Update documentation at Github pages
+      run: |
+        cd doc/doxygen
+        git config --global user.email lorenzesch@hotmail.com
+        git config --global user.name LorenzE
+        git clone -b gh-pages https://github.com/mne-cpp/doxygen-api gh-pages
+        cd gh-pages
+        # Remove all files first
+        git rm * -r
+        git commit --amend -a -m 'Update docu' --allow-empty
+        touch .nojekyll
+        # Copy doxygen files
+        cp -r ../html/* .
+        # Add all new files, commit and push
+        git add *
+        git add .nojekyll
+        git commit --amend -a -m 'Update docu'
+        git push -f --all
+
+  gh-pages:
+    # Only run for dev releases
+    if: endsWith(github.ref, 'main') == true
+    runs-on: ubuntu-latest
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Setup Github credentials
+      uses: fusion-engineering/setup-git-credentials@v2
+      with:
+        credentials: ${{secrets.GIT_CREDENTIALS}}
+    - name: Clone doc/gh-pages into gh-pages branch
+      run: |
+        git config --global user.email lorenzesch@hotmail.com
+        git config --global user.name LorenzE
+        git clone -b main --single-branch https://github.com/mne-cpp/mne-cpp.github.io.git
+        cd mne-cpp.github.io
+        # Remove all files first
+        git rm * -r
+        git commit --amend -a -m 'Update docu' --allow-empty
+        cd ..
+        cp -RT doc/gh-pages mne-cpp.github.io
+        cd mne-cpp.github.io
+        git add .
+        git commit --amend -a -m 'Update docu'
+        git push -f --all
+
+  WebAssembly:
+    # Only run for dev releases
+    if: endsWith(github.ref, 'main') == true
+    runs-on: ubuntu-latest
+    needs: CreateRelease
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v2
+    - name: Setup emscripten compiler
+      run: |
+        cd ..
+        # Get the emsdk repo
+        git clone https://github.com/emscripten-core/emsdk.git
+        # Enter that directory and pull
+        cd emsdk
+        git pull
+        # Download and install the latest SDK tools.
+        ./emsdk install 1.39.7
+    - name: Compile wasm Qt version
+      run: |
+        cd ..
+        # Make the "latest" emscripten SDK "active" for the current user.
+        ./emsdk/emsdk activate 1.39.7
+        # Activate PATH and other environment variables in the current terminal
+        source ./emsdk/emsdk_env.sh
+        # Clone Qt5 repo
+        git clone https://code.qt.io/qt/qt5.git -b 5.15.2
+        cd qt5
+        ./init-repository -f --module-subset=qtbase,qtcharts,qtsvg
+        # Configure Qt5
+        ./configure -xplatform wasm-emscripten -feature-thread -skip webengine -nomake tests -nomake examples -no-dbus -no-ssl -no-pch -opensource -confirm-license -prefix "$PWD/../Qt5_binaries"
+        make module-qtbase module-qtsvg module-qtcharts -j4
+        make install -j4
+    - name: Configure and compile MNE-CPP
+      run: |
+        cd ..
+        # Make the "latest" emscripten SDK "active" for the current user.
+        ./emsdk/emsdk activate 1.39.7
+        # Activate PATH and other environment variables in the current terminal
+        source ./emsdk/emsdk_env.sh
+        # Compile MNE-CPP
+        cd mne-cpp
+        ../Qt5_binaries/bin/qmake -r MNECPP_CONFIG=wasm
+        make -j4
+    - name: Setup Github credentials
+      uses: fusion-engineering/setup-git-credentials@v2
+      with:
+        credentials: ${{secrets.GIT_CREDENTIALS}}
+    - name: Clone and update mne-cpp/wasm:gh-pages
+      run: |
+        # Delete folders which we do not want to ship
+        rm -r bin/mne_analyze_plugins
+        rm -r bin/mne-cpp-test-data
+        rm -r bin/MNE-sample-data
+        # Replace logo
+        cp -RT tools/design/logos/qtlogo.svg bin/qtlogo.svg
+        # Clone repo and update with new wasm versions
+        git config --global user.email lorenzesch@hotmail.com
+        git config --global user.name LorenzE
+        git clone -b gh-pages --single-branch https://github.com/mne-cpp/wasm.git
+        cd wasm
+        # Remove all files first
+        git rm * -r
+        git commit --amend -a -m 'Update wasm builds' --allow-empty
+        # Copy wasm files
+        cd ..
+        cp -RT bin wasm
+        cd wasm
+        git add .
+        git commit --amend -a -m 'Update wasm builds'
+        git push -f --all

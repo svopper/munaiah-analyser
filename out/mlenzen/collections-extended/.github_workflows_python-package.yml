@@ -1,0 +1,129 @@
+name: Python package
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: make deps
+
+    - name: Build package
+      run: poetry build
+
+  docs:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: make deps
+
+    - name: Build Docs
+      run: poetry run make docs
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: docs
+        path: docs/_build/html # or path/to/artifact
+
+  docs-publish:
+
+    runs-on: ubuntu-latest
+    needs: docs
+    if: ${{ github.ref == 'refs/heads/master' }}
+    steps:
+      - name: Download docs artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: docs
+          path: docs/_build/html
+      - name: Init new repo in dist folder and commit generated files
+        run: |
+          cd docs/_build/html
+          touch .nojekyll
+          git init
+          git add -A
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m 'deploy'
+      - name: Force push to destination branch
+        uses: ad-m/github-push-action@v0.5.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          force: true
+          directory: ./docs/_build/html
+
+  lint:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: make deps
+
+    - name: Lint with flake8
+      run: make lint
+    - name: Check for unfinished code
+      run: make fixme-check
+
+  tests:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, pypy-3.6, pypy-3.7]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: make deps
+
+    - name: Test with pytest
+      run: poetry run coverage run --source collections_extended -m pytest
+
+#  coverage:
+#
+#    runs-on: ubuntu-latest
+#
+#    needs: tests
+#    env:
+#      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Set up Python
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: 3.9
+#    - name: Install dependencies
+#      run: |
+#        pip install --upgrade pip setuptools coveralls
+#        pip install -r requirements.txt
+#
+#    - name: Upload Coverage Results
+#      run: coveralls
+
+#    after_success:
+#    - coveralls

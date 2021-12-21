@@ -1,0 +1,31 @@
+name: Quick Build
+
+on: [pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        java_version: [1.8, 11, 13]
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java_version }}
+      - name: Install
+        run: mvn clean install -DskipTests -q -pl '!docs' -s ./etc/central-settings.xml
+        env:
+          BUILD_PORT: 0
+          BUILD_SECURE_PORT: 0
+      - name: Build
+        run: mvn clean checkstyle:checkstyle package -pl '!docs' -P checkstyle -s ./etc/central-settings.xml
+        env:
+          BUILD_PORT: 0
+          BUILD_SECURE_PORT: 0

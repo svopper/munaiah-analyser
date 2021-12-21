@@ -1,0 +1,31 @@
+name: Lighthouse
+
+on:
+  schedule:
+    # 02:00 JST
+    - cron: '0 17 * * *'
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Lighthouse
+        run: sudo npm i -g lighthouse
+
+      - name: Install
+        run: npm ci
+
+      - name: Run Lighthouse
+        run: npm run lighthouse
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: lighthouse-reports
+          path: ./.lighthouse/reports/

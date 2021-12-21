@@ -1,0 +1,276 @@
+name: CMake Build Matrix
+# Many thanks to Cristian Adam for examples
+# e.g. https://github.com/cristianadam/HelloWorld/blob/master/.github/workflows/build_cmake.yml
+# https://cristianadam.eu/20191222/using-github-actions-with-c-plus-plus-and-cmake/
+
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: 5.12.10
+  # this is different from MACOSX_DEPLOYMENT_TARGET to prevent build problems
+  # we set MACOSX_DEPLOYMENT_TARGET later
+  MACOS_TARGET: 10.12
+  FEATURES: -DUSE_VTK=ON -DBUILD_GPL_PLUGINS=ON -DWITH_COORDGEN=OFF
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Ubuntu 20.04 GCC", artifact: "Ubuntu-2004.tar.gz",
+            os: ubuntu-20.04,
+            cc: "gcc", cxx: "g++",
+            cmake_flags: "-G Ninja -DENABLE_TESTING=ON -DTEST_QTGL=OFF",
+            cpack: "",
+          }
+        - {
+            name: "Ubuntu 18.04 AppImage", artifact: "Avogadro2.AppImage",
+            os: ubuntu-18.04,
+            cc: "gcc", cxx: "g++",
+            cmake_flags: "-G Ninja -DINSTALL_BUNDLE_FILES=ON",
+            cpack: "",
+          }
+        - {
+            name: "macOS Latest Clang", artifact: "macOS.dmg",
+            os: macos-latest,
+            cc: "clang", cxx: "clang++",
+            cmake_flags: "-G Ninja",
+            cpack_flags: "-G DragNDrop",
+          }
+        - {
+            name: "Windows Latest MSVC", artifact: "Win64.exe",
+            os: windows-latest,
+            cc: "cl", cxx: "cl",
+            cmake_flags: " ",
+            build_flags: "-j 2",
+            cpack_flags: "-G NSIS",
+          }
+
+    steps:
+
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install ninja-build libeigen3-dev libboost-all-dev libglew-dev libxml2-dev qt5-default libqt5x11extras5-dev libqt5svg5-dev
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install ninja eigen glew
+    - name: Install Dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: choco install ninja
+
+    - name: Checkout openchemistry
+      uses: actions/checkout@v2
+      with:
+        repository: openchemistry/openchemistry
+        submodules: recursive
+
+    - name: Checkout avogadroapp
+      uses: actions/checkout@v2
+      with:
+        repository: openchemistry/avogadroapp
+        path: avogadroapp
+
+    - name: Checkout avogadrolibs
+      uses: actions/checkout@v2
+      with:
+        path: avogadrolibs
+
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v2
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        version: ${{ env.QT_VERSION }}
+
+    - name: Configure MSVC Command Prompt
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Grab cache files
+      uses: actions/cache@v2
+      if: runner.os != 'Windows'
+      with:
+        path: |
+          ${{ runner.workspace }}/build/thirdparty
+          ${{ runner.workspace }}/build/Downloads
+        key: ${{ matrix.config.name }}-thirdparty
+
+    - name: Configure
+      run: |
+        if [ ! -d "${{ runner.workspace }}/build" ]; then mkdir "${{ runner.workspace }}/build"; fi
+        cd "${{ runner.workspace }}/build"
+        # won't have any effect except on Mac
+        echo "MACOSX_DEPLOYMENT_TARGET=${{ env.MACOS_TARGET }}" >> $GITHUB_ENV
+        CC=${{matrix.config.cc}} CXX=${{matrix.config.cxx}} cmake $GITHUB_WORKSPACE ${{env.FEATURES}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ${{matrix.config.cmake_flags}}
+      shell: bash
+
+    - name: Build
+      run: |
+        CC=${{matrix.config.cc}} CXX=${{matrix.config.cxx}} cmake --build . --config ${{env.BUILD_TYPE}} ${{matrix.config.build_flags}}
+      shell: bash
+      working-directory: ${{ runner.workspace }}/build
+
+    - name: Fix Mac plugins
+      if: runner.os == 'macOS'
+      working-directory: ${{ runner.workspace }}/build/prefix/lib/openbabel 
+      run: |
+        for plugin in *.so; do
+          for libpath in `otool -L ${plugin} | grep '/Users/runner/work' | awk '{print $1}'`; do 
+            export lib=`echo $libpath | cut -d '/' -f 9`;
+            echo "Fixing $plugin $lib $libpath"
+            install_name_tool -change $libpath @executable_path/../Frameworks/$lib $plugin
+          done
+        done
+        cd .. # build/prefix/lib
+        for plugin in libinchi.?.?.?.dylib; do
+          for libpath in `otool -L ${plugin} | grep '/Users/runner/work' | awk '{print $1}'`; do 
+            export lib=`echo $libpath | cut -d '/' -f 9`;
+            echo "Fixing $plugin $lib $libpath"
+            install_name_tool -change $libpath @executable_path/../Frameworks/$lib $plugin
+          done
+        done
+        otool -L libinchi.?.?.?.dylib
+        cp -p libinchi* ../Avogadro2.app/Contents/Frameworks/
+
+    - name: Run tests
+      if: matrix.config.os == 'ubuntu-20.04'
+      shell: cmake -P {0}
+      run: |
+        include(ProcessorCount)
+        ProcessorCount(N)
+        set(ENV{CTEST_OUTPUT_ON_FAILURE} "ON")
+        execute_process(
+          COMMAND ctest -j ${N}
+          WORKING_DIRECTORY ${{ runner.workspace }}/build/avogadrolibs
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Running tests failed!")
+        endif()
+
+    - name: Pack
+      if: matrix.config.artifact != 0
+      run: cpack ${{ matrix.config.cpack_flags }}
+      working-directory: ${{ runner.workspace }}/build/avogadroapp
+
+    - name: AppImage
+      if: matrix.config.os == 'ubuntu-18.04'
+      shell: bash
+      run: |
+        mkdir appdir
+        mv prefix appdir/usr
+        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+        wget -c -nv "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+        chmod a+x *.AppImage
+        ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -bundle-non-qt-libs -extra-plugins=iconengines
+        # add the custom AppRun
+        rm appdir/AppRun
+        cp ../avogadrolibs/avogadrolibs/scripts/AppImage.sh appdir/AppRun
+        chmod a+x appdir/AppRun
+        ./appimagetool-x86_64.AppImage appdir
+        mv Avogadro2*.AppImage avogadroapp # for upload
+        # remove the cpack files
+        rm avogadroapp/Avogadro2*Linux.*
+      working-directory: ${{ runner.workspace }}/build
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
+
+    - name: Upload
+      if: matrix.config.artifact != 0
+      uses: actions/upload-artifact@v2
+      with:
+        path: ${{ runner.workspace }}/build/avogadroapp/Avogadro2*.*
+        name: ${{ matrix.config.artifact }}
+
+  release:
+    if: contains(github.ref, 'tags/')
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Avogadro ${{ github.ref }}
+        draft: true
+        prerelease: true
+
+    - name: Store Release url
+      run: |
+        echo "${{ steps.create_release.outputs.upload_url }}" > ./upload_url
+    - uses: actions/upload-artifact@v2
+      with:
+        path: ./upload_url
+        name: upload_url
+
+  publish:
+    if: contains(github.ref, 'tags/')
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Ubuntu Latest GCC", artifact: "Ubuntu-2004.tar.gz",
+            os: ubuntu-latest
+          }
+        - {
+            name: "Windows Latest MSVC", artifact: "Win64.exe",
+            os: ubuntu-latest
+          }
+        - {
+            name: "macOS Latest Clang", artifact: "macOS.dmg",
+            os: ubuntu-latest
+          }
+    needs: release
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: ${{ matrix.config.artifact }}
+        path: ./
+
+    - name: Download URL
+      uses: actions/download-artifact@v1
+      with:
+        name: upload_url
+        path: ./
+    - id: set_upload_url
+      run: |
+        upload_url=`cat ./upload_url`
+        echo ::set-output name=upload_url::$upload_url
+    - name: Upload to Release
+      id: upload_to_release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
+        asset_path: ./${{ matrix.config.artifact }}
+        asset_name: ${{ matrix.config.artifact }}
+        asset_content_type: application/x-gtar

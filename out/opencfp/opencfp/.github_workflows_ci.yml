@@ -1,0 +1,57 @@
+name: OpenCFP CI
+on: [push, pull_request]
+jobs:
+  opencfp:
+    name: OpenCFP (PHP ${{ matrix.php-versions }})
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: cfp_test
+        ports:
+          - 3306
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        php-versions: ['7.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Remove HHVM
+        run: |
+          sudo apt-get remove -y hhvm
+      - name: Setup PHP
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring
+          ini-values: post_max_size=512M, short_open_tag=On
+      - name: Install depedencies
+        uses: php-actions/composer@v4
+        with:
+          composer_version: 2 
+      - name: Check for PHP code style violations
+        run: |
+          vendor/bin/php-cs-fixer fix --verbose --diff
+      - name: Run database migrations
+        run: |
+          cp config/ci.yml.dist config/testing.yml
+          cp resources/config/config_ci.yml resources/config/config_testing.yml
+          bin/console doctrine:database:create --env=testing
+          bin/console doctrine:migrations:migrate --env=testing -n
+      - name: Build assets
+        run: |
+          yarn install
+          yarn run production
+      - name: Verify Doctrine mappings and schemas
+        run: |
+          bin/console doctrine:schema:update --force --env=testing
+          bin/console doctrine:schema:validate --env=testing
+      - name: Run tests
+        run: |
+          SYMFONY_DEPRECATIONS_HELPER=disabled CFP_ENV=testing vendor/bin/phpunit --testsuite unit
+          SYMFONY_DEPRECATIONS_HELPER=disabled CFP_ENV=testing vendor/bin/phpunit --testsuite integration

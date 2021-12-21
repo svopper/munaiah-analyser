@@ -1,0 +1,28 @@
+name: C/C++ CI Meson
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup dependencies
+      run: |
+        sudo apt update -y
+        sudo apt install -y build-essential python3-pip libacl1-dev libattr1-dev libgtkmm-3.0-dev libnautilus-extension-dev gettext ninja-build
+        pip3 install --user meson
+    - name: Setup meson
+      run: |
+        mkdir build
+        cd build && meson ..
+    - name: Build
+      working-directory: ./build
+      run: meson compile
+    - name: Test distributable
+      working-directory: ./build
+      run: meson dist

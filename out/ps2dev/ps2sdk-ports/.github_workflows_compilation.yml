@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  repository_dispatch:
+    types: [run_build]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ps2dev/gskit:latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Install dependencies
+      run: |
+        apk add build-base git bash cmake
+
+    - name: Compile project
+      run: |
+        make -j$(getconf _NPROCESSORS_ONLN)

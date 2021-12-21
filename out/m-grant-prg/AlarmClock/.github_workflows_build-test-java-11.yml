@@ -1,0 +1,71 @@
+#########################################################################
+#									#
+# File ID: ./.github/workflows/build-test-java-11.yml			#
+# Author: Copyright (C) 2021  Mark Grant				#
+#									#
+# Released under the GPLv3 only.					#
+# SPDX-License-Identifier: GPL-3.0					#
+#									#
+# Purpose:								#
+# Configuration file for GitHub Actions build tests. Perform a standard #
+# build, check and distcheck using Java 11.                             #
+#									#
+#########################################################################
+
+#########################################################################
+#									#
+# Changelog								#
+#									#
+# Date		Author	Version	Description				#
+#									#
+# 28/02/2021	MG	1.0.1	Initial release.                        #
+#									#
+#########################################################################
+
+
+name: Build Test Using Java 11
+
+on:
+  push:
+
+  # Allows manual invocation from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-18.04
+
+    steps:
+      # Check-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      # GHA Bionic defaults to Java 8, however Java 11 is available and is the
+      # minimum for mainstream.
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11' # The JDK version to make available on the path.
+          java-package: jdk # (jre, jdk, or jdk+fx) - defaults to jdk
+          architecture: x64 # (x64 or x86) - defaults to x64
+
+      - name: Add the extra PPA
+        run: sudo add-apt-repository ppa:m-grant-prg/utils -y
+      - name: Update the package lists
+        run: sudo apt-get update
+      - name: Add the extra packages
+        run: |
+          sudo apt-get install -y autoconf-archive util-linux
+          sudo apt-get install -y libgetopt-java
+          sudo apt-get install -y txt2man txt2manwrap
+
+      - name: Autoreconf
+        run: autoreconf -if .
+      - name: Configure
+        run: ./configure --enable-silent-rules=yes --enable-atonly=yes
+      - name: Make
+        run: make --quiet
+
+      - name: Check
+        run: make --quiet check
+
+      - name: Distcheck
+        run: make --quiet distcheck
+

@@ -1,0 +1,99 @@
+---
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - run: npm install
+      - uses: goto-bus-stop/standard-action@v1
+        with:
+          annotate: true
+          linter: semistandard
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Debug context
+        run: echo ${{ github.ref }} && echo ${{ startsWith(github.ref, 'refs/tags') }}
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Cache node modules
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Download Dictionary Development Kit
+        uses: carlosperate/download-file-action@v1.0.3
+        id: download-poetry
+        with:
+          file-url: https://jbyrnes.s3.us-east-1.amazonaws.com/dictionary-development-kit.zip
+      - name: Install Dictionary Development Kit
+        run: unzip ${{ steps.download-poetry.outputs.file-path }} &&
+          sudo mv -v 'Dictionary Development Kit' '/Applications/Utilities/Dictionary Development Kit'
+      - run: npm install
+      - name: Create dictionary package
+        run: npm run build
+      - name: Zip up dictionary
+        run: cd template/objects && zip -r9 websters-1913.dictionary.zip websters-1913.dictionary
+      - name: Upload dictionary archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: dictionary
+          path: template/objects/websters-1913.dictionary.zip
+  release:
+    name: Create Release
+    if: ${{ startsWith(github.ref, 'refs/tags') }}
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - name: Download dictionary archive
+        uses: actions/download-artifact@v2
+        with:
+          name: dictionary
+      - name: Show contents
+        run: ls -lah
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the CREATE RELEASE step above, referencing its ID
+          # to get its outputs object, which include a `upload_url`.
+          # See this blog post for more info:
+          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: websters-1913.dictionary.zip
+          asset_name: websters-1913.dictionary.zip
+          asset_content_type: application/zip

@@ -1,0 +1,120 @@
+name: conda-forge build
+
+on: [push]
+
+jobs:
+
+  unix-build:
+    name: unix build (${{ matrix.config.os }} ${{ matrix.build-type }} rdkit:${{ matrix.rdkit }})
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: ubuntu-latest
+            miniforge-url: "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
+            c-compiler: gcc_linux-64
+            cxx-compiler: gxx_linux-64
+            link-path-env-var: LD_LIBRARY_PATH
+          - os: macos-latest
+            miniforge-url: "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-x86_64.sh"
+            c-compiler: clang_osx-64
+            cxx-compiler: clangxx_osx-64
+            link-path-env-var: DYLD_LIBRARY_PATH
+        rdkit:
+          - 2021.03.5
+        build-type:
+          - Release
+          - Debug
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Setup a miniforge distribution
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          installer-url: ${{ matrix.config.miniforge-url }}
+          allow-softlinks: true
+          show-channel-urls: true
+          use-only-tar-bz2: true
+          activate-environment: ""
+      # Display some diagnostic info and configure the available conda installation
+      - name: Run conda info
+        shell: bash -l {0}
+        run: |
+          conda config --set always_yes yes --set changeps1 no
+          conda info
+      # Create an environment for building and testing chemicalite
+      - name: Create the conda environment
+        shell: bash -l {0}
+        run: >
+          conda create -n chemicalite-build
+          cmake ${{ matrix.config.c-compiler }} ${{ matrix.config.cxx-compiler }}
+          rdkit=${{ matrix.rdkit }} eigen catch2
+      # Build and test
+      - name: Build and test the chemicalite extension
+        shell: bash -l {0}
+        run: |
+          conda activate chemicalite-build
+          cmake -D CMAKE_BUILD_TYPE=${{ matrix.build-type }} .
+          cmake --build . --config ${{ matrix.build-type }}
+          ${{ matrix.config.link-path-env-var }}=$PWD/src ctest -C ${{ matrix.build-type }} --output-on-failure
+          conda deactivate
+      # Destroy the build environment
+      - name: Destroy the build environment
+        shell: bash -l {0}
+        run: conda remove -n chemicalite-build --all
+
+  windows-build:
+    if: "false" # DISABLED
+    name: windows build (${{ matrix.config.os }} ${{ matrix.build-type }} rdkit:${{ matrix.rdkit }})
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: windows-latest
+            miniforge-url: "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
+        rdkit:
+          - 2021.03.5
+        build-type:
+          - Release
+          #- Debug
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Setup a miniforge distribution
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          #installer-url: ${{ matrix.config.miniforge-url }}
+          channels: conda-forge
+          channel-priority: strict
+          allow-softlinks: true
+          show-channel-urls: true
+          use-only-tar-bz2: true
+          activate-environment: ""
+      # Display some diagnostic info and configure the available conda installation
+      - name: Run conda info
+        shell: bash -l {0}
+        run: |
+          conda config --set always_yes yes --set changeps1 no
+          conda info
+      # Create an environment for building and testing chemicalite
+      - name: Create the conda environment
+        shell: bash -l {0}
+        run: >
+          conda create -n chemicalite-build
+          rdkit=${{ matrix.rdkit }} eigen
+      # Build and test
+      - name: Build and test the chemicalite extension
+        shell: bash -l {0}
+        run: |
+          conda activate chemicalite-build
+          cmake --debug-output -D CMAKE_BUILD_TYPE=${{ matrix.build-type }} .
+          cmake --build . --config ${{ matrix.build-type }}
+          ls $PWD/src
+          PATH=$PWD/src:$PATH ctest -C ${{ matrix.build-type }} --output-on-failure
+          conda deactivate
+      # Destroy the build environment
+      - name: Destroy the build environment
+        shell: bash -l {0}
+        run: conda remove -n chemicalite-build --all

@@ -1,0 +1,53 @@
+name: check code
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: hash for podman image
+        id: podman_image_hash
+        run: |
+          echo "::set-output name=value::$(/bin/find bin .github -type f -exec md5sum {} \; | sort -k 2 | md5sum)"
+        shell: bash
+      - uses: actions/cache@v2
+        with:
+          path: podman
+          key: ${{ runner.os }}-podman-${{ steps.podman_image_hash.outputs.value }}
+
+      - name: Install
+        run: |
+          bin/install-on-ubuntu
+          mkdir -p podman
+          sudo podman export mlr > podman/mlr.tar
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/podman-mlr
+
+      - name: lint
+        run: |
+          cat << EOF | sudo podman exec -i -w /opt/mailur mlr /bin/bash
+          set -exuo pipefail
+
+          . bin/activate
+          bin/manage.py lint --ci
+          EOF
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/podman-mlr
+
+      - name: test
+        run: |
+          cat << EOF | sudo podman exec -i -w /opt/mailur mlr /bin/bash
+          set -exuo pipefail
+
+          . bin/activate
+          bin/manage.py test
+          EOF

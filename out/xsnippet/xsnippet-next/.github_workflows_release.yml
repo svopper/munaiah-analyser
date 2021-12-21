@@ -1,0 +1,99 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+  RUST_BACKTRACE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: release_params
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "::set-output name=prerelease::false"
+            echo "::set-output name=release_tag::${GITHUB_REF#refs/tags/}"
+            echo "::set-output name=title::${GITHUB_REF#refs/tags/}"
+          else
+            echo "::set-output name=prerelease::true"
+            echo "::set-output name=release_tag::latest"
+            echo "::set-output name=title::Development Build"
+          fi
+
+      - id: create_release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: ${{ steps.release_params.outputs.prerelease }}
+          automatic_release_tag: ${{ steps.release_params.outputs.release_tag }}
+          title: ${{ steps.release_params.outputs.title }}
+
+  build_assets:
+    needs: create_release
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        rust-version:
+          - nightly
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust-version }}
+          override: true
+
+      - uses: ./.github/actions/setup-postgres
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - run: |
+          rustc --print cfg | grep = > rustc.vars
+          source rustc.vars
+
+          pushd target/release
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "ASSET_NAME=xsnippet-api-${target_arch}-${target_os}.exe.7z" >> $GITHUB_ENV
+            echo "ASSET_PATH=./target/release/xsnippet-api.exe.7z" >> $GITHUB_ENV
+            7z a xsnippet-api.exe.7z xsnippet-api.exe
+          else
+            echo "ASSET_NAME=xsnippet-api-${target_arch}-${target_os}.gz" >> $GITHUB_ENV
+            echo "ASSET_PATH=./target/release/xsnippet-api.gz" >> $GITHUB_ENV
+            tar cvzf xsnippet-api.gz xsnippet-api
+          fi
+          popd
+
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_name: ${{ env.ASSET_NAME }}
+          asset_path: ${{ env.ASSET_PATH }}
+          asset_content_type: application/octet-stream

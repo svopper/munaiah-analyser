@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  - pull_request
+  - push
+
+env:
+  BUNDLE_WITHOUT: release
+
+jobs:
+  rspec:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - ruby: "2.4"
+          - ruby: "2.5"
+          - ruby: "2.6"
+          - ruby: "2.7"
+          - ruby: "3.0"
+            coverage: "yes"
+    env:
+      COVERAGE: ${{ matrix.coverage }}
+    name: RSpec - Ruby ${{ matrix.ruby }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: set git config
+        run: git config --global init.defaultBranch main && git config --global user.email 'user@example.com' && git config --global user.name 'user'
+      - name: spec tests
+        env:
+          GIT_COMMITTER_NAME: 'user'
+          GIT_COMMITTER_EMAIL: 'user@example.com'
+          GIT_AUTHOR_NAME: 'user'
+          GIT_AUTHOR_EMAIL: 'user@example.com'
+        run: bundle exec rake
+      - name: Verify gem builds
+        run: gem build *.gemspec

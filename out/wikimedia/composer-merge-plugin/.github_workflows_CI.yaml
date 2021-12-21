@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        include:
+          # Includes php7.1-8.0, composer 2, php-xdebug, and more
+          # https://github.com/actions/virtual-environments/blob/ubuntu18/20210318.0/images/linux/Ubuntu1804-README.md#php
+          - os: ubuntu-18.04
+            php: "7.2"
+          - os: ubuntu-18.04
+            php: "7.3"
+          # Includes php7.4-8.x, composer 2, php-xdebug, and more
+          # https://github.com/actions/virtual-environments/blob/ubuntu20/20210318.0/images/linux/Ubuntu2004-README.md#php
+          - os: ubuntu-20.04
+            php: "7.4"
+          - os: ubuntu-20.04
+            php: "8.0"
+
+    name: Test PHP ${{ matrix.php }}
+    runs-on: ${{ matrix.os }}
+    env:
+      COMPOSER_DISABLE_XDEBUG_WARN: 1
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Use PHP ${{ matrix.php }}
+      run: |
+        sudo update-alternatives --set php /usr/bin/php${{ matrix.php }}
+        sudo apt-add-repository ppa:ondrej/php -y
+        sudo apt-fast install -y --no-install-recommends php${{ matrix.php }}-ast
+
+    - name: Use Composer v1
+      run: composer require --dev --no-update composer/composer:^1.1
+
+    - name: composer install
+      run: composer update --no-interaction --no-progress --ansi
+
+    - run: composer test
+
+    - name: Use Composer v2
+      run: composer require --dev --no-update composer/composer:^2.0
+
+    - name: composer install
+      run: composer update --no-interaction --no-progress --ansi
+
+    - run: composer test
+    - run: composer phan
+
+  ocular-push:
+    runs-on: ubuntu-18.04
+    if: ${{ success() }} && github.repository == 'wikimedia/composer-merge-plugin'
+    needs: [run]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Use PHP 7.2
+      run: sudo update-alternatives --set php /usr/bin/php7.2
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
+    - name: Run coverage
+      run: composer coverage
+      env:
+        XDEBUG_MODE: coverage
+
+    - name: Get Ocular
+      run: wget https://scrutinizer-ci.com/ocular.phar
+      continue-on-error: true
+
+    - name: Upload code coverage
+      run: php ocular.phar code-coverage:upload --format=php-clover reports/coverage.xml
+      continue-on-error: true
+
+#  irc-push:
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 15
+#    if: ${{ always() }} && github.repository == 'wikimedia/composer-merge-plugin'
+#    needs: [run]
+#    steps:
+#    - name: IRC push notification
+#      uses: rectalogic/notify-irc@v1
+#      if: github.event_name == 'push'
+#      with:
+#        channel: "#wikimedia-dev"
+#        nickname: wikimedia-github
+#        message: "${{ github.repository }}#${{ github.run_id }} (${{ github.ref }} - ${{ github.sha }} ${{ github.actor }}): ${{ job.status }} - https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

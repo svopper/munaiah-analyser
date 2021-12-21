@@ -1,0 +1,194 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  linux-gcc:
+    name: Build (Ubuntu 18.04 LTS x86_64, GCC)
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -yqq
+          sudo apt-get install -yqq build-essential libsdl1.2-dev
+
+      - name: Prepare Environment
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA:0:10}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build OpenJazz (normal)
+        run: |
+          make
+          ls -l OpenJazz
+
+  linux-clang:
+    name: Build (Ubuntu 18.04 LTS x86_64, Clang)
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -yqq
+          sudo apt-get install -yqq build-essential libsdl1.2-dev clang-10
+
+      - name: Prepare Environment
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA:0:10}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build OpenJazz (slim)
+        run: |
+          export CXX=clang++
+          export CXXFLAGS="-Wall -O2 -g -ffunction-sections -fdata-sections"
+          export LDFLAGS="-Wl,--gc-sections"
+          make
+          ls -l OpenJazz
+
+      - name: Prepare artifact
+        run: |
+          mkdir OJ-${SHORT_SHA}
+          pod2text -l builds/unix/OpenJazz.6.pod Manual.txt
+          cp OpenJazz openjazz.000 README.md COPYING *.txt OJ-${SHORT_SHA}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: openjazz-linux-glibc2.27-x86_64
+          path: OJ-*/
+
+  windows-mingw-gcc:
+    name: Build (Windows x86_64, MinGW, GCC)
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: base-devel mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL dos2unix
+
+      - name: Prepare Environment
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA:0:10}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build OpenJazz
+        run: |
+          export LDFLAGS="-static"
+          export PKG_CONFIG="pkg-config --static"
+          autoreconf -if
+          ./configure --disable-dependency-tracking
+          make
+
+      - name: Prepare artifact
+        run: |
+          mkdir OJ-${SHORT_SHA}
+          pod2text -l builds/unix/OpenJazz.6.pod Manual.txt
+          cp README.md README.txt
+          cp COPYING COPYING.txt
+          unix2dos *.txt
+          cp OpenJazz.exe openjazz.000 *.txt OJ-${SHORT_SHA}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: openjazz-windows-mingw-x86_64
+          path: OJ-*/
+
+  wii-devkitppc:
+    name: Build (Wii, devkitPPC)
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitppc:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -yqq automake dos2unix
+          # blocked!
+          #dkp-pacman --noconfirm -S --needed wii-sdl
+          dkp-pacman --noconfirm -U --needed https://f4ke.de/dev/wii/oj/wii-sdl-1.2.15-7-any.pkg.tar.xz
+
+      - name: Prepare Environment
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA:0:10}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build OpenJazz
+        run: |
+          export PATH=$PATH:$DEVKITPPC/bin:$DEVKITPRO/tools/bin:$DEVKITPRO/portlibs/wii/bin
+          export CXXFLAGS="-Wall -O2 -g -ffunction-sections -fdata-sections"
+          export LDFLAGS="-Wl,--gc-sections"
+          autoreconf -if
+          ./configure --host=powerpc-eabi --disable-dependency-tracking
+          make
+
+      - name: Prepare artifact
+        run: |
+          mkdir OJ-${SHORT_SHA}
+          pod2text -l builds/unix/OpenJazz.6.pod Manual.txt
+          cp README.md README.txt
+          cp COPYING COPYING.txt
+          unix2dos *.txt
+          cp builds/wii/* openjazz.000 *.txt OJ-${SHORT_SHA}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: openjazz-wii
+          path: OJ-*/
+
+  psp-pspdev:
+    name: Build (PSP, pspdev)
+    runs-on: ubuntu-latest
+    container: pspdev/pspdev:latest
+    steps:
+      - name: Install dependencies
+        shell: sh
+        run: |
+          apk add make bash perl dos2unix
+
+      - name: Prepare Environment
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA:0:10}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$(nproc)" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build OpenJazz
+        run: |
+          export PATH=$PATH:$PSPDEV/bin
+          cd builds/psp
+          make
+
+      - name: Prepare artifact
+        run: |
+          mkdir OJ-${SHORT_SHA}
+          pod2text -l builds/unix/OpenJazz.6.pod Manual.txt
+          cp README.md README.txt
+          cp COPYING COPYING.txt
+          unix2dos *.txt
+          cp builds/psp/EBOOT.PBP openjazz.000 *.txt OJ-${SHORT_SHA}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: openjazz-psp
+          path: OJ-*/

@@ -1,0 +1,36 @@
+
+# See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  Package:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/yast/head/containers/yast-cpp:latest
+      options: --privileged
+
+    steps:
+
+    - name: Git Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: rake build_dependencies:install
+
+    - name: Inspect Installed Packages
+      run: rpm -qa | sort
+
+    - name: Package Build
+      run: yast-ci-cpp
+
+    - name: Install Smoke Test Requirements
+      run: zypper --non-interactive in --no-recommends yast2-ruby-bindings iproute2
+
+    - name: Smoke Test Preparation
+      run: sh smoke_test_prepare.sh
+
+    - name: Smoke Test Run
+      run: ruby smoke_test_run.rb

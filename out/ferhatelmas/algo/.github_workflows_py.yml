@@ -1,0 +1,25 @@
+name: py
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Add pip bin to PATH
+        run: |
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+
+      - name: Install deps with ${{ matrix.python }}
+        run: make deps
+
+      - name: Lint with ${{ matrix.python }}
+        run: make lint

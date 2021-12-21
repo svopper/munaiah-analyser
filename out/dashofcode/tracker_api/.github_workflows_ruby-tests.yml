@@ -1,0 +1,34 @@
+name: Ruby Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version: [2.7, 2.6, 2.5]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Install dependencies
+      run: bundle install
+    - name: Run tests
+      run: bundle exec rake test
+    - name: Upload Coverage
+      uses: paambaati/codeclimate-action@v2.7.5
+      env:
+        CC_TEST_REPORTER_ID: 2a6849be8214739deef0090b810b945ce9a550a4d8279d242cb03242d1ad53c5
+      with:
+        coverageLocations: ${{github.workspace}}/coverage/.resultset.json:simplecov
+      if: matrix.ruby-version == '2.7'

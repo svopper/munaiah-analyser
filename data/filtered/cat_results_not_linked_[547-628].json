@@ -1,0 +1,118 @@
+{
+  "containerbuildsystem/actions/flake8": [
+    "Continuous integration",
+    "Code quality"
+  ],
+  "fcurella/gh-action-bump2version": ["Uncategorised"],
+  "fac/ruby-gem-setup-credentials-action": ["Uncategorised"],
+  "robotpy/build-actions/build-sdist": ["Uncategorised"],
+  "github/ossar-action": ["Code quality", "Security"],
+  "splunk/pink-panther": ["Uncategorised"],
+  "miyataka/elastic-github-actions/elasticsearch": ["Continuous integration"],
+  "prestashop/github-action-php-lint/7.3": [
+    "Code quality",
+    "Continuous integration"
+  ],
+  "smashwilson/az-infra/actions/azbuild": ["Uncategorised"],
+  "arthurnn/code-scanning-rubocop/rubocop-action": [
+    "Code quality",
+    "Code review"
+  ],
+  "tgstation/tgs-dmapi-updater": ["Uncategorised"],
+  "Alfresco/alfresco-build-tools/.github/actions/setup-jx-release-version": [
+    "Continuous integration",
+    "Project management"
+  ],
+  "divvun/actions/create-txz": ["Uncategorised"],
+  "EventStore/Automations/pr-check": ["Utilities", "Project management"],
+  "camunda-community-hub/community-action-maven-release": [
+    "Continuous integration",
+    "Publishing"
+  ],
+  "seL4/ci-actions/camkes-vm": ["Uncategorised"],
+  "kounoike/action-textlint": ["Publishing", "Support"],
+  "gap-actions/compile-documentation-for-packages": ["Uncategorised"],
+  "bright-tools/clang-format-action": ["Code quality", "Code review"],
+  "drusellers/publish-nuget": ["Publishing", "Deployment"],
+  "alisw/pull-request": ["Project management", "Open Source management"],
+  "tgvaughan/bacter": ["Uncategorised"],
+  "fcurella/gh-status-check": ["Uncategorised"],
+  "goto-bus-stop/standard-action": ["Code quality", "Code review"],
+  "prestashopcorp/github-action-php-cs-fixer": ["Code quality", "Code review"],
+  "prestashop/github-action-php-lint/5.6": [
+    "Code quality",
+    "Continuous integration"
+  ],
+  "YetiForceCompany/YetiForceCRM-Tests/7.4": [
+    "Continuous integration",
+    "Testing"
+  ],
+  "m273d15/java-format-action": ["Code quality", "Continuous integration"],
+  "avengerpenguin/biscuit": ["Uncategorised"],
+  "twisted/python-info-action": ["Uncategorised"],
+  "thomasjpfan/labeler": ["Utilities", "Open Source management"],
+  "cognisant/code-review-checklist": ["Code review"],
+  "wmde/git-monorepo-splice-docker-action": ["Uncategorised"],
+  "cylc/release-actions/stage-1/set-python-package-version": [
+    "Continuous integration"
+  ],
+  "checkstyle/contribution/comment-action": ["Utilities"],
+  "tgstation/RequestReviewFromUser": ["Project management", "Code review"],
+  "home-assistant/actions/helpers/git-init": ["Uncategorised"],
+  "containerbuildsystem/actions/tekton-lint": ["Uncategorised"],
+  "SonarSource/gh-action_release/main": ["Publishing"],
+  "seL4/ci-actions/manifest-deploy": ["Deployment"],
+  "opf/action-eslint": ["Code quality", "Code review"],
+  "akerl/action-checkout": ["Utilities"],
+  "seL4/ci-actions/preprocess": ["Uncategorised"],
+  "galaxyproject/planemo-ci-action": ["Uncategorised"],
+  "robotpy/build-actions/install-robotpy-build": ["Uncategorised"],
+  "POV-Ray/povray/.github/actions/unix_getlibs": ["Uncategorised"],
+  "netlify/actions/cli": ["Uncategorised"],
+  "SonarSource/gh-action_LT_release": ["Uncategorised"],
+  "r-lib/actions/run-rchk": ["Uncategorised"],
+  "gap-actions/run-test-for-packages": ["Uncategorised"],
+  "kanaka/get-changed-files": ["Continuous integration", "Utilities"],
+  "divvun/actions/pahkat/init": ["Uncategorised"],
+  "opf/action-rubocop": ["Code quality", "Code review"],
+  "phpDocumentor/coding-standard": ["Uncategorised"],
+  "codespell-project/actions-codespell": ["Code quality", "Utilities"],
+  "elprans/gh-action-create-release": ["Publishing"],
+  "rhaschke/industrial_ci": ["Continuous integration"],
+  "uw-it-aca/actions/cicd-deploy": ["Deployment"],
+  "the-events-calendar/action-tribe-phpcs": ["Uncategorised"],
+  "edwardspec/github-action-build-mediawiki": ["Uncategorised"],
+  "divvun/actions/deploy": ["Deployment"],
+  "Homebrew/actions/git-user-config": ["Utilities", "Continuous integration"],
+  "jenkins-infra/interesting-category-action": ["Uncategorised"],
+  "getsentry/size-limit-action": ["Reporting", "Monitoring"],
+  "seL4/ci-actions/sel4test-sim": ["Uncategorised"],
+  "EventStore/Automations/cherry-pick-pr-for-label": [
+    "Project management",
+    "Utilities"
+  ],
+  "bytedeco/javacpp-presets/.github/actions/deploy-centos": ["Uncategorised"],
+  "r-lib/actions/pr-fetch": ["Uncategorised"],
+  "fleskesvor/create-release": ["Publishing"],
+  "MinoruSekine/setup-scoop": ["Uncategorised"],
+  "puppetlabs/action-litmus_spec": ["Uncategorised"],
+  "micronaut-projects/github-actions/export-gradle-properties": [
+    "Uncategorised"
+  ],
+  "spacetelescope/action-publish_to_pypi/build-sdist": ["Uncategorised"],
+  "HorstBaerbel/action-clang-tidy": ["Code quality", "Continuous integration"],
+  "puppetlabs/peter-evans-create-pull-request": [
+    "Project management",
+    "Utilities"
+  ],
+  "ATLauncher/release-atlauncher-action": ["Uncategorised"],
+  "mongodb-labs/drivers-evergreen-tools": ["Uncategorised"],
+  "seL4/ci-actions/aws-proofs": ["Uncategorised"],
+  "litusproject/composer-install-action": [
+    "Continuous integration",
+    "Dependency management"
+  ],
+  "dschep/install-pipenv-action": ["Utilities"],
+  "dbfx/github-phplint/5.6": ["Code quality", "Code review"],
+  "seL4/ci-actions/trigger": ["Uncategorised"]
+}

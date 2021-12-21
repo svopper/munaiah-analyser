@@ -1,0 +1,17 @@
+name: Master
+
+on:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run a multi-line script
+      run: |
+        .\publish.bat ${{ secrets.Token }} download.windowwalker.com

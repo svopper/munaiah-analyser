@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go environment
+        uses: actions/setup-go@v2.1.3
+        with:
+          go-version: 1.15
+
+      - name: install
+        run:
+          ./scripts/ci_install.sh
+
+      - name: cli
+        run: |
+          cd cli && go build && cd ..
+
+      - name: build
+        run: |
+          ./bin/build_theme.sh
+          ./bin/deploy/publish_hugo.sh
+
+      - name: Push directory to another repository
+        uses: cpina/github-action-push-to-another-repository@master
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: hugo/output
+          destination-github-username: if1live
+          destination-repository-name: if1live.github.io
+          user-email: libsora25@gmail.com
+          target-branch: docs

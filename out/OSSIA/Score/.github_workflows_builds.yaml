@@ -1,0 +1,273 @@
+name: Linux distro build
+
+on: push
+
+jobs:
+  buster:
+    name: Debian Buster
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
+
+    steps:
+      - name: Install git
+        run: |
+          apt-get update -qq
+          apt-get install -qq --force-yes git
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/buster.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/buster.build.sh
+
+  bullseye:
+    name: Debian Bullseye
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bullseye
+
+    steps:
+      - name: Install git
+        run: |
+          apt-get update -qq
+          apt-get install -qq --force-yes git
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/bullseye.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/bullseye.build.sh
+
+  fedora:
+    name: Fedora 33
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:33
+
+    steps:
+      - name: Install git
+        run: |
+          dnf -y install git
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/fedora.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/fedora.build.sh
+
+  suseleap:
+    name: OpenSUSE Leap
+    runs-on: ubuntu-latest
+    container:
+      image: opensuse/leap:latest
+
+    steps:
+      - name: Install git
+        run: |
+          zypper -n install git
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/suse.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/suse.build.sh
+
+  susetumbleweed:
+    name: OpenSUSE Tumbleweed
+    runs-on: ubuntu-latest
+    container:
+      image: opensuse/tumbleweed:latest
+      options: --privileged
+
+    steps:
+      - name: Install git
+        run: |
+          zypper -n install git
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/suse.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/suse.build.sh
+
+  arch:
+    name: ArchLinux
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install git
+        run: |
+          # Needed because glibc-2.33 prevents pacman from running...
+          export patched_glibc=glibc-linux4-2.33-4-x86_64.pkg.tar.zst
+          curl -LO "https://repo.archlinuxcn.org/x86_64/$patched_glibc"
+          bsdtar -C / -xvf "$patched_glibc"
+
+          pacman -Syy --noconfirm
+          pacman -S git --noconfirm
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/archlinux.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/archlinux.build.sh
+
+  archqt6:
+    name: ArchLinux-Qt6
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install git
+        run: |
+          # Needed because glibc-2.33 prevents pacman from running...
+          export patched_glibc=glibc-linux4-2.33-4-x86_64.pkg.tar.zst
+          curl -LO "https://repo.archlinuxcn.org/x86_64/$patched_glibc"
+          bsdtar -C / -xvf "$patched_glibc"
+
+          pacman -Syy --noconfirm
+          pacman -S git --noconfirm
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/archlinux-qt6.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/archlinux-qt6.build.sh
+
+  wasm:
+    name: WebAssembly
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install git
+        run: |
+          # Needed because glibc-2.33 prevents pacman from running...
+          export patched_glibc=glibc-linux4-2.33-4-x86_64.pkg.tar.zst
+          curl -LO "https://repo.archlinuxcn.org/x86_64/$patched_glibc"
+          bsdtar -C / -xvf "$patched_glibc"
+
+          pacman -Syy --noconfirm
+          pacman -S git --noconfirm
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Dependencies
+        run: |
+          ./ci/wasm.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/wasm.build.sh
+
+      - name: Deploy
+        run: |
+          ./ci/wasm.deploy.sh
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
+          branch: 'main'
+          force: true
+          directory: './site'
+          repository: 'ossia/score-web'
+
+  rpi:
+    name: RaspberryPi
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install git
+        run: |
+          # Needed because glibc-2.33 prevents pacman from running...
+          export patched_glibc=glibc-linux4-2.33-4-x86_64.pkg.tar.zst
+          curl -LO "https://repo.archlinuxcn.org/x86_64/$patched_glibc"
+          bsdtar -C / -xvf "$patched_glibc"
+
+          pacman -Syy --noconfirm
+          pacman -S git --noconfirm
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Dependencies
+        run: |
+          ./ci/raspberrypi.deps.sh
+
+      - name: Build
+        run: |
+          ./ci/raspberrypi.build.sh
+
+      - name: Deploy
+        run: |
+          ./ci/raspberrypi.deploy.sh
+
+      - name: Upload build
+        uses: actions/upload-artifact@v2
+        with:
+          name: raspberry-pi-aarch32
+          path: |
+            *.tar.gz

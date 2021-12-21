@@ -1,0 +1,27 @@
+# Build PackageManager Client using latest VS and DotNET
+name: PackageManagerClient-VS2019Build
+on: [push]
+jobs:
+ build:
+  runs-on: windows-latest
+  steps:
+    - name: Checkout PackageManagerClient Repo
+      uses: actions/checkout@v2
+      with:
+        path: PackageManagerClient
+        repository: DynamoDS/PackageManagerClient
+    - name: Setup Nuget.exe to use on VM
+      uses: nuget/setup-nuget@v1
+    - name: Nuget Restore in PackageManagerClient solution
+      run: nuget restore $Env:GITHUB_WORKSPACE\PackageManagerClient\src\GregClient.sln
+    - name: Build PackageManagerClient with MSBuild
+      run: |
+        echo "***Continue with the build, Good luck developer!***"
+        cd "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\"
+           .\MSBuild.exe $Env:GITHUB_WORKSPACE\PackageManagerClient\src\GregClient.sln
+    # look for PackageManagerClient
+    - name: Navigate to PackageManagerClient Folder
+      run: |
+        cd "$Env:GITHUB_WORKSPACE\PackageManagerClient\bin\Debug"
+        echo "***Locating PackageManagerClient!***"
+        test ".\Greg.dll" && echo "PackageManagerClient exists!"

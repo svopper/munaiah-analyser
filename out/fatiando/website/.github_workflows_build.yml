@@ -1,0 +1,61 @@
+name: build-html
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # Run every Monday at 12:00 UTC
+    - cron:  '00 12 * * 1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Build the website
+        run: make html
+
+      - name: Disable Jekyll builds on GitHub pages
+        run: touch _build/html/.nojekyll
+
+      - name: Set the CNAME file for our custom domain
+        run: echo "www.fatiando.org" > _build/html/CNAME
+
+      - name: Setup redirects to legacy.fatiando.org
+        run: |
+          for version in v0.1 v0.2 v0.3 v0.4 v0.5 dev
+          do
+            mkdir _build/html/${version}
+            echo "<meta http-equiv=\"Refresh\" content=\"0;url=https://legacy.fatiando.org\"/>" > _build/html/${version}/index.html
+          done
+
+      - name: Print a directory tree of the generated HTML for debugging
+        run: tree -a _build/html
+
+      - name: Push to fatiando.github.io
+        if: success() && ( github.event_name == 'push' || github.event_name == 'schedule' )
+        # Don't use tags: https://julienrenaux.fr/2019/12/20/github-actions-security-risk/
+        uses: peaceiris/actions-gh-pages@bbdfb200618d235585ad98e965f4aafc39b4c501
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          external_repository: fatiando/fatiando.github.io
+          publish_branch: master
+          publish_dir: ./_build/html
+          # Only keep the latest commit to avoid bloating the repository
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'

@@ -1,0 +1,66 @@
+# This workflow will tag a release on github when the package.json version changes on master, and publish package to npm and github
+
+name: Tag Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [ 7.3, 7.4, 8.0 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Composer Install
+        run: composer install --prefer-dist --no-progress
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+  release:
+    name: Release
+    needs: unit-test
+    if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Release
+        id: release
+        uses: justincy/github-action-npm-release@2.0.2
+
+      - uses: actions/setup-node@v2
+        if: steps.release.outputs.released == 'true'
+        with:
+          registry-url: https://registry.npmjs.org/
+      - run: npm publish
+        if: steps.release.outputs.released == 'true'
+        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - uses: actions/setup-node@v2
+        if: steps.release.outputs.released == 'true'
+        with:
+          registry-url: https://npm.pkg.github.com/
+      - run: npm publish
+        if: steps.release.outputs.released == 'true'
+        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

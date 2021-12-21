@@ -1,0 +1,35 @@
+name: build-windows
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: "Visual Studio 2019 [${{ matrix.platform }}, ${{ matrix.toolchain }}, ${{ matrix.build_type }}, cppstd: ${{ matrix.cppstd }}]"
+    runs-on: "windows-2019"
+
+    strategy:
+        fail-fast: false
+        matrix:
+          build_type: ["Debug", "Release"]
+          cppstd: ["14", "17"]
+          platform: ["Win32", "x64"]
+          toolchain: ["v140", "v142"]
+
+          exclude:
+            - cppstd: "17"
+              toolchain: "v140"
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Test
+        run: |
+          #
+          git submodule init
+          git submodule update
+          #
+          mkdir build
+          cd build
+          #
+          cmake .. -A ${{ matrix.platform }} -T ${{ matrix.toolchain }} -DCMAKE_CXX_STANDARD=${{ matrix.cppstd }} -Dgtest_force_shared_crt=on
+          cmake --build . --config ${{ matrix.build_type }} -- /verbosity:n
+          #
+          test\${{ matrix.build_type }}\test-libmymath.exe

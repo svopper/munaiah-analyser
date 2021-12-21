@@ -1,0 +1,38 @@
+name: analyze
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  phpstan:
+    name: phpstan
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        php-version:
+        - "7.2"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        coverage: none
+        php-version: "${{ matrix.php-version }}"
+        ini-values: memory_limit=-1
+        tools: composer:v2
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.composer/cache
+          vendor
+        key: "php-${{ matrix.php-version }}"
+        restore-keys: "php-${{ matrix.php-version }}"
+
+    - name: Install dependencies
+      run: composer install --no-interaction --no-progress
+
+    - name: Analyze
+      run: vendor/bin/phpstan analyse

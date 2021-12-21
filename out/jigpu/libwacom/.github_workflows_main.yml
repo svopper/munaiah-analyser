@@ -1,0 +1,269 @@
+name: linux
+
+on: [ push, pull_request ]
+
+env:
+  CFLAGS: "-Werror -Wall -Wextra -Wno-error=sign-compare -Wno-error=unused-parameter -Wno-error=missing-field-initializers"
+  UBUNTU_PACKAGES: libgudev-1.0-dev libxml++2.6-dev valgrind tree python3-pip python3-setuptools libevdev2
+  PIP_PACKAGES: meson ninja libevdev pyudev pytest yq
+
+jobs:
+  ###
+  #
+  # autotools build job
+  #
+  autotools:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        compiler:
+          - gcc
+          - clang
+        make_args:
+          - distcheck
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+      - name: autotools make ${{matrix.make_args}}
+        run: |
+          mkdir _build && pushd _build > /dev/null
+          ../autogen.sh --disable-silent-rules
+          make
+          make ${{matrix.make_args}}
+          popd > /dev/null
+        env:
+          CC: ${{matrix.compiler}}
+      - name: capture build logs
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}  # even if we fail
+        with:
+          name: autotools test logs
+          path: |
+            _build/config.log
+            _build/test-suite.log
+      # And for the distcheck job, let's save the tarball for later use
+      - name: move tarballs to top level
+        if: matrix.make_args == 'distcheck'
+        run: mv _build/libwacom-*tar.* .
+      - name: capture tarball from distcheck
+        uses: actions/upload-artifact@v2
+        if: matrix.make_args == 'distcheck'
+        with:
+          name: tarball
+          path: libwacom-*.tar.bz2
+
+  ###
+  #
+  # meson build job
+  #
+  meson:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        compiler:
+          - gcc
+          - clang
+        meson_options:
+          - ''
+          # clang requires b_lundef=false for b_santize, see
+          # https://github.com/mesonbuild/meson/issues/764
+          - '-Db_sanitize=address,undefined -Db_lundef=false'
+    steps:
+      - uses: actions/checkout@v2
+      # install python so we get pip for meson
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+          pip: $PIP_PACKAGES
+      - name: meson test ${{matrix.meson_options}}
+        uses: ./.github/actions/meson
+        with:
+          meson_args: ${{matrix.meson_options}}
+        env:
+          CC: ${{matrix.compiler}}
+      # Capture all the meson logs, even if we failed
+      - uses: actions/upload-artifact@v2
+        if: ${{ always() }}  # even if we fail
+        with:
+          name: meson test logs
+          path: |
+            builddir/meson-logs/testlog*.txt
+            builddir/meson-logs/meson-log.txt
+  ###
+  #
+  # valgrind run
+  #
+  valgrind:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      # install python so we get pip for meson
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+          pip: $PIP_PACKAGES
+      # for the valgrind case, we need custom setup, the matrix isn't
+      # flexible enough for this
+      - name: valgrind - meson test
+        uses: ./.github/actions/meson
+        with:
+          meson_test_args: --setup=valgrind --suite=valgrind
+        env:
+          CC: ${{matrix.compiler}}
+      # Capture all the meson logs, even if we failed
+      - uses: actions/upload-artifact@v2
+        if: ${{ always() }}  # even if we fail
+        with:
+          name: meson test logs
+          path: |
+            builddir/meson-logs/testlog*.txt
+            builddir/meson-logs/meson-log.txt
+  ####
+  # /etc/ loading check
+  etcdir:
+    needs: meson
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        command:
+          # A variety of ways to split the database across the two locations
+          # we load from.
+          - sudo mv /usr/share/libwacom/intuos*.tablet /etc/libwacom
+          - sudo mv /usr/share/libwacom/*.tablet /etc/libwacom
+          - sudo mv /usr/share/libwacom/*.stylus /etc/libwacom
+          # split the libwacom.stylus file into to two files to check for
+          # accumlated loading
+          - sudo csplit data/libwacom.stylus '/^\[0x822\]/' && sudo mv xx00 /etc/libwacom/first.stylus && sudo mv xx01 /usr/share/libwacom/libwacom.stylus
+
+    steps:
+      - uses: actions/checkout@v2
+      # install python so we get pip for meson
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+      # Run as sudo because we install to /etc and thus need the pip
+      # packages available to root
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+          pip: $PIP_PACKAGES
+          pip_precmd: sudo
+      - uses: ./.github/actions/meson
+        with:
+          meson_args: --prefix=/usr
+          meson_skip_test: yes
+          ninja_args: install
+          ninja_precmd: sudo
+      - name: list devices with database in /usr
+        run: libwacom-list-devices --format=datafile > devicelist.default.txt
+      - run: sudo mkdir /etc/libwacom
+      - name: split the databases between /usr/share and /etc
+        run: ${{matrix.command}}
+      - name: list devices with database in /etc and /usr
+        run: libwacom-list-devices --format=datafile > devicelist.modified.txt
+      - name: compare device database
+        run: diff -u8 devicelist.default.txt devicelist.modified.txt
+
+  ####
+  # duplicate device check
+  duplicate-devices:
+    needs: meson
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      # install python so we get pip for meson
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+      # Run as sudo because we install to /etc and thus need the pip
+      # packages available to root
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+          pip: $PIP_PACKAGES
+          pip_precmd: sudo
+      - uses: ./.github/actions/meson
+        with:
+          meson_args: --prefix=/usr
+          meson_skip_test: yes
+          ninja_args: install
+          ninja_precmd: sudo
+      - name: list devices with database in /usr
+        run: libwacom-list-devices --format=yaml > devicelist.default.txt
+      - run: sudo mkdir /etc/libwacom
+        # We override a Cintiq 27QHD with a single device match, and one of
+        # the multiple matches of the Intuos Pro L.
+      - name: copy and modify tablet files to override another one
+        run: |
+          sed -e 's/27QHD/27QHD MODIFIED/' data/cintiq-27hd.tablet | sudo tee /etc/libwacom/modified-cintiq.tablet
+          sed -e 's/Pro L/Pro L MODIFIED/' -e 's/usb:056a:0358;//' data/intuos-pro-2-l.tablet | sudo tee /etc/libwacom/modified-intuos.tablet
+      - name: list all devices for debugging
+        run: libwacom-list-devices --format=yaml
+
+      # We expect the modified tablets to be listed
+      # We expect the remaining match for a modified tablet to be listed
+      # We expect the overridden match *not* to be listed
+      - name: check for the expected devices to be present (or not present)
+        run: |
+          test "$(libwacom-list-devices --format=yaml | yq -r '.devices[] | select(.bus == "usb") | select(.vid == "0x056a") | select(.pid == "0x032a") | .name')" == "Wacom Cintiq 27QHD MODIFIED"
+          test "$(libwacom-list-devices --format=yaml | yq -r '.devices[] | select(.bus == "bluetooth") | select(.vid == "0x056a") | select(.pid == "0x0361") | .name')" == "Wacom Intuos Pro L MODIFIED"
+          test $(libwacom-list-devices --format=yaml | yq -r '.devices[] | select(.bus == "usb") | select(.vid == "0x056a") | select(.pid == "0x0358") | .name' | wc -l) -eq 1
+          test $(libwacom-list-devices --format=yaml | yq -r '.devices[] | select(.bus == "usb") | select(.vid == "0x056a") | select(.pid == "0x032a") | .name' | wc -l) -eq 1
+
+  ###
+  #
+  # tarball verification
+  #
+  build-from-tarball:
+    needs: autotools
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        buildtool:
+          - meson
+          - autotools
+    env:
+      TARBALLDIR: '_tarball_dir'
+      INSTALLDIR: '/tmp/libwacom/_inst'
+    steps:
+      - uses: actions/checkout@v2
+      - name: install python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.8'
+      - uses: ./.github/actions/pkginstall
+        with:
+          apt: $UBUNTU_PACKAGES
+          pip: $PIP_PACKAGES
+      - name: fetch tarball from previous job(s)
+        uses: actions/download-artifact@v2
+        with:
+          name: tarball
+      - name: extract tarball
+        run: |
+          mkdir -p "$TARBALLDIR"
+          tar xf libwacom-*.tar.bz2 -C "$TARBALLDIR"
+      - run: mkdir -p "$INSTALLDIR"
+      # The next jobs are conditional on the buildtool,
+      # it's the easiest way to save on duplication
+      - name: build from tarball with meson
+        if: matrix.buildtool == 'meson'
+        uses: ./.github/actions/meson
+        with:
+          srcdir: $TARBALLDIR/libwacom-*/
+          meson_args: --prefix="$INSTALLDIR"
+          ninja_args: test install
+      - name: build from tarball with autotools
+        if: matrix.buildtool == 'autotools'
+        run: |
+          pushd "$TARBALLDIR"/libwacom-*/
+          ./autogen.sh --disable-silent-rules --prefix="$INSTALLDIR"
+          make && make install

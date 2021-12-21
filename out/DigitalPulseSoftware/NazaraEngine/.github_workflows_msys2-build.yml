@@ -1,0 +1,89 @@
+name: MSYS2 build (MinGW-w64)
+
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - '.github/workflows/linux-build.yml'
+      - '.github/workflows/windows-build.yml'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'CHANGELOG.md'
+      - 'README.md'
+      - 'README_en.md'
+      - 'README_fr.md'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        msystem: [mingw64]
+        os: [windows-latest]
+        arch: [x86_64]
+        mode: [debug, releasedbg]
+
+    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    # Setup MSYS2
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: git base-devel unzip p7zip mingw-w64-${{ matrix.arch }}-toolchain mingw-w64-${{ matrix.arch }}-qt5-tools
+        update: true
+
+    # Force xmake to a specific folder (for cache)
+    - name: Set xmake env
+      run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+    # Install xmake
+    - name: Setup xmake
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xmake-io/xmake.git --recurse-submodules -b dev xmake_git
+        cd xmake_git
+        make build
+        make install PREFIX=/${{ matrix.msystem }}
+        xmake --version
+        cd ..
+
+    # Update xmake repository (in order to have the file that will be cached)
+    - name: Update xmake repository
+      run: xmake repo --update
+
+    # Fetch xmake dephash
+    - name: Retrieve dependencies hash
+      id: dep_hash
+      run: echo "::set-output name=hash::$(xmake l utils.ci.packageskey)"
+  
+    # Cache xmake dependencies
+    - name: Retrieve cached xmake dependencies
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.XMAKE_GLOBALDIR }}\.xmake\packages
+        key: MinGW-${{ matrix.arch }}-${{ matrix.mode }}-${{ steps.dep_hash.outputs.hash }}
+
+    # Setup compilation mode and install project dependencies
+    - name: Configure xmake and install dependencies
+      run: xmake config --arch=${{ matrix.arch }} --mode=${{ matrix.mode }} --verbose --yes
+
+    # Build the engine
+    - name: Build Nazara
+      run: xmake -v
+
+    # Install the result files
+    - name: Install Nazara
+      run: xmake install -vo package
+
+    # Upload artifacts
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.mode }}
+        path: package

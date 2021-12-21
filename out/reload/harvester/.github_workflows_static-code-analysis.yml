@@ -1,0 +1,72 @@
+name: Static code analysis
+
+on: pull_request
+
+jobs:
+  phpmd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Reviewdog
+        run: |
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh| sh -s
+      - name: Install PHPMD
+        run: |
+          wget -c https://phpmd.org/static/latest/phpmd.phar
+          php phpmd.phar --version
+      - name: PHPMD
+        run: php phpmd.phar src text codesize,unusedcode,naming | ./bin/reviewdog -efm="%f:%l %m" -name="PHPMD" -reporter=github-check
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  phpcs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Reviewdog
+        run: |
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh| sh -s
+      - name: Install PHPCS
+        run: |
+          wget https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
+          php phpcs.phar --version
+      - name: PHPCS
+        run: php phpcs.phar --standard=PSR2 --report=checkstyle src | ./bin/reviewdog -f=checkstyle -name="PHPCS" -reporter=github-check
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  phploc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install PHPLOC
+        run: |
+          wget https://phar.phpunit.de/phploc.phar
+          php phploc.phar --version
+      - name: PHPLOC
+        run: php phploc.phar src
+  phpcpd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install PHPCPD
+        run: |
+          wget https://phar.phpunit.de/phpcpd.phar
+          php phpcpd.phar --version
+      - name: PHPCPD
+        run: php phpcpd.phar --fuzzy src
+  phpdoccheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Reviewdog
+        run: |
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh| sh -s
+      - name: Install phpdoccheck
+        run: |
+          composer global require block8/php-docblock-checker |
+          echo "::add-path::$(composer -q global config home)/vendor/bin"
+      - name: phpdoccheck
+        run: phpdoccheck -d src --skip-classes | ./bin/reviewdog  -efm="ERROR    %f:%l - %m" -name="phpdoccheck" -reporter=github-check
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

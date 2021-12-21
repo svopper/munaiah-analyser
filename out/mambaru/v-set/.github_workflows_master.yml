@@ -1,0 +1,55 @@
+name: C++ CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup
+      run: |
+        export GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+        bash setup.sh
+      working-directory: ./.github/workflows
+
+
+    - name: make coverage
+      run: |
+        make coverage
+        pushd build
+          export CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}
+          bash <(curl -s https://codecov.io/bash)
+        popd
+
+    - name: make docs
+      run: |
+        make doc
+
+    - name: push docs
+      run: |
+        git clone -b gh-pages https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git /tmp/gh-pages
+        docdir="$PWD/docs/html/"
+        pushd /tmp/gh-pages
+          git config --global user.email "migashko@gmail.com"
+          git config --global user.name "Vladimir Migashko"
+          rsync -arv --update $docdir ./
+          git add --all
+          COMMIT_MESSAGE="Update pages on $(date +'%Y-%m-%d %H:%M:%S')"
+          git diff-index --quiet --cached HEAD -- && echo "No changes!" && exit 0 || echo $COMMIT_MESSAGE
+          git commit -m "${COMMIT_MESSAGE}"
+          git push https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git gh-pages:gh-pages
+        popd
+
+    - name: push tag
+      run: |
+        git pull --tags --force https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git
+        tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "  tag=$tag"
+        git config --global user.email "migashko@gmail.com"
+        git config --global user.name "Vladimir Migashko"
+        git tag --force -a $tag -m "update from github actions"
+        git push --force --tags https://${{ secrets.ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git HEAD:master

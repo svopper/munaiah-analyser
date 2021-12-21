@@ -1,0 +1,85 @@
+---
+name: unit
+
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  supermarket:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: supermarket_test
+      redis:
+        image: redis:latest
+        ports: ["6379:6379"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up ruby 2.7
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: src/supermarket
+          ruby-version: 2.7
+          bundler-cache: true
+      - uses: r7kamura/rubocop-problem-matchers-action@v1 # this shows the failures in the PR
+      - name: create database schema
+        run: bundle exec rake db:schema:load
+        env:
+          RAILS_ENV: test
+        working-directory: src/supermarket
+      - name: run db migration for running unit tests (specs)
+        run: bundle exec rake db:migrate
+        env:
+          RAILS_ENV: test
+        working-directory: src/supermarket
+      - name: run specs
+        run: bundle exec rake spec --trace
+        env:
+          RAILS_ENV: test
+        working-directory: src/supermarket
+      - name: Simplecov Report
+        uses: aki77/simplecov-report-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failedThreshold: 90
+          resultPath: src/supermarket/coverage/.last_run.json
+
+  fieri:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: supermarket_test
+      redis:
+        image: redis:latest
+        ports: ["6379:6379"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up ruby 2.7
+        uses: ruby/setup-ruby@v1
+        with:
+          working-directory: src/supermarket/engines/fieri
+          ruby-version: 2.7
+          bundler-cache: true
+      - uses: r7kamura/rubocop-problem-matchers-action@v1 # this shows the failures in the PR
+      - name: run specs
+        run: bundle exec rake spec --trace
+        env:
+          RAILS_ENV: test
+        working-directory: src/supermarket/engines/fieri

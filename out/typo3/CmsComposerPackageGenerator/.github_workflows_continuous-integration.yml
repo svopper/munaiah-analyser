@@ -1,0 +1,83 @@
+name: 'Continuous Integration (CI)'
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    name: 'CI'
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - '7.3'
+          - '7.4'
+        os: [ubuntu-latest]
+        experimental: [false]
+        include:
+          - php-version: "8.0"
+            os: ubuntu-latest
+            experimental: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          coverage: "none"
+          extensions: "json, simplexml, zlib"
+          ini-values: "memory_limit=-1, error_reporting=E_ALL, display_errors=On"
+          php-version: "${{ matrix.php-version }}"
+          tools: composer:1
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ matrix.php-version }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ matrix.php-version }}-composer-
+
+      - name: Validate composer.json
+        run: composer ci:composer:validate
+
+      - name: Install dependencies
+        run: |
+          composer config platform --unset
+          composer update --lock
+          composer install --no-progress --prefer-dist
+
+      - name: Normalize composer.json
+        run: composer ci:composer:normalize
+
+      - name: Check Composer dependencies
+        run: composer ci:composer:require-checker
+
+      - name: Lint PHP files
+        if: always()
+        run: composer ci:php:lint
+
+      - name: Check code styling
+        if: always()
+        run: composer ci:php:cs
+
+      - name: Unit Tests
+        if: always()
+        run: composer ci:php:unit
+
+      - name: Archive Logs
+        uses: actions/upload-artifact@v1
+        if: always()
+        with:
+          name: logs
+          path: var/log

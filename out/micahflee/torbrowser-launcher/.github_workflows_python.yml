@@ -1,0 +1,19 @@
+name: Python
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install system dependencies
+      run: sudo apt-get install gettext python3 libgpgme-dev
+    - name: Install torbrowser-launcher
+      run: sudo pip3 install .
+    - name: Test torbrowser-launcher install
+      run: torbrowser-launcher -h

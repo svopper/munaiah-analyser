@@ -1,0 +1,186 @@
+# Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
+# For details: https://github.com/nedbat/coveragepy/blob/master/NOTICE.txt
+
+name: "Coverage"
+
+on:
+  # As currently structured, this adds too many jobs (checks?), so don't run it
+  # on pull requests yet.
+  push:
+    branches:
+      - master
+      - "**/*metacov*"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+jobs:
+  coverage:
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          # When changing this list, be sure to check the [gh-actions] list in
+          # tox.ini so that tox will run properly.
+          - "3.6"
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "pypy3"
+        exclude:
+          # Windows PyPy doesn't seem to work?
+          - os: windows-latest
+            python-version: "pypy3"
+      # If one job fails, stop the whole thing.
+      fail-fast: true
+
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v2"
+        with:
+          fetch-depth: "0"
+
+      - name: "Set up Python"
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: "${{ matrix.python-version }}"
+
+      - name: "Install dependencies"
+        run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install -r requirements/tox.pip
+
+      - name: "Run tox coverage for ${{ matrix.python-version }}"
+        env:
+          COVERAGE_COVERAGE: "yes"
+          COVERAGE_CONTEXT: "${{ matrix.python-version }}.${{ matrix.os }}"
+        run: |
+          set -xe
+          python -m tox
+
+      - name: "Upload coverage data"
+        uses: actions/upload-artifact@v2
+        with:
+          name: metacov
+          path: .metacov.*
+
+  combine:
+    name: "Combine coverage data"
+    needs: coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Check out the repo"
+        uses: "actions/checkout@v2"
+        with:
+          fetch-depth: "0"
+
+      - name: "Set up Python"
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: "3.8"
+
+      - name: "Install dependencies"
+        run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install -e .
+          python igor.py zip_mods
+
+      - name: "Download coverage data"
+        uses: actions/download-artifact@v2
+        with:
+          name: metacov
+
+      - name: "Combine and report"
+        id: combine
+        env:
+          COVERAGE_RCFILE: "metacov.ini"
+          COVERAGE_METAFILE: ".metacov"
+          COVERAGE_CONTEXT: "yes"
+        run: |
+          set -xe
+          python -m igor combine_html
+          rm htmlcov/.gitignore
+          python -m coverage json
+          echo "::set-output name=total::$(python -c "import json;print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")"
+
+      - name: "Upload to codecov"
+        uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+
+      - name: "Upload HTML report"
+        uses: actions/upload-artifact@v2
+        with:
+          name: html_report
+          path: htmlcov
+
+      - name: "Upload JSON report"
+        uses: actions/upload-artifact@v2
+        with:
+          name: json_report
+          path: coverage.json
+
+      - name: "Create info for pushing to report repo"
+        id: info
+        run: |
+          export SHA10=$(echo ${{ github.sha }} | cut -c 1-10)
+          export SLUG=$(date +'%Y%m%d')_$SHA10
+          export REF="${{ github.ref }}"
+          echo "::set-output name=sha10::$SHA10"
+          echo "::set-output name=slug::$SLUG"
+          echo "::set-output name=url::https://nedbat.github.io/coverage-reports/reports/$SLUG/htmlcov"
+          echo "::set-output name=branch::${REF#refs/heads/}"
+
+      - name: "Push to report repository"
+        uses: sebastian-palma/github-action-push-to-another-repository@allow-creating-destination-directory
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.COVERAGE_REPORTS_TOKEN }}
+        with:
+          source-directory: 'htmlcov'
+          destination-github-username: 'nedbat'
+          destination-repository-name: 'coverage-reports'
+          destination-repository-directory: 'reports/${{ steps.info.outputs.slug }}'
+          empty-repository: false
+          create-destination-directory: true
+          target-branch: main
+          commit-message: >-
+            ${{ steps.combine.outputs.total }}% - ${{ github.event.head_commit.message }}
+
+
+            ${{ steps.info.outputs.url }}
+
+            ${{ steps.info.outputs.sha10 }}: ${{ steps.info.outputs.branch }}
+          user-email: ned@nedbatchelder.com
+
+      - name: "Create redirection HTML file"
+        run: |
+          echo "<html><head>" > coverage-report-redirect.html
+          echo "<meta http-equiv='refresh' content='0;url=${{ steps.info.outputs.url }}' />" >> coverage-report-redirect.html
+          echo "<body>Coverage report redirect..." >> coverage-report-redirect.html
+
+      - name: "Upload HTML redirect"
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report-redirect.html
+          path: coverage-report-redirect.html
+
+      - name: "Show link to report"
+        run: |
+          echo "Coverage report: ${{ steps.info.outputs.url }}"

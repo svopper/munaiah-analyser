@@ -1,0 +1,24 @@
+name: Quick Build
+
+on: push
+
+jobs:
+  build:
+    name: Quick build
+    runs-on: ubuntu-latest
+    steps:
+
+# SETUP BUILD ENVIRONMENT
+    - id: prepare-maven-build
+      name: Prepare Maven build
+      uses: sualeh/prepare-maven-build@v0.0.3
+
+# BUILD AND TEST
+    - id: build-test
+      name: Build all modules and run tests
+      run: |
+        # Build
+        mvn \
+          --no-transfer-progress \
+          --batch-mode \
+          test

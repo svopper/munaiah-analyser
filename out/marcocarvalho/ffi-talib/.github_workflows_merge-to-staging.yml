@@ -1,0 +1,23 @@
+name: "Merge to staging if requested by code review comment"
+on:
+  pull_request_review_comment:
+    types: [created, edited]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: logging
+      run: echo "$GITHUB_REF"
+    - uses: actions/checkout@v1
+      # if: github.event.comment.body == 'merge to staging'
+    - name: Merge to staging
+      uses: CareMessagePlatform/merge-branch@v1.1.0
+      # if: github.event.comment.body == 'merge to staging'
+      with:
+        type: 'now'
+        target_branch: 'staging'
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

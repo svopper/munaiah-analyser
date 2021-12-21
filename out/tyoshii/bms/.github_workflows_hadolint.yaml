@@ -1,0 +1,25 @@
+on:
+  push:
+  pull_request:
+
+name: Dockerfile validation
+
+jobs:
+  docker_validate:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      # see: https://github.com/hadolint/hadolint#configure
+      # see: https://hub.docker.com/r/hadolint/hadolint
+      # see: https://github.com/marketplace/actions/hadolint-action
+      - uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: ./docker/web/Dockerfile
+
+      - uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: ./docker/web/Dockerfile.legacy
+
+      - uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: ./docker/heroku/Dockerfile.heroku

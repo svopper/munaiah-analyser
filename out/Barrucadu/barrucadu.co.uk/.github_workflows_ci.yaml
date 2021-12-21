@@ -1,0 +1,25 @@
+name: Run tests
+
+on: pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.5
+      - uses: actions/setup-python@v2.2.2
+      - name: Lint
+        run: |
+          set -ex
+          pip install flake8 black
+          black -l 100 build
+          flake8 --max-line-length 100 build
+          git diff --exit-code
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.5
+      - uses: actions/setup-python@v2.2.2
+      - name: Check Dependencies
+        run: |
+          pip install -r requirements-freeze.txt

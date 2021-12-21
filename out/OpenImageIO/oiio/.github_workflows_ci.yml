@@ -1,0 +1,858 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
+name: CI
+
+on:
+  push:
+    # Skip jobs when only documentation files are changed
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+  schedule:
+    # Full nightly build
+    - cron: "0 8 * * *"
+
+
+jobs:
+  vfxplatform-2019:
+    name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost1.66 exr2.3 ocio1.1"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2019
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      USE_SIMD: sse4.2
+      PUGIXML_VERSION: v1.9
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  vfxplatform-2020:
+    name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2020
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx
+      WEBP_VERSION: v1.1.0
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  vfxplatform-2021:
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0 qt-5.15"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2021
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 17
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      WEBP_VERSION: v1.1.0
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  vfxplatform-2022:
+    name: "Linux VFX Platform 2022: gcc9/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2022-clang11
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 17
+      PYTHON_VERSION: 3.9
+      USE_SIMD: avx2,f16c
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-gcc7-cpp14-debug:
+    # Test against gcc7, and also at the same time, do a Debug build.
+    name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
+    runs-on: ubuntu-18.04
+    env:
+      CXX: g++-7
+      CMAKE_CXX_STANDARD: 14
+      USE_SIMD: sse4.2
+      OPENEXR_VERSION: v2.4.3
+      CMAKE_BUILD_TYPE: Debug
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-gcc8:
+    # Test against gcc8.
+    name: "Linux gcc8: gcc8 C++17 avx exr2.5"
+    runs-on: ubuntu-18.04
+    env:
+      CXX: g++-8
+      CMAKE_CXX_STANDARD: 17
+      USE_SIMD: avx
+      OPENEXR_VERSION: v2.5.6
+      PYBIND11_VERSION: v2.5.0
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-latest-releases:
+    # Test against latest supported releases of toolchain and dependencies.
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.0"
+    runs-on: ubuntu-20.04
+    env:
+      CXX: g++-10
+      CMAKE_CXX_STANDARD: 17
+      USE_SIMD: avx2,f16c
+      LIBRAW_VERSION: 0.20.2
+      LIBTIFF_VERSION: v4.3.0
+      OPENCOLORIO_VERSION: v2.1.0
+      OPENEXR_VERSION: v3.1.2
+      PUGIXML_VERSION: v1.11.4
+      PTEX_VERSION: v2.4.0
+      PYBIND11_VERSION: v2.8.0
+      PYTHON_VERSION: 3.8
+      WEBP_VERSION: v1.2.1
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.0
+      OPENIMAGEIO_OPTIONS: "openexr:core=1"
+      USE_OPENVDB: 0
+      # The old installed OpenVDB has a TLS conflict with Python 3.8
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-bleeding-edge:
+    # Test against development master for relevant dependencies, latest
+    # supported releases of everything else.
+    name: "Linux bleeding edge: gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2"
+    runs-on: ubuntu-20.04
+    env:
+      CXX: g++-11
+      CMAKE_CXX_STANDARD: 20
+      USE_SIMD: avx2,f16c
+      LIBRAW_VERSION: master
+      LIBTIFF_VERSION: master
+      OPENCOLORIO_VERSION: master
+      OPENEXR_VERSION: master
+      PUGIXML_VERSION: master
+      PTEX_VERSION: main
+      PYBIND11_VERSION: master
+      PYTHON_VERSION: 3.8
+      WEBP_VERSION: master
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      OPENIMAGEIO_OPTIONS: "openexr:core=1"
+      USE_OPENVDB: 0
+      # The old installed OpenVDB has a TLS conflict with Python 3.8
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: CCache
+        id: ccache
+        if: always()
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-oldest:
+    # Oldest versions of the dependencies that we can muster, and various
+    # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
+    name: "Linux oldest/hobbled: gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2019
+    env:
+      CMAKE_CXX_STANDARD: 14
+      USE_SIMD: 0
+      USE_JPEGTURBO: 0
+      USE_OPENCOLORIO: 0
+      USE_OPENCV: 0
+      EMBEDPLUGINS: 0
+      OPENEXR_VERSION: v2.3.0
+      PTEX_VERSION: v2.3.1
+      PYBIND11_VERSION: v2.4.2
+      WEBP_VERSION: v1.0.0
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            sudo rm -rf /usr/local/include/OpenEXR
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  macos-py38:
+    name: "Mac py38"
+    runs-on: macOS-latest
+    env:
+      CXX: clang++
+      PYTHON_VERSION: 3.8
+      CMAKE_CXX_STANDARD: 14
+      ENABLE_FIELD3D: OFF
+      ENABLE_OPENVDB: OFF
+      # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /Users/runner/.ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/install_homebrew_deps.bash
+            src/build-scripts/install_test_images.bash
+      - name: Build
+        run: |
+            export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  windows-vs2019:
+    name: "Windows VS2019"
+    runs-on: windows-2019
+    env:
+      PYTHON_VERSION: 3.7
+      CMAKE_GENERATOR: "Visual Studio 16 2019"
+      OPENEXR_VERSION: v2.5.6
+      USE_SIMD: sse4.2
+      CTEST_ARGS: "--timeout 120 --repeat after-timeout:6"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+      - name: Build setup
+        shell: bash
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        shell: bash
+        run: |
+            src/build-scripts/gh-win-installdeps.bash
+      - name: Build
+        shell: bash
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        shell: bash
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  windows-vs2017:
+    name: "Windows VS2017"
+    runs-on: windows-2016
+    env:
+      PYTHON_VERSION: 3.7
+      CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+      OPENEXR_VERSION: v2.5.6
+      CTEST_ARGS: "--timeout 120 --repeat after-timeout:6"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+      - name: Build setup
+        shell: bash
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        shell: bash
+        run: |
+            src/build-scripts/gh-win-installdeps.bash
+      - name: Build
+        shell: bash
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        shell: bash
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  sanitizer:
+    # Run sanitizers.
+    name: "Sanitizers"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2020
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_PYTHON: 0
+      SANITIZE: address
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-clang10-cpp14:
+    # Test compiling with clang on Linux.
+    name: "Linux clang10: clang10 C++14 avx2 exr2.5 ocio2.0"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021-clang10
+    env:
+      CXX: clang++
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      PYBIND11_VERSION: v2.6.1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-clang11-cpp17:
+    # Test compiling with clang  and C++17 on Linux.
+    name: "Linux clang11: clang11 C++17 avx2 exr3.1 ocio2.0"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021-clang11
+    env:
+      CXX: clang++
+      CMAKE_CXX_STANDARD: 17
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      PYBIND11_VERSION: v2.6.1
+      OPENEXR_VERSION: v3.1.1
+      # Pick an OCIO commit that includes a warning fix we need for clang
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            sudo rm -rf /usr/local/include/OpenEXR
+            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  linux-static:
+    # Test building static libs.
+    name: "Linux static libs: gcc7 C++14 exr2.4"
+    runs-on: ubuntu-18.04
+    env:
+      CXX: g++-7
+      CMAKE_CXX_STANDARD: 14
+      BUILD_SHARED_LIBS: OFF
+      OPENEXR_VERSION: v2.4.3
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            sudo rm -rf /usr/local/include/OpenEXR
+            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  clang-format:
+    # Test formatting. This test entry doesn't do a full build, it just runs
+    # clang-format on everything, and passes if nothing is misformatted.
+    # Upon failure, the build artifact will be the full source code with the
+    # formatting fixed (diffs will also appear in the console output).
+    name: "clang-format verification"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021-clang11
+    env:
+      BUILDTARGET: clang-format
+      PYTHON_VERSION: 3.7
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: src/*/*.{cpp,h}

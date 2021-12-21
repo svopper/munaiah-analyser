@@ -1,0 +1,40 @@
+name: Packaging
+
+on:
+  release:
+    types: [published]
+    
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-package:
+    name: Build conda package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    # If we set the default shell here, it catches the activated conda
+    # and we don't need to keep calling it.
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: Set miniconda up
+        uses: conda-incubator/setup-miniconda@v2.0.1
+        with:
+          auto-update-conda: true
+          python-version: 3.6
+      - name: Install conda build tools
+        run: |
+          conda install conda-build anaconda-client
+      - name: Setup channels
+        run: |
+          conda config --add channels bioconda
+          conda config --add channels conda-forge
+      - name: Build illumiprocessor
+        run: |
+          cd conda
+          conda build illumiprocessor --token ${{ secrets.ANACONDA_TOKEN }} --label phyluce

@@ -1,0 +1,34 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Restore dependencies
+      run: msbuild Caliburn.Light.sln /t:Restore /p:Configuration=Release
+
+    - name: Build
+      run: msbuild Caliburn.Light.sln /p:Configuration=Release
+
+    - name: Pack
+      run: msbuild Caliburn.Light.sln /t:Pack /p:Configuration=Release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: NuGet packages
+        path: bin/platform/**/*.nupkg

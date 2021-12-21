@@ -1,0 +1,84 @@
+name: Test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+env:
+  NODE_VERSION: 14.18.0
+  TF_VERSION: 1.0.7
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:10
+        env:
+          POSTGRES_PASSWORD: 'password'
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: nanasess/setup-chromedriver@master
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache yarn
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: yarn-${{ env.NODE_VERSION }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-${{ env.NODE_VERSION }}-
+
+      - run: ./bin/setup
+
+      - run: RAILS_ENV=test ./bin/rails webpacker:compile
+
+      - run: ./bin/test
+
+      - run: ./bin/quality
+
+      - name: Run git diff
+        run: if [[ $(git status --porcelain) != '' ]]; then git status; git diff; exit 1; fi
+
+  terraform:
+    strategy:
+      matrix:
+        tf_workspace:
+          - terraform/app_environment
+          - terraform/app_global
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.tf_workspace }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -recursive
+
+      - name: Run git diff
+        run: if [[ $(git status --porcelain) != '' ]]; then git status; git diff; exit 1; fi

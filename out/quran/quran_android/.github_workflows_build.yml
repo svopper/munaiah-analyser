@@ -1,0 +1,86 @@
+name: Android Pull Request and Merge
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    needs: [build]
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Run lint
+        run: ./gradlew lintMadaniDebug
+
+      - name: Upload lint results
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: lint_report
+          path: app/build/reports/lint-results-madaniDebug.html
+
+  test:
+    needs: [build]
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Setup JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Run tests
+        run: ./gradlew testMadaniDebug feature:audio:testDebug -PdisableCrashlytics -PdisableFirebase
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: unit_test_report
+          path: app/build/reports/tests/testMadaniDebugUnitTest/
+
+  ui_test:
+    name: Instrumentation tests
+    runs-on: macos-latest
+    steps:
+      - name: Checkout the Code
+        uses: actions/checkout@v2
+
+      - name: Setup JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Run instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 27
+          script: ./gradlew connectedMadaniDebugAndroidTest -PdisableCrashlytics -PdisableFirebase
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the Code
+        uses: actions/checkout@v2
+
+      - name: Setup JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Build debug APK
+        run: ./gradlew assembleMadaniDebug
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx8G -XX:MaxMetaspaceSize=512m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -XX:+UseParallelGC -Dfile.encoding=UTF-8"

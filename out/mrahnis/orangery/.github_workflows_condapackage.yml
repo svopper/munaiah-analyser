@@ -1,0 +1,57 @@
+# Build Conda Package
+
+name: Conda package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Conda package (${{ matrix.os }} py=${{ matrix.python-version }} np=${{ matrix.numpy-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "windows-latest"]
+        python-version: [3.8]
+        numpy-version: [1.19]
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - name: Setup conda cache
+        uses: actions/cache@v2.1.6
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            hashFiles('conda-recipe/environment.yml') }}    
+      - name: Setup miniconda ${{ matrix.python-version }}
+        uses: conda-incubator/setup-miniconda@v2.1.1
+        with:
+          activate-environment: rio
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+          allow-softlinks: true
+          channels: conda-forge, mrahnis
+          show-channel-urls: true
+          channel-priority: strict
+          environment-file: conda-recipe/environment.yml
+          auto-activate-base: false
+          use-only-tar-bz2: true
+      - name: Build conda package
+        shell: pwsh
+        run: |
+          conda config --set always_yes yes --set changeps1 no
+          conda build . --python ${{ matrix.python-version }} --numpy ${{ matrix.python-version }}
+          Copy-Item $env:CONDA_PREFIX\conda-bld -Destination . -Recurse
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-${{ matrix.python-version }}-packages
+          path: conda-bld/noarch/*.tar.bz2
+

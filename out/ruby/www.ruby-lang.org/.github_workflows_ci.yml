@@ -1,0 +1,32 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: build (${{ matrix.ruby }} / ${{ matrix.os }})
+
+    strategy:
+      matrix:
+        ruby: ["3.0"]
+        os: [ubuntu-latest]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Dump environment
+        run: env | sort
+      - name: Checkout ruby/www.ruby-lang.org
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Dump Ruby version
+        run: ruby -v
+      - name: Run tests
+        run: bundle exec rake test

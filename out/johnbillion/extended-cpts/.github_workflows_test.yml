@@ -1,0 +1,67 @@
+name: Test
+on:
+  push:
+    branches:
+      - 'develop'
+      - 'trunk'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        php: ['7.4']
+        wp: ['5.8','5.6']
+      fail-fast: false
+    name: WP ${{ matrix.wp }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v1
+
+    - name: Composer cache
+      uses: actions/cache@v1
+      env:
+        cache-name: composer
+      with:
+        path: ~/.composer/cache
+        key: ${{ matrix.php }}-${{ env.cache-name }}-${{ hashFiles('composer.json') }}
+
+    - name: PHPCS cache
+      uses: actions/cache@v1
+      env:
+        cache-name: phpcs
+      with:
+        path: tests/cache
+        # This uses the hash of extended-cpts.php in its cache key because Actions doesn't support
+        # always pulling in a cache file and simultaneously always updating it, unlike Travis.
+        # This way we always pull in a cache file and refresh it with each new version of the plugin.
+        key: ${{ matrix.php }}-${{ env.cache-name }}-${{ hashFiles('extended-cpts.php') }}
+
+    - name: Install PHP
+      uses: shivammathur/setup-php@2.7.0
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: mysqli, xmlwriter
+        coverage: none
+
+    - name: Debugging
+      run: |
+        php --version
+        php -m
+        composer --version
+        mysql --version
+
+    - name: Install dependencies
+      run: |
+        sudo systemctl start mysql.service
+        composer install --prefer-dist
+        composer require --dev --update-with-dependencies --prefer-dist roots/wordpress="^${{ matrix.wp }}.0" wp-phpunit/wp-phpunit="^${{ matrix.wp }}.0"
+
+    - name: Run the tests
+      run: composer test
+      env:
+        MYSQL_DATABASE: wordpress
+        WP_TESTS_DB_PASS: root

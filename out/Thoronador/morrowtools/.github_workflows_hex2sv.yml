@@ -1,0 +1,44 @@
+name: hex2sv
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cargo rustc
+    - name: Build application
+      run: |
+        cd "$GITHUB_WORKSPACE/tests/hex2sv"
+        cargo build
+    - name: Run tests
+      run: |
+        cd "$GITHUB_WORKSPACE/tests/hex2sv"
+        cargo test
+
+  clippy:
+    runs-on: ubuntu-20.04
+    name: Clippy lints
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: sudo apt-get install -y wget
+    - name: Rustup
+      run: |
+        wget -O /tmp/ru.sh https://sh.rustup.rs
+        chmod u+x /tmp/ru.sh
+        /tmp/ru.sh -y --profile minimal --component clippy
+        source $HOME/.cargo/env
+        export PATH="$HOME/.cargo/bin:$PATH"
+    - name: List installed Rust and Cargo version
+      run: |
+        rustc --version
+        cargo --version
+    - name: Lint with clippy
+      run: |
+        cd "$GITHUB_WORKSPACE/tests/hex2sv"
+        cargo clippy -- -D warnings -A clippy::suspicious_else_formatting

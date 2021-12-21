@@ -1,0 +1,24 @@
+name: Java EA
+
+on: [push]
+
+env:
+  MAVEN_ARGS: -V -B --no-transfer-progress -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+
+jobs:
+  test_jdk_ea:
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [18-ea]
+    name: 'Linux JDK ${{ matrix.java }}'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+      - name: 'Set up JDK'
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: 'Test'
+        run: ./mvnw ${MAVEN_ARGS} -Djacoco.skip=true install -DskipDistribution=true

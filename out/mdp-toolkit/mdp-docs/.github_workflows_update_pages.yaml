@@ -1,0 +1,77 @@
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push request
+on: [push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository mdp-docs
+      - uses: actions/checkout@master
+        with:
+          # whether to configure the token or SSH key with the local git config
+          persist-credentials: false
+          # default value, change to 0 to get the whole history of commits
+          fetch-depth: 1
+     
+      - name: Set up Python
+        # fix the version to make sure that python 2.7 version is supported
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+
+      - name: Install dependencies
+        run: |
+            python -m pip install --upgrade pip
+            pip install sphinx==1.6.4 epydoc==3.0.1 numpy==1.16.6 future==0.18.2 scikit-learn==0.20.4 pp==1.6.5 joblib==0.14.1
+            
+      - name: Get most recent submodule files
+        run: git submodule update --init --recursive
+            
+      # Run the following to build a version with weblinks
+      - name: Run makefile
+        run: make legacywebsite
+      
+      - name: Make output folder
+        run: mkdir output
+
+      - name: Setup SSH keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.WEBSITE_KEY }}"
+
+      - name: Clone master branch
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: git clone --no-checkout git@github.com:mdp-toolkit/mdp-toolkit.github.io.git ./output
+        
+      - name: Replace
+        run: cp -R ./build/html/* ./output
+      
+      - name: Add .nojekyll file
+        run: touch .nojekyll
+        working-directory: ./output
+        
+      - name: Commit and push files
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "MDP Robot"
+          git add --all
+          # Add trigger commit identifier
+          COMMIT_MESSAGE="OTH: Robot build on $GITHUB_REPOSITORY@$(echo ${GITHUB_SHA} | cut -c1-8)"
+          # Check for changes before commit 
+          git diff-index --quiet --cached HEAD -- && echo "No changes!" && exit 0 || echo $COMMIT_MESSAGE
+          git commit -m "${COMMIT_MESSAGE}"
+          git push --force
+        working-directory: ./output

@@ -1,0 +1,159 @@
+name: ci
+
+on:
+  - push
+  - workflow_dispatch
+
+env:
+  MAVEN_FLAGS: "-B --no-transfer-progress"
+  MAVEN_OPTS: "-Xmx2G -XX:+ExitOnOutOfMemoryError -Dmaven.wagon.rto=60000 -Dmaven.wagon.httpconnectionManager.ttlSeconds=25 -Dmaven.wagon.http.retryHandler.count=3"
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  DOCKER_BUILDKIT: 1
+  KB_ADDRESS: 127.0.0.1
+  KB_PORT: 8080
+  AVATAX_URL: ${{ secrets.AVATAX_URL }}
+  AVATAX_ACCOUNT_ID: ${{ secrets.AVATAX_ACCOUNT_ID }}
+  AVATAX_LICENSE_KEY: ${{ secrets.AVATAX_LICENSE_KEY }}
+  AVATAX_COMPANY_CODE: ${{ secrets.AVATAX_COMPANY_CODE }}
+  AVATAX_COMMIT_DOCUMENTS: false
+  AVATAX_TAXRATESAPI_URL: ${{ secrets.AVATAX_TAXRATESAPI_URL }}
+  AVATAX_TAXRATESAPI_ACCOUNT_ID: ${{ secrets.AVATAX_TAXRATESAPI_ACCOUNT_ID }}
+  AVATAX_TAXRATESAPI_LICENSE_KEY: ${{ secrets.AVATAX_TAXRATESAPI_LICENSE_KEY }}
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - ruby-version: '2.4.2'
+            database-adapter: 'mysql2'
+            database-user: 'root'
+            database-password: 'root'
+            database-port: '3306'
+            docker-compose-file: 'docker-compose.ci.mysql.yml'
+            java-version: '8'
+            java-distribution: 'adopt'
+          - ruby-version: '2.4.2'
+            database-adapter: 'postgresql'
+            database-user: 'postgres'
+            database-password: 'postgres'
+            database-port: '5432'
+            docker-compose-file: 'docker-compose.ci.postgresql.yml'
+            java-version: '8'
+            java-distribution: 'adopt'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - name: Install dependencies
+        run: |
+          bundle install --jobs=4 --retry=3
+      - name: Start stack
+        run: |
+          cd docker
+          docker-compose -p it -f ${{ matrix.docker-compose-file }} up --no-start
+          docker start it_db_1
+      - name: Wait for MySQL
+        if: ${{ matrix.docker-compose-file == 'docker-compose.ci.mysql.yml' }}
+        run: |
+          set +e
+          count=0
+          until mysqladmin ping -h 127.0.0.1 -u root --password=root --silent; do
+            if [[ "$count" == "25" ]]; then
+              exit 1
+            fi
+            (( count++ ))
+            printf '.'
+            sleep 5
+          done
+          set -e
+      - name: Wait for PostgreSQL
+        if: ${{ matrix.docker-compose-file == 'docker-compose.ci.postgresql.yml' }}
+        run: |
+          set +e
+          count=0
+          until $(psql -h 127.0.0.1 -U postgres -p 5432 -l > /dev/null); do
+            if [[ "$count" == "25" ]]; then
+              exit 1
+            fi
+            (( count++ ))
+            printf '.'
+            sleep 5
+          done
+          set -e
+      - name: Install plugin specific MySQL DDL
+        if: ${{ matrix.docker-compose-file == 'docker-compose.ci.mysql.yml' }}
+        run: |
+          curl https://raw.githubusercontent.com/killbill/killbill-avatax-plugin/master/src/main/resources/ddl.sql | mysql -h 127.0.0.1 -u root --password=root killbill
+          curl https://raw.githubusercontent.com/killbill/killbill-payment-test-plugin/master/src/main/resources/ddl.sql | mysql -h 127.0.0.1 -u root --password=root killbill
+          curl https://raw.githubusercontent.com/killbill/killbill-email-notifications-plugin/master/src/main/resources/ddl.sql | mysql -h 127.0.0.1 -u root --password=root killbill
+      - name: Install plugin specific PostgreSQL DDL
+        if: ${{ matrix.docker-compose-file == 'docker-compose.ci.postgresql.yml' }}
+        run: |
+          curl https://raw.githubusercontent.com/killbill/killbill-avatax-plugin/master/src/main/resources/ddl.sql | psql -h 127.0.0.1 -U postgres -p 5432 -d killbill
+          curl https://raw.githubusercontent.com/killbill/killbill-payment-test-plugin/master/src/main/resources/ddl.sql | psql -h 127.0.0.1 -U postgres -p 5432 -d killbill
+          curl https://raw.githubusercontent.com/killbill/killbill-email-notifications-plugin/master/src/main/resources/ddl.sql | psql -h 127.0.0.1 -U postgres -p 5432 -d killbill
+      - name: Start Kill Bill
+        # Sometimes it gets stuck (if Kill Bill starts when the DB isn't ready?)
+        timeout-minutes: 4
+        run: |
+          docker start it_killbill_1
+          count=0
+          until $(curl --connect-timeout 10 --max-time 30 --output /dev/null --silent --fail http://${KB_ADDRESS}:${KB_PORT}/1.0/healthcheck); do
+            if [[ "$count" == "180" ]]; then
+              exit 64
+            fi
+            count=$(( count + 1 ))
+            sleep 1
+          done
+          curl --connect-timeout 10 --max-time 30 -v \
+               -X POST \
+               -u admin:password \
+               -H 'Content-Type: application/json' \
+               -H 'X-Killbill-CreatedBy: GitHub' \
+               -d '{"apiKey": "bob", "apiSecret": "lazar"}' \
+               "http://${KB_ADDRESS}:${KB_PORT}/1.0/kb/tenants"
+      - name: Run core tests
+        env:
+          DB_ADAPTER: ${{ matrix.database-adapter }}
+          DB_USER: ${{ matrix.database-user }}
+          DB_PASSWORD: ${{ matrix.database-password }}
+          DB_PORT: ${{ matrix.database-port }}
+        run: |
+          bundle exec rake test:core TESTOPTS="--stop-on-failure"
+      - name: Run plugins tests
+        env:
+          DB_ADAPTER: ${{ matrix.database-adapter }}
+          DB_USER: ${{ matrix.database-user }}
+          DB_PASSWORD: ${{ matrix.database-password }}
+          DB_PORT: ${{ matrix.database-port }}
+        run: |
+          # https://github.com/killbill/killbill-integration-tests/issues/43
+          #bundle exec rake test:plugins TESTOPTS="--stop-on-failure"
+          bundle exec rake test:plugins:avatax TESTOPTS="--stop-on-failure"
+      - name: Debugging after failure
+        if: failure()
+        run: |
+          echo "[DEBUG] killbill healthcheck"
+          curl --connect-timeout 10 --max-time 30 -v http://${KB_ADDRESS}:${KB_PORT}/1.0/healthcheck || true
+          echo "[DEBUG] hostname"
+          hostname
+          echo "[DEBUG] netstat -tulpn"
+          sudo netstat -tulpn
+          echo "[DEBUG] docker network ls"
+          docker network ls
+          echo "[DEBUG] docker ps -a"
+          docker ps -a
+          echo "[DEBUG] killbill env"
+          docker exec it_killbill_1 env || true
+          echo "[DEBUG] db env"
+          docker exec it_db_1 env || true
+          echo "[DEBUG] killbill logs"
+          docker logs -t --details it_killbill_1 || true
+          echo "[DEBUG] db logs"
+          docker logs -t --details it_db_1 || true

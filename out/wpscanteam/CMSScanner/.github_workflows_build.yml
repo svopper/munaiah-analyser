@@ -1,0 +1,42 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby: [2.5, 2.6, 2.7, 3.0]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+
+    - name: Set up Ruby ${{ matrix.ruby }}
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+
+    - name: Install GEMs
+      run: |
+        gem install bundler
+        bundle config force_ruby_platform true
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+
+    - name: rubocop
+      run: |
+        bundle exec rubocop
+
+    - name: rspec
+      run: |
+        bundle exec rspec
+
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      continue-on-error: true
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}

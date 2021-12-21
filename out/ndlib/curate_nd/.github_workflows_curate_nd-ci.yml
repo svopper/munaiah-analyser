@@ -1,0 +1,43 @@
+name: curate_nd-ci
+on:
+  push:
+jobs:
+  test-curate_nd:
+    runs-on: ubuntu-18.04
+
+    # use github hubs to manage service containers
+    services:
+      mariadb:
+        image: mariadb
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: curate_nd_test
+        ports:
+          - 3306:3306
+
+      jetty:
+        image: ndlib/curate-jetty
+        ports:
+          - 8983:8983
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
+    - name: Install bundler
+      run: gem install bundler -v 1.17.3
+
+    - name: Install bundled dependencies
+      run: bundle install --without headless debug
+
+    - name: stop local  mysql
+      run: sudo service mysql stop
+
+    - name: Run CI_PREP
+      run: RAILS_ENV=ci bundle exec rake curatend:ci_prep
+
+    - name: Run CI Tests 
+      run:  bundle exec rake spec RAILS_ENV=ci

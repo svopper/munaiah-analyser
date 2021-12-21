@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        ruby: [ 2.5, 2.6, 2.7, 3.0, jruby, truffleruby-head ]
+      fail-fast: false
+      max-parallel: 10
+    runs-on: ubuntu-latest
+
+    env:
+      CI: true
+
+    name: ${{ matrix.ruby }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: ${{ matrix.ruby }}
+      - run: bundle exec rake

@@ -1,0 +1,155 @@
+name: CI
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#concurrency
+# https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types#pullrequestevent
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.type }}
+  cancel-in-progress: true
+
+on: [push, pull_request]
+
+jobs:
+  # build website
+  website:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+
+      - name: Prepare System Environment
+        run: |
+          # opengl system libraries
+          sudo apt-get update
+          # Additional latex dependencies
+          sudo apt-get -y install texlive-xetex texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra latexmk
+          sudo apt-get -y install dvipng
+
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
+          environment-file: continuous_integration/environment.yaml
+          activate-environment: test-environment
+
+      - name: Install Polar2Grid
+        shell: bash -l {0}
+        run: |
+          pip install --no-deps -e .
+
+      - name: Build Polar2Grid Website
+        shell: bash -l {0}
+        run: |
+          cd doc
+          make clean
+          make html SPHINXOPTS="-W --keep-going"
+
+      - name: Build Geo2Grid Website
+        shell: bash -l {0}
+        run: |
+          cd doc
+          make clean
+          make html POLAR2GRID_DOC="geo" SPHINXOPTS="-W --keep-going"
+
+      - name: Build Polar2Grid PDF
+        shell: bash -l {0}
+        run: |
+          cd doc
+          make clean
+          make latexpdf SPHINXOPTS="-W --keep-going"
+
+      - name: Build Geo2Grid PDF
+        shell: bash -l {0}
+        run: |
+          cd doc
+          make clean
+          make latexpdf POLAR2GRID_DOC="geo" SPHINXOPTS="-W --keep-going"
+
+#      - name: deploy website
+#        if: github.event_name == 'push'
+#        uses: peaceiris/actions-gh-pages@v3
+#        with:
+#          personal_token: ${{ secrets.VISPY_WEBSITE_TOKEN }}
+#          publish_dir: doc/_build/html
+#          publish_branch: main
+#          cname: vispy.org
+#          allow_empty_commit: true
+#          external_repository: vispy/vispy.github.com
+#          full_commit_message: "Deploy vispy.org website for SHA:$GITHUB_SHA (Tag: $GITHUB_REF)"
+
+  test:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: ["3.8"]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+      OS: ${{ matrix.os }}
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
+          python-version: ${{ matrix.python-version }}
+          environment-file: continuous_integration/environment.yaml
+          activate-environment: test-environment
+
+      - name: Install Polar2Grid on non-Windows
+        shell: bash -l {0}
+        run: |
+          pip install git+https://github.com/pytroll/satpy.git
+          pip install --no-deps -e .
+        if: runner.os != 'Windows'
+
+      - name: Run unit tests on non-Windows
+        shell: bash -l {0}
+        run: |
+          pytest --cov=polar2grid polar2grid/tests --cov-report=
+          polar2grid --help
+          geo2grid --help
+        if: runner.os != 'Windows'
+
+      - name: Install Polar2Grid on Windows
+        shell: powershell
+        run: |
+          pip install git+https://github.com/pytroll/satpy.git
+          pip install --no-deps -e .
+        if: runner.os == 'Windows'
+
+      - name: Run unit tests on Windows
+        shell: powershell
+        run: |
+          pytest --cov=polar2grid polar2grid/tests --cov-report=
+          polar2grid --help
+          geo2grid --help
+        if: runner.os == 'Windows'
+
+      - name: Coveralls Parallel
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          flag-name: run-${{ matrix.test_number }}
+          parallel: true
+        if: runner.os == 'Linux'
+
+  coveralls:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          parallel-finished: true

@@ -1,0 +1,98 @@
+---
+env:
+  # The following variable should be set to the same value as in the Makefile at the root of the repository
+  GEOSERVER_EXTENSION_PROFILES: colormap,mbtiles,wps-download,app-schema,control-flow,csw,inspire,libjpeg-turbo,monitor,pyramid,wps,css,s3-geotiff,jp2k,authkey,mapstore2,mbstyle,ogcapi,web-resource,flatgeobuf,sldservice
+
+name: "geoserver"
+on:
+  push:
+    paths:
+      - "commons/**"
+      - "geoserver/**"
+  pull_request:
+    paths:
+      - "commons/**"
+      - "geoserver/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+    - name: "Checking out"
+      uses: actions/checkout@v1
+
+    - name: "Checking out submodules"
+      run: git submodule update --init --recursive geoserver/geoserver-submodule
+
+    - name: "Setting up Java"
+      uses: actions/setup-java@v1
+      with:
+        java-version: '8.x'
+
+    - name: "Configuring Maven"
+      run: |
+          mkdir -p $HOME/.m2
+          cp .github/resources/m2-settings.xml $HOME/.m2/settings.xml
+
+    - name: "Maven repository caching"
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: "Installing & checking formatting"
+      run: ./mvnw --no-transfer-progress -B -P-all,geoserver,geofence -Dfmt.skip=true install -Dadditionalparam=-Xdoclint:none -DskipTests
+
+    - name: "Running tests"
+      working-directory: geoserver/
+      run: ../mvnw --no-transfer-progress clean verify -Pit -Dfmt.skip=true -Dadditionalparam=-Xdoclint:none
+
+    - name: Getting image tag
+      if: github.repository == 'georchestra/georchestra'
+      id: version
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
+    - name: "Building docker image with native security"
+      if: github.repository == 'georchestra/georchestra'
+      working-directory: geoserver/webapp
+      run: ../../mvnw --no-transfer-progress clean package docker:build -Pdocker,log4j-logstash,sentry-log4j,${{ env.GEOSERVER_EXTENSION_PROFILES }} -DdockerImageName=georchestra/geoserver:${{ steps.version.outputs.VERSION }} -DskipTests
+
+
+    - name: "Building docker image with geofence"
+      if: github.repository == 'georchestra/georchestra'
+      working-directory: geoserver/webapp
+      run: ../../mvnw --no-transfer-progress clean package docker:build -Pdocker,${{ env.GEOSERVER_EXTENSION_PROFILES }},geofence,log4j-logstash,sentry-log4j -DdockerImageName=georchestra/geoserver:${{ steps.version.outputs.VERSION }}-geofence -DskipTests
+
+    - name: "Logging in docker.io"
+      uses: azure/docker-login@v1
+      if: github.repository == 'georchestra/georchestra'
+      with:
+        username: '${{ secrets.DOCKER_HUB_USERNAME }}'
+        password: '${{ secrets.DOCKER_HUB_PASSWORD }}'
+
+    - name: "Pushing latest to docker.io"
+      if: github.ref == 'refs/heads/master' && github.repository == 'georchestra/georchestra'
+      run: |
+        docker tag georchestra/geoserver:${{ steps.version.outputs.VERSION }} georchestra/geoserver:latest
+        docker tag georchestra/geoserver:${{ steps.version.outputs.VERSION }}-geofence georchestra/geoserver:geofence
+        docker push georchestra/geoserver:latest
+        docker push georchestra/geoserver:geofence
+
+    - name: "Pushing release branch to docker.io"
+      if: contains(github.ref, 'refs/heads/20.') && github.repository == 'georchestra/georchestra'
+      run: |
+        docker push georchestra/geoserver:${{ steps.version.outputs.VERSION }}
+        docker push georchestra/geoserver:${{ steps.version.outputs.VERSION }}-geofence
+
+    - name: "Pushing release tag to docker.io"
+      if: contains(github.ref, 'refs/tags/20.') && github.repository == 'georchestra/georchestra'
+      run: |
+        docker push georchestra/geoserver:${{ steps.version.outputs.VERSION }}
+        docker push georchestra/geoserver:${{ steps.version.outputs.VERSION }}-geofence
+
+    - name: "Remove SNAPSHOT jars from repository"
+      run: |
+        find .m2/repository -name "*SNAPSHOT*" -type d | xargs rm -rf {}

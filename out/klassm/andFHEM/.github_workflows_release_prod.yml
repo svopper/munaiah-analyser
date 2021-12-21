@@ -1,0 +1,51 @@
+name: Release Prod
+on:
+  repository_dispatch:
+    types: [deploy_prod]
+
+  workflow_dispatch:
+    inputs:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    if: github.actor == github.event.repository.owner.login
+
+    steps:
+      - name: Configure SSH keys
+        env:
+          deployment_private_key: ${{ secrets.deployment_private_key }}
+        run: |
+          mkdir ~/.ssh
+          echo "${{ secrets.deployment_private_key }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Checkout
+        run: git clone git@github.com:klassm/andFHEM.git
+
+      - name: set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+
+      - name: Release
+        run: |
+          PWD="$(pwd)"
+          mkdir -p ~/.gradle
+          touch ~/.gradle/gradle.properties
+          RELEASE_JSON_FILE="${PWD}/play-store.json"
+          echo "${{ secrets.ANDFHEMPLAYUPLOADRELEASEBASE64JSON }}" | base64 --decode > "${RELEASE_JSON_FILE}"
+
+          echo "andFHEMReleaseStorePassword=${{ secrets.andFHEMReleaseStorePassword }}" >> ~/.gradle/gradle.properties
+          echo "andFHEMReleaseAliasPassword=${{ secrets.andFHEMReleaseAliasPassword }}" >> ~/.gradle/gradle.properties
+          echo "andFHEMGithubToken=${{ secrets.andFHEMGithubToken }}" >> ~/.gradle/gradle.properties
+          echo "andFHEMReleaseAccount=${{ secrets.andFHEMReleaseAccount }}" >> ~/.gradle/gradle.properties
+          echo "andFHEMPlayServiceAccountCredentials=${RELEASE_JSON_FILE}" >> ~/.gradle/gradle.properties
+
+          cd andFHEM
+          git config user.email "andFHEM@klass.i"
+          git config user.name "AndFHEM"
+          ./gradlew clean release -Dstage=production

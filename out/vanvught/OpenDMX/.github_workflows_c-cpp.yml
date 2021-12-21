@@ -1,0 +1,26 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install arm-none-eabi
+      run: sudo apt install gcc-arm-none-eabi
+    - name: version
+      run: arm-none-eabi-g++ --version
+    - name: Install U-Boot tools
+      run: sudo apt install u-boot-tools
+    - name: make
+      run: |
+        cd scripts
+        ./build_h3-firmware.sh

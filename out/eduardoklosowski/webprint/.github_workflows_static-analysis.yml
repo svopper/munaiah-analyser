@@ -1,0 +1,40 @@
+name: Static Analysis
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configura Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Configura Poetry
+        uses: Gr1N/setup-poetry@v7
+
+      - name: Instala ambiente
+        run: |
+          poetry export --dev > requirements.txt
+          pip install -r requirements.txt
+
+      - name: Poetry
+        run: poetry check -n
+
+      - name: flake8
+        run: flake8 .
+
+      - name: isort
+        run: isort --check -diff .
+
+      - name: django check
+        run: DEBUG=True ./manage.py check

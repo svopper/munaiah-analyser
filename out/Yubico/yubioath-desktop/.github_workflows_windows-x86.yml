@@ -1,0 +1,153 @@
+name: windows 32bit
+
+on: [push, pull_request]
+
+env:
+  PYTHON_VER_DIRNAME: 'python38'
+  PYOTHERSIDE_VER: '1.5.9'
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.8.x'
+          architecture: 'x86'
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2.10.0
+        with:
+          version: '5.14.1'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win32_msvc2017'
+          aqtversion: '==0.9.7'
+
+      - name: Download dependencies
+        run: |
+          $py_ver = python -V
+          $py_ver -match "python (?<content>.*)"
+          $version = $matches['content']
+          wget https://download.qt.io/official_releases/jom/jom.zip -OutFile jom.zip
+          wget https://github.com/thp/pyotherside/archive/$env:PYOTHERSIDE_VER.zip -OutFile pyotherside-$env:PYOTHERSIDE_VER.zip
+          wget https://www.python.org/ftp/python/$version/python-$version-embed-win32.zip -OutFile python-$version-embed-win32.zip
+        shell: powershell
+
+      - name: Fetch GPG keys
+        run: gpg --no-default-keyring --keyring yubico --keyserver hkps://keys.openpgp.org --recv-keys 0A3B0262BCA1705307D5FF06BCA00FD4B2168C0A
+
+      - name: Install swig
+        run: choco install swig
+
+      - name: Install jom
+        run: |
+          7z x jom.zip
+        shell: powershell
+
+      - name: Prepare pyotherside
+        run: |
+          $py_ver = python -V
+          $py_ver -match "python (?<content>.*)"
+          $version = $matches['content']
+          7z x pyotherside-$env:PYOTHERSIDE_VER.zip
+          cd pyotherside-$env:PYOTHERSIDE_VER
+          (Get-Content .\src\qmldir).replace('pyothersideplugin', 'pyothersideplugin1') | Set-Content .\src\qmldir
+          Clear-Content python.pri
+          Add-Content python.pri "PYTHON_CONFIG = python3-config`nQMAKE_LIBS += -LC:\hostedtoolcache\windows\Python\$version\x86\libs -l$env:PYTHON_VER_DIRNAME`nQMAKE_CXXFLAGS += -IC:\hostedtoolcache\windows\Python\$version\x86\include`n"
+        shell: powershell
+
+      - name: Build and install pyotherside
+        run: |
+          set PATH=D:\a\yubioath-desktop\yubioath-desktop\5.14.1\msvc2017\bin;D:\a\yubioath-desktop\yubioath-desktop;%PATH%
+          call C:\"Program Files (x86)\Microsoft Visual Studio"\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat x86
+          cd pyotherside-%PYOTHERSIDE_VER%
+          qmake
+          jom
+          jom install
+        shell: cmd
+
+      - name: Build app
+        run: |
+          $py_ver = python -V
+          $py_ver -match "python (?<content>.*)"
+          $version = $matches['content']
+          set PATH=C:\hostedtoolcache\windows\Python\$version\x86\Scripts;C:\hostedtoolcache\windows\Python\$version\x86;D:\a\yubioath-desktop\yubioath-desktop\5.14.1\msvc2017\bin;D:\a\yubioath-desktop\yubioath-desktop;%PATH%
+          call C:\"Program Files (x86)\Microsoft Visual Studio"\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat x86
+          qmake
+          jom
+        shell: cmd
+
+      - name: Run windeployqt
+        run: |
+          set PATH=D:\a\yubioath-desktop\yubioath-desktop\5.14.1\msvc2017\bin;D:\a\yubioath-desktop\yubioath-desktop;%PATH%
+          call C:\"Program Files (x86)\Microsoft Visual Studio"\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat x86
+          windeployqt .\release\yubioath-desktop.exe --qmldir=.\qml --no-translations --angle --release
+        shell: cmd
+
+      - name: Copy over files to release folder
+        run: |
+          $py_ver = python -V
+          $py_ver -match "python (?<content>.*)"
+          $version = $matches['content']
+          Copy-Item .\pymodules .\release -recurse
+          Get-ChildItem -File -Include *.pyc -Recurse | Remove-Item -Force
+          Get-ChildItem -Include __pycache__ -Recurse | Remove-Item -Force
+          Get-ChildItem -Include *.cpp -Recurse | Remove-Item -Force
+          Get-ChildItem -Include *.obj -Recurse | Remove-Item -Force
+          cd .\release
+          7z x ..\python-$version-embed-win32.zip
+      - name: Create .zip artifact
+        run: |
+          $arr = $env:GITHUB_REF -split '/'
+          $branch = $arr[2]
+          7z a yubioath-desktop-$branch-win32.zip .\release
+          mkdir deploy
+          cp yubioath-desktop-$branch-win32.zip deploy
+        shell: powershell
+
+      - name: Install Visual Studio C++ 2019 Redistributable MSMs
+        continue-on-error: true
+        shell: cmd
+        run: |
+          choco install visualstudio2019community --package-parameters "--add Microsoft.VisualStudio.Component.VC.Redist.MSM"
+
+      - name: Create an unsigned .msi installer package
+        continue-on-error: true
+        run: |
+          $env:PATH += ";$env:WIX\bin"
+          $env:SRCDIR = ".\release\"
+          $env:MERGEDPATH = Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\14.*\MergeModules\Microsoft_VC142_CRT_x86.msm"
+          heat dir .\release -out fragment.wxs -gg -scom -srd -sfrag -dr INSTALLDIR -cg ApplicationFiles -var env.SRCDIR
+          candle .\fragment.wxs .\resources\win\yubioath-desktop-x86.wxs -ext WixUtilExtension -arch x86
+          light fragment.wixobj yubioath-desktop-x86.wixobj -ext WixUIExtension -ext WixUtilExtension -o yubioath-desktop-x86.msi
+          cp yubioath-desktop-x86.msi deploy
+
+      - name: Run installer
+        continue-on-error: true
+        shell: cmd
+        run: |
+          msiexec /i yubioath-desktop-x86.msi /quiet /l .\log.txt
+          cat .\log.txt
+
+      - name: Rename installer
+        continue-on-error: true
+        run: |
+          $arr = $env:GITHUB_REF -split '/'
+          $branch = $arr[2]
+          mv .\deploy\yubioath-desktop-x86.msi .\deploy\yubioath-desktop-$branch-win32.msi
+
+      - name: Run GUI
+        shell: bash
+        run: |
+          ./release/yubioath-desktop --version
+          ./release/yubioath-desktop --help
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: yubioath-desktop-win32
+          path: deploy

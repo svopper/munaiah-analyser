@@ -1,0 +1,23 @@
+name: Issues - Exceptions
+
+on:
+  schedule:
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: 'Analyze and report exceptions'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - run: az extension add --name application-insights
+
+      - run: ./#scripts/github-actions/New-IssuesFromAppInsightsExceptions.ps1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh

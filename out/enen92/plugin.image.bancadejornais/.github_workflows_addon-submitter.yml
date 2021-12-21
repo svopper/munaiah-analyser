@@ -1,0 +1,79 @@
+name: Kodi Addon-Submitter
+
+on:
+  create:
+    tags:
+      - v*
+
+jobs:
+  kodi-addon-submitter:
+    runs-on: ubuntu-latest
+    name: Kodi addon submitter
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Kodi addon checker validation (krypton)
+      id: kodi-addon-checker-krypton
+      uses: xbmc/action-kodi-addon-checker@v1.2
+      with:
+        kodi-version: krypton
+        is-pr: true
+        addon-id: ${{ github.event.repository.name }}
+        rewrite-for-matrix: false
+
+    - name: Kodi addon checker validation (matrix)
+      id: kodi-addon-checker-matrix
+      uses: xbmc/action-kodi-addon-checker@v1.2
+      with:
+        kodi-version: matrix
+        is-pr: true
+        addon-id: ${{ github.event.repository.name }}
+        rewrite-for-matrix: true
+
+    - name: Generate distribution zip and submit to official kodi repository
+      id: kodi-addon-submitter
+      uses: xbmc/action-kodi-addon-submitter@v1.2
+      with: # Replace all the below values
+        kodi-repository: repo-plugins
+        kodi-version: krypton
+        addon-id: ${{ github.event.repository.name }}
+        kodi-matrix: true
+      env: # Make sure you create the below secrets (GH_TOKEN and EMAIL)
+        GH_USERNAME: ${{ github.actor }}
+        GH_TOKEN: ${{secrets.GH_TOKEN}}
+        EMAIL: ${{secrets.EMAIL}}
+
+    - name: Create Github Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Addon zip to github release (krypton)
+      id: upload-release-asset-krypton
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.kodi-addon-submitter.outputs.addon-zip }}
+        asset_name: ${{ steps.kodi-addon-submitter.outputs.addon-zip }}
+        asset_content_type: application/zip
+
+    - name: Upload Addon zip to github release (matrix)
+      id: upload-release-asset-matrix
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.kodi-addon-submitter.outputs.addon-zip-matrix }}
+        asset_name: ${{ steps.kodi-addon-submitter.outputs.addon-zip-matrix }}
+        asset_content_type: application/zip

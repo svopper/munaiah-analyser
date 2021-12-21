@@ -1,0 +1,48 @@
+name: Run tests
+
+on: [push]
+
+env:
+  RUBY_VERSION: 3.0.2
+
+jobs:
+  rspec-test:
+    name: RSpec
+    runs-on: ubuntu-latest
+    env:
+      ZANTOP_DATABASE_USER: postgres
+      ZANTOP_DATABASE_PASSWORD: postgres
+    services:
+      postgres:
+        image: postgres:13.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        # tmpfs makes DB faster by using RAM
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - name: Install postgres client
+        run: sudo apt-get install libpq-dev
+      - name: Install dependencies
+        run: |
+          gem install bundler
+          bundler install
+      - name: Create database
+        run: |
+          bundle exec rails db:test:prepare --trace
+      - name: Run tests
+        run: |
+          bundler exec rake

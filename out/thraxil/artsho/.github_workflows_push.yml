@@ -1,0 +1,10 @@
+on: push
+name: run tests
+jobs:
+  buildDockerImage:
+    name: Build docker image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Build docker image
+      run: docker build -t thraxil/artsho:${{ github.sha }} .

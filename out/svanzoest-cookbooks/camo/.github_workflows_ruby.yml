@@ -1,0 +1,22 @@
+name: Ruby
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Ruby 2.6
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: 2.6.x
+    - name: Build and test with Foodcritic, Rubocop and Rspec
+      run: |
+        gem install bundler
+        bundle install --jobs 4 --retry 3 --without integration development
+        bundle exec foodcritic -f any . --tags ~FC007 --tags ~FC015 --tags ~FC023 --tags ~FC071
+        bundle exec rubocop
+        bundle exec rspec --color --format progress

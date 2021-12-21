@@ -1,0 +1,60 @@
+# https://github.com/actions/setup-python
+
+name: Test
+
+on:
+  push:
+  schedule:
+    - cron: '0 8 * * *'
+
+jobs:
+  test:
+    name: 'Python ${{ matrix.python-version }} on ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUNBUFFERED: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.9, 3.8, 3.7, 3.6]
+        os: [ubuntu-latest, macOS-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: 'Set up Python ${{ matrix.python-version }}'
+      uses: actions/setup-python@v2
+      with:
+        python-version: '${{ matrix.python-version }}'
+
+    - name: 'Install package'
+      run: |
+        make install-poetry
+        source $HOME/.poetry/env
+        poetry lock
+        poetry show --tree
+        make install
+        pip3 install tox-gh-actions
+
+    - name: 'List installed packages'
+      run: |
+        source $HOME/.poetry/env
+        poetry run pip freeze
+
+    - name: 'List all tox test environments'
+      run: |
+        source $HOME/.poetry/env
+        make tox-listenvs
+
+    - name: 'Run tests with Python v${{ matrix.python-version }}'
+      run: |
+        source $HOME/.poetry/env
+        make tox
+
+    - name: 'Upload coverage report'
+      run: bash <(curl -s https://codecov.io/bash)
+
+    - name: 'Run linters'
+      if: matrix.python-version == '3.8'
+      run: |
+        source $HOME/.poetry/env
+        make lint
+

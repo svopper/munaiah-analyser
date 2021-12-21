@@ -1,0 +1,59 @@
+name: App Checks
+
+on:
+  # Trigger on any push to the main branch (ie, PR merge)
+  push:
+    branches:
+      - main
+  # Trigger on any push to a PR based off of main
+  pull_request:
+    branches:
+      - main
+
+env:
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGHOST: localhost
+  PGPORT: 5432
+
+jobs:
+  checks:
+    runs-on: ubuntu-20.04
+
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1 # Should read from .ruby-version file
+        with:
+          bundler-cache: true # Runs bundle and caches gems
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Run rubocop
+        run: bundle exec rubocop
+
+      - name: Cache Node Modules
+        id: node-cache
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('yarn.lock') }}
+
+      - name: Yarn install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: yarn install
+
+      - name: Set up test database
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:create db:schema:load
+
+      - name: Run tests
+        run: bundle exec rails test:all

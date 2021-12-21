@@ -1,0 +1,376 @@
+name: CI build
+on: push
+jobs:
+  unit-tests:
+    name: Unit tests
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Run unit tests using PHPUnit
+        run: vendor/bin/phpunit --verbose
+
+  integration-tests-mongodb-gridfs:
+    name: Integration tests (MongoDB / GridFS)
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Start PHP web server
+        run: |
+          mkdir -p build/logs
+          php -S localhost:8080 -t ./public features/bootstrap/router.php > build/logs/httpd.log 2>&1 &
+
+      - name: Run integration tests using Behat
+        run: vendor/bin/behat --strict --suite=mongodb-gridfs
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: httpd-logs-mongodb-gridfs
+          path: build/logs
+
+  integration-tests-mongodb-filesystem:
+    name: Integration tests (MongoDB / Filesystem)
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Start PHP web server
+        run: |
+          mkdir -p build/logs
+          php -S localhost:8080 -t ./public features/bootstrap/router.php > build/logs/httpd.log 2>&1 &
+
+      - name: Run integration tests using Behat
+        run: vendor/bin/behat --strict --suite=mongodb-filesystem
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: httpd-logs-mongodb-filesystem
+          path: build/logs
+
+  integration-tests-sqlite-filesystem:
+    name: Integration tests (SQLite / Filesystem)
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Create tables
+        run: sqlite3 /tmp/imbo-sqlite-integration-test.sq3 < ./vendor/imbo/imbo-sqlite-adapters/setup/000-imbo.sql
+
+      - name: Start PHP web server
+        run: |
+          mkdir -p build/logs
+          php -S localhost:8080 -t ./public features/bootstrap/router.php > build/logs/httpd.log 2>&1 &
+
+      - name: Run integration tests using Behat
+        run: vendor/bin/behat --strict --suite=sqlite-filesystem
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: httpd-logs-sqlite-filesystem
+          path: build/logs
+
+  integration-tests-mysql-filesystem:
+    name: Integration tests (MySQL / Filesystem)
+
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+        mysql-versions: ['8.0.20']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+      mysql:
+        image: mysql:${{ matrix.mysql-versions }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: imbo_test
+          MYSQL_USER: imbo_test
+          MYSQL_PASSWORD: imbo_test
+        ports:
+          - 3333:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Create database tables
+        run: mysql -uimbo_test -pimbo_test -h127.0.0.1 -P3333 imbo_test < ./vendor/imbo/imbo-mysql-adapters/setup/000-imbo.sql
+
+      - name: Start PHP web server
+        run: |
+          mkdir -p build/logs
+          php -S localhost:8080 -t ./public features/bootstrap/router.php > build/logs/httpd.log 2>&1 &
+
+      - name: Run integration tests using Behat
+        run: vendor/bin/behat --strict --suite=mysql-filesystem
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: httpd-logs-mysql-filesystem
+          path: build/logs
+
+  integration-tests-postgresql-filesystem:
+    name: Integration tests (PostgreSQL / Filesystem)
+
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-20.04']
+        php-versions: ['7.4', '8.0']
+        mongodb-versions: ['5.0.2']
+
+    runs-on: ${{ matrix.operating-system }}
+
+    services:
+      mongodb:
+        image: mongo:${{ matrix.mongodb-versions }}
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+
+      postgreql:
+        image: postgres
+        env:
+          POSTGRES_USER: imbo_test
+          POSTGRES_PASSWORD: imbo_test
+        ports:
+          - 5555:5432
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: imagick
+
+      - uses: actions/checkout@v2
+
+      - name: Get Composer Cache Directory
+        id: composer-cache-dir
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Create database tables
+        run: psql postgresql://imbo_test:imbo_test@127.0.0.1:5555/imbo_test -f ./vendor/imbo/imbo-postgresql-adapters/setup/000-imbo.sql
+
+      - name: Start PHP web server
+        run: |
+          mkdir -p build/logs
+          php -S localhost:8080 -t ./public features/bootstrap/router.php > build/logs/httpd.log 2>&1 &
+
+      - name: Run integration tests using Behat
+        run: vendor/bin/behat --strict --suite=postgresql-filesystem
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: httpd-logs-postgresql-filesystem
+          path: build/logs

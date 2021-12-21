@@ -1,0 +1,129 @@
+name: Test Kitchen
+on:
+  - push
+  - pull_request
+jobs:
+  kitchen:
+    name: Test Kitchen
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        suite:
+          - accounts
+          - apache
+          - apt
+          - backup
+          - bind
+          - blog
+          - blogs
+          - civicrm
+          - clamav
+          - db-backup
+          - db-base
+          - db-master
+          - db-slave
+          - devices
+          - dhcpd
+          - dmca
+          - dns
+          - docker
+          - donate
+          - elasticsearch
+          - exim
+          - fail2ban
+          - forum
+          - ftp
+          - geodns
+          - geoipupdate
+          - git
+          - git-server
+          - git-web
+          - gps-tile
+          - hardware
+          - hot
+          - incron
+          - irc
+          - kibana
+          - letsencrypt
+          - logstash
+          - logstash-forwarder
+          - mail
+          - mailman
+          - memcached
+          - munin
+          - munin-plugins
+          - munin-server
+          - mysql
+          - networking
+          - nginx
+          - nodejs
+          - nominatim
+          - ntp
+          - openssh
+          - osmosis
+          - osqa
+          - otrs
+          - passenger
+          - php
+          - php-apache
+          - php-fpm
+          - piwik
+          - planet
+          - planet-current
+          - planet-dump
+          - planet-notes
+          - planet-replication
+          - postgresql
+          - prometheus
+          - prometheus-server
+          - python
+          - rsyncd
+          - serverinfo
+          - snmpd
+          - spamassassin
+          - squid
+          - ssl
+          - stateofthemap
+          - subversion
+          - supybot
+          - switch2osm
+          - sysctl
+          - sysfs
+          - taginfo
+          - tile
+          - tilecache
+          - tilelog
+          - tools
+          - trac
+          - web-backend
+          - web-cgimap
+          - web-frontend
+          - web-rails
+          - wordpress
+          - wiki
+        os:
+          - ubuntu-2004
+      fail-fast: false
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2.3.5
+    - name: Setup ruby
+      uses: actions/setup-ruby@v1.1.3
+    - name: Cache gems
+      uses: actions/cache@v2.1.6
+      with:
+        path: vendor/bundle
+        key: bundle-${{ runner.OS }}-${{ hashFiles('Gemfile.lock') }}
+        restore-keys: |
+          bundle-${{ runner.OS }}-
+    - name: Disable apparmor for mysqld
+      run: |
+        sudo apt-get install apparmor-utils
+        sudo aa-disable /usr/sbin/mysqld
+    - name: Install gems
+      run: |
+        gem install bundler
+        bundle config set deployment true
+        bundle install --jobs 4 --retry 3
+    - name: Run kitchen test ${{ matrix.suite }}-${{ matrix.os }}
+      run: bundle exec kitchen test ${{ matrix.suite }}-${{ matrix.os }}

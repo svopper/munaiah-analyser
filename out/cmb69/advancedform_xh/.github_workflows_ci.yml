@@ -1,0 +1,29 @@
+name: checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: phive
+      - name: Install CMSimple_XH
+        run: |
+          curl -fsSL -o CMSimple_XH-1.7.4.zip https://github.com/cmsimple-xh/cmsimple-xh/releases/download/1.7.4/CMSimple_XH-1.7.4.zip
+          unzip -q CMSimple_XH-1.7.4.zip
+      - name: Checkout Advancedform_XH
+        uses: actions/checkout@v2
+        with:
+          path: 'cmsimplexh/plugins/advancedform'
+      - name: phive install
+        run: cd cmsimplexh/plugins/advancedform && phive --no-progress install --trust-gpg-keys 0x0F9684B8B16B7AB0,0x2420BAE0A3BE25C6,0x31C7E470E2138192,0x4AA394086372C20A,0xCF1A108D0E7AE720
+      - name: phing sniff
+        run: cd cmsimplexh/plugins/advancedform && PATH=tools:$PATH phing sniff
+      - name: phing mess
+        run: cd cmsimplexh/plugins/advancedform && PATH=tools:$PATH phing mess
+      - name: phing stan
+        run: cd cmsimplexh/plugins/advancedform && PATH=tools:$PATH phing stan
+      - name: phing unit-tests
+        run: cd cmsimplexh/plugins/advancedform && PATH=tools:$PATH phing unit-tests

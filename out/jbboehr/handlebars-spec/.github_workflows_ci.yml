@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+      - ci
+      - github-actions
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+        - "10.x"
+        - "12.x"
+        - "14.x"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: textbook/git-checkout-submodule-action@master
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: make
+      - run: make test_changes
+      # - run: make test_eslint
+      - run: make test_node
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+        - "14.x"
+        php-version:
+        - "7.2"
+        - "7.3"
+        - "7.4"
+        - "8.0"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: textbook/git-checkout-submodule-action@master
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+      - run: make
+      - run: make test_php

@@ -1,0 +1,88 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+    tags-ignore:
+      - "**"
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run-tests:
+    name: Run tests
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        php-version:
+          - "7.2"
+          - "7.3"
+          - "7.4"
+          - "8.0"
+    runs-on: ${{ matrix.os }}
+    env:
+      PICKLE_PECL_TESTSERVER: yes
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer
+          ini-values: phar.readonly=0
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check validity of composer files
+        run: composer valid --strict --ansi --no-interaction
+      - name: Install Composer dependencies (including dev, preferring source)
+        run: composer install --prefer-source --optimize-autoloader --ansi --no-interaction
+      - name: Check coding style
+        if: matrix.os == 'ubuntu-latest' && matrix.php-version == '7.2'
+        run: composer run cs-check -- --using-cache=no --no-interaction
+      - name: Run Atoum
+        run: php ./vendor/atoum/atoum/scripts/coverage.php --format xml --output clover.xml
+      - name: Install Composer dependencies (excluding dev)
+        run: composer install --prefer-source --optimize-autoloader --ansi --no-interaction --no-dev
+      - name: Install Box
+        run: composer global require 'kherge/box=~2.7' --prefer-source
+      - name: Build pickle.phar
+        run: ~/.composer/vendor/bin/box build
+      - name: Install Composer dependencies (including dev, preferring dist)
+        run: composer install --optimize-autoloader --ansi --no-interaction
+      - name: Run Behat
+        env:
+          PICKLE_BEHAT_PROCESS_TIMEOUT: 0
+        run: vendor/bin/behat --format=progress
+      - name: Dump PECL dev server logs
+        if: always() && startsWith(matrix.os, 'ubuntu')
+        run: |
+            rc=0
+            echo '# 404 errors'
+            if test -f tests/pecl-website/404.log; then
+                cat tests/pecl-website/404.log
+                rc=1
+            else
+                echo 'None.'
+            fi
+            echo '# 500 errors'
+            if test -f tests/pecl-website/500.log; then
+                cat tests/pecl-website/500.log
+                rc=1
+            else
+                echo 'None.'
+            fi
+            exit $rc
+      # We need a new release of Ocular that supports PHP 8 - see https://github.com/scrutinizer-ci/ocular/pull/52
+      - name: Download Ocular
+        if: always() && !startsWith(matrix.php-version, '8.')
+        run: curl -sSLf -o ocular.phar https://scrutinizer-ci.com/ocular.phar
+      - name: Upload code coverage
+        if: always()
+        run: |
+          if test -f ocular.phar && test -f clover.xml; then
+            php ocular.phar code-coverage:upload --format=php-clover --ansi --no-interaction -vvv clover.xml
+          fi

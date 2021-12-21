@@ -1,0 +1,227 @@
+#
+#  This workflow will normally run on a schedule.
+#
+#  It can also be invoked manually by pushing to a branch named as follows:
+#
+#      run-fuzzer[[-<protocol>]-<timeout>]
+#
+#      <timeout> is total run length, including setup.
+#      <protocol> is the name of the unit to fuzz.
+#
+#  For example:
+#
+#    - 'run-fuzzer':             Start fuzzing all protocols (default timeout)
+#    - 'run-fuzzer-3600':        Start fuzzing all protocols for one hour
+#    - 'run-fuzzer-radius-7200': Start fuzzing RADIUS for two hours
+#
+
+name: Scheduled fuzzing
+
+on:
+  push:
+    branches:
+      - 'run-fuzzer**'
+
+  schedule:
+    - cron: '0 4 * * *'
+
+env:
+  ASAN_OPTIONS: symbolize=1 detect_leaks=1 detect_stack_use_after_return=1
+  LSAN_OPTIONS: fast_unwind_on_malloc=0:malloc_context_size=50
+  KQUEUE_DEBUG: yes
+  M_PERTURB: "0x42"
+  PANIC_ACTION: "gdb -batch -x raddb/panic.gdb %e %p 1>&0 2>&0"
+  ANALYZE_C_DUMP: 1
+  FR_GLOBAL_POOL: 4M
+  TEST_CERTS: yes
+  DO_BUILD: yes
+  CI: 1
+  GH_ACTIONS: 1
+  CC: clang
+
+jobs:
+
+  #
+  #  Constructs a matrix of protocols to fuzz as JSON that when set in the main
+  #  fuzzer job is equivalent to the following YAML:
+  #
+  #    matrix:
+  #      env:
+  #        - { "PROTOCOL": "radius", "TOTAL_RUNTIME": "20000" }
+  #        - { "PROTOCOL": "dhcpv4", "TOTAL_RUNTIME": "20000" }
+  #        - ...
+  #
+  set-matrix:
+
+    name: Setup build matrix
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      starttimestamp: ${{ steps.starttimestamp.outputs.starttimestamp }}
+
+    steps:
+
+    - id: starttimestamp
+      name: Record run start time
+      run: |
+        echo ::set-output name=starttimestamp::`date +%s`
+
+    - uses: actions/checkout@v2
+      with:
+        lfs: false
+
+    - id: set-matrix
+      name: Setup the matrix
+      run: |
+        #
+        #  By default we fuzz all protocols for 20000s (just short of the 6h
+        #  GitHub Action run limit)
+        #
+        TOTAL_RUNTIME=20000
+        PROTOS=`sed -ne 's/^FUZZER_PROTOCOLS\s\+=\s\+\(.*\)/\1/p' src/bin/all.mk`
+        #
+        if [[ "$GITHUB_REF" = refs/heads/run-fuzzer-*-* ]]; then
+          PROTOS=${GITHUB_REF#refs/heads/run-fuzzer-}
+          TOTAL_RUNTIME=${PROTOS##*-}
+          PROTOS=${PROTOS%-*}
+        elif [[ "$GITHUB_REF" = refs/heads/run-fuzzer-* ]]; then
+          TOTAL_RUNTIME=${GITHUB_REF#refs/heads/run-fuzzer-}
+        fi
+        P=$(
+            for PROTO in $PROTOS; do
+              echo "{ \"PROTOCOL\": \"$PROTO\", \"TOTAL_RUNTIME\": \"$TOTAL_RUNTIME\" },"
+            done
+          )
+        M=$(cat <<EOF
+        {
+          "env": [
+            ${P:0:-1}
+          ]
+        }
+        EOF
+          )
+        echo "Matrix:"
+        echo "$M"
+        echo ::set-output name=matrix::$M
+
+
+  fuzzer:
+
+    needs:
+      - set-matrix
+
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+
+    env: ${{ matrix.env }}
+
+    name: Fuzzing ${{ matrix.env.PROTOCOL}}
+
+    steps:
+
+    #  Checkout, but defer pulling LFS objects until we've restored the cache
+    #
+    #  We include a bit of depth since we will walk the tree until we find a
+    #  commit that builds.
+    #
+    - uses: actions/checkout@v2
+      with:
+        lfs: false
+        fetch-depth: 50
+
+    - name: Create LFS file list as cache key
+      run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+    - name: Restore LFS cache
+      uses: actions/cache@v2
+      id: lfs-cache
+      with:
+        path: .git/lfs
+        key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+
+    # Now the LFS pull will be local if we hit the cache, or remote otherwise
+    - name: Git LFS pull
+      run: git lfs pull
+
+    - name: Package manager performance improvements
+      run: |
+        sudo sh -c 'echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/02speedup'
+        echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+        sudo dpkg-reconfigure man-db
+        sudo sed -i 's/^update_initramfs=.*/update_initramfs=no/' /etc/initramfs-tools/update-initramfs.conf
+
+    - name: Install build dependencies based on Debian packages plus extra CI packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends build-essential devscripts equivs quilt
+        debian/rules debian/control
+        sudo mk-build-deps -irt"apt-get -y --no-install-recommends" debian/control
+        sudo mk-build-deps -irt"apt-get -y --no-install-recommends" scripts/ci/extra-packages.debian.control
+
+    - name: Install tacacs_plus
+      run: |
+        pip3 install tacacs_plus
+
+    - name: Install LLVM 10
+      run: |
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add
+        sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
+        sudo apt-get install -y --no-install-recommends clang-10 llvm-10 gdb
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 60 && sudo update-alternatives --set clang /usr/bin/clang-10
+        sudo update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-10 60 && sudo update-alternatives --set llvm-symbolizer /usr/bin/llvm-symbolizer-10
+
+    - name: Show versions
+      run: |
+        $CC --version
+        make --version
+        krb5-config --all || :
+        pcre-config --libs-posix --version 2>/dev/null || :
+        pcre2-config --libs-posix --version 2>/dev/null || :
+
+    # We walk up the tree if necessary to find a commit that builds so that we
+    # will fuzz something
+    - name: Find a commit that builds
+      id: pick_commit
+      run: |
+        while : ; do
+          CFLAGS="-DWITH_EVAL_DEBUG -O2 -g3" ./configure -C \
+            --enable-werror \
+            --enable-address-sanitizer \
+            --enable-undefined-behaviour-sanitizer \
+            --enable-leak-sanitizer \
+            --enable-fuzzer \
+            --prefix=$HOME/freeradius \
+          || cat ./config.log
+          echo "Contents of src/include/autoconf.h"
+          cat "./src/include/autoconf.h"
+          mkdir -p build/tests/eapol_test
+          : > build/tests/eapol_test/eapol_test.mk
+          make -j `nproc` build/bin/fuzzer_$PROTOCOL && break || :
+          git reset --hard HEAD^
+          git clean -fxd
+        done
+        echo "::set-output name=commit_id::$(git rev-parse --short HEAD)"
+
+    - name: Run fuzzer tests
+      run: |
+        REMAINING_TIME=$(( $TOTAL_RUNTIME + $START_TIMESTAMP - `date +%s` ))
+        echo "Started at $START_TIMESTAMP for $TOTAL_RUNTIME secs. Fuzzing ${{ steps.pick_commit.outputs.commit_id }}:$PROTOCOL for $REMAINING_TIME secs"
+        [[ "$REMAINING_TIME" -lt 1 ]] && exit 1
+        make test.fuzzer.$PROTOCOL FUZZER_TIMEOUT="$REMAINING_TIME" FUZZER_ARGUMENTS="-jobs=`nproc` -workers=`nproc`" || :
+        find build/fuzzer -type f ! -path 'build/fuzzer/*.log' | grep . && exit 1 || :
+      env:
+        GITHUB_REF: "${{ github.ref }}"
+        START_TIMESTAMP: "${{ needs.set-matrix.outputs.starttimestamp }}"
+
+    - name: "Clang libFuzzer: Store assets on failure"
+      uses: actions/upload-artifact@v2
+      with:
+        name: clang-fuzzer-${{ matrix.env.PROTOCOL }}-${{ steps.pick_commit.outputs.commit_id }}
+        path: build/fuzzer
+        retention-days: 30
+      if: ${{ failure() }}

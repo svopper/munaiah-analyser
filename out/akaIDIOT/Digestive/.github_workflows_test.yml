@@ -1,0 +1,35 @@
+name: Test package
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, pypy3]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          lfs: true
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r test-requirements.txt
+      - name: Run checks
+        run: |
+          flake8 digestive/
+      - name: Run tests
+        run: |
+          coverage run --branch --source digestive --module py.test --strict tests/
+      - name: Install package
+        run: |
+          python setup.py install
+      - name: Run locally
+        run: |
+          digestive --hashes --recursive --output /tmp/digestive-test-output.yml tests/files
+          grep random.dd /tmp/digestive-test-output.yml
+          grep 810ec5f2086379f0e8000456dbf2aede8538fbc9d9898835f114c8771ed834b5 /tmp/digestive-test-output.yml

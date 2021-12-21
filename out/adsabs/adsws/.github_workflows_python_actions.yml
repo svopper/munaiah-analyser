@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+##
+## This file is part of ADSWS
+## Copyright (C) 2014 ADSLABS
+##
+## ADSWS is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2 of the
+## License, or (at your option) any later version.
+
+# GitHub Actions CI file, that integrates with coveralls for reporting test coverage.
+
+name: GitHub Actions CI
+
+on: [pull_request]
+env:
+  PGDATABASE: test_adsws
+  PGPASSWORD: postgres
+  PGUSER: postgres
+  PGHOST: localhost
+  PGPORT: 5432
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_DB: test_adsws
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+        ports:
+          - 5432:5432
+
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Enable citext extension
+      run: |
+         PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres test_adsws -tc "CREATE EXTENSION citext;"
+
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.2.0
+      with:
+        redis-version: 6
+
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 2.7
+
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade setuptools pip
+        pip install -U -r requirements.txt
+        pip install -U -r dev-requirements.txt
+
+    - name: Test with pytest
+      run: |
+        py.test adsws
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-adsws
+        path: .coverage
+
+
+  coveralls:
+
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade wheel setuptools pip
+        pip install coverage==5.2.1
+        pip install coveralls==2.2.0
+
+    - uses: actions/download-artifact@master
+      with:
+        name: coverage-adsws
+
+    - name: Coveralls
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

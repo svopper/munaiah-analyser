@@ -1,0 +1,46 @@
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+
+name: mangopay2-java-sdk-cd
+
+on:
+  push:
+    tags:
+      # It pushes any tags that contain a v. ex: v1.16.1
+      - '*'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Decode secring.gpg
+        run: |
+          mkdir -p .gnupg/
+          chmod 700 .gnupg
+          echo "${{secrets.SIGNING_SECRET_KEY_RING_FILE}}" > .gnupg/secring.gpg.b64
+          base64 -d .gnupg/secring.gpg.b64 > .gnupg/secring.gpg
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
+      - name: Install Java
+        run: |
+          sudo apt install openjdk-8-jdk
+          export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+          echo $JAVA_HOME
+          export PATH=$PATH:$JAVA_HOME/bin
+          echo $PATH
+          java -version
+      - name: Give permissions to file
+        run: chmod +x .utility/initiate-publish.sh
+      - name: Publish
+        run: ./.utility/initiate-publish.sh
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.PASSWORD }}
+      - name: Close and publish
+        run: ./gradlew closeAndReleaseRepository -PnexusUsername=${{ secrets.MAVEN_USERNAME }} -PnexusPassword=${{ secrets.PASSWORD }}

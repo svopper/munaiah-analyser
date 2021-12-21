@@ -1,0 +1,164 @@
+name: Python Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install tox
+    - name: Lint with flake8
+      run: tox
+      env:
+        TOXENV: flake8
+    - name: Check manifest
+      run: tox
+      env:
+        TOXENV: checkmanifest
+    - name: Import order checking with isort
+      run: tox
+      env:
+        TOXENV: isort
+    - name: Formatting with black
+      run: tox
+      env:
+        TOXENV: black
+    - name: Doc formatting
+      run: tox
+      env:
+        TOXENV: doc8
+
+  typing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.6, 3.8, "3.10"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        python -m pip install tox
+    - name: Static type checking with mypy
+      run: tox
+      env:
+        TOXENV: mypy
+
+  test_ubuntu:
+    runs-on: ubuntu-latest
+    needs: [lint, typing]
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8, 3.9, "pypy3"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Tox and any other packages
+        run: python -m pip install tox coveralls
+      - name: Run Tox
+        # Run tox using the version of Python in `PATH`
+        run: tox -e py
+      - name: Publish coverage
+        run: coveralls --service=github
+        env:
+          COVERALLS_PARALLEL: true
+          COVERALLS_FLAG_NAME: run-ubuntu-${{ matrix.python }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_SERVICE_NAME: github
+
+  test_windows:
+    runs-on: windows-latest
+    needs: [lint, typing]
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8, 3.9]
+        arch: ["x86", "x64"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Tox and any other packages
+        run: python -m pip install tox coveralls
+      - name: Run Tox
+        # Run tox using the version of Python in `PATH`
+        run: tox -e py
+      - name: Publish coverage
+        run: coveralls --service=github
+        env:
+          COVERALLS_PARALLEL: true
+          COVERALLS_FLAG_NAME: run-ubuntu-${{ matrix.python }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_SERVICE_NAME: github
+
+  test_alpine:
+    runs-on: ubuntu-latest
+    needs: [lint, typing]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install tox
+    - name: Run tests
+      run: tox
+      env:
+        TOXENV: alpine
+        TEST_ALPINE: 1
+
+  test_32bit:
+    runs-on: ubuntu-latest
+    needs: [lint, typing]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install tox
+    - name: Run tests
+      run: tox
+      env:
+        TOXENV: 32bit
+        TEST_32BIT: 1
+
+  finish:
+    needs: [test_ubuntu, test_windows, test_alpine, test_32bit]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: AndreMiras/coveralls-python-action@develop
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true

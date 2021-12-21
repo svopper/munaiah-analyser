@@ -1,0 +1,44 @@
+name: Format (PHP)
+
+on: [push, pull_request]
+
+jobs:
+  php-cs-fixer:
+    runs-on: ubuntu-20.04
+    # dont run jobs on forks, because we are not allowed to commit
+    if: github.event.pull_request.draft == false && github.repository == 'xperseguers/t3ext-tscobj'
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+          # https://github.com/stefanzweifel/git-auto-commit-action#commits-of-this-action-do-not-trigger-new-workflow-runs
+          token: ${{ secrets.PAT }}
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          coverage: none # disable xdebug, pcov
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer Dependencies
+        run: composer install --no-progress
+
+      - name: Run php-cs-fixer
+        run: .Build/bin/php-cs-fixer fix --diff
+
+      - name: Commit changed files
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply php-cs-fixer changes
+          branch: ${{ github.head_ref }}

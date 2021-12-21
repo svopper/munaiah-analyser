@@ -1,0 +1,16 @@
+---
+name: Release Notes
+
+on: [push, pull_request]
+
+jobs:
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release notes
+        uses: release-drafter/release-drafter@v5.15.0
+        with:
+          publish: "${{ steps.check-version.outputs.tag != '' }}"
+          tag: '${{ steps.check-version.outputs.tag }}'
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'

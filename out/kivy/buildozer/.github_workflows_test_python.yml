@@ -1,0 +1,60 @@
+on: [push, pull_request]
+name: Tests
+jobs:
+  Tests:
+    name: base
+    strategy:
+      matrix:
+        python:
+           - '3.6'
+           - '3.7'
+           - '3.8'
+        os:
+          - 'ubuntu-latest'
+          - 'macOs-latest'
+        architecture:
+          - 'x64'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Requirements
+      run: |
+        pip install -U coveralls setuptools tox>=2.0
+    - name: Tox
+      run: tox
+    - name: Coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_SERVICE_NAME: github
+      run: coveralls
+
+  Docker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Docker build
+      run: docker build --tag=kivy/buildozer .
+    - name: Docker run
+      run: docker run kivy/buildozer --version
+
+  Python2:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 2.7
+    - uses: actions/checkout@v2
+    - name: Try Python 2 install
+      run: |
+        # we don't want the build to fail with the exit 1 so we catch with "||"
+        python2 -m pip install -e . 2> error.log || echo Failing as expected
+        cat error.log
+        grep "Unsupported Python version" error.log

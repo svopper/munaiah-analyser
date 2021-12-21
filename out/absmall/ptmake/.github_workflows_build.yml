@@ -1,0 +1,21 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: sudo apt install libdb5.3-dev libssl-dev
+    - run: pip install meson ninja
+    - run: meson setup builddir/
+      env:
+        CC: gcc
+    - run: ninja -C builddir/

@@ -1,0 +1,39 @@
+name: linting
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        pyversion: [3.9]
+
+    env:
+      testdirs: ircbot plugins
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.pyversion }}
+
+    - name: Install Linting dependencies
+      run: pip install isort black
+
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt
+
+    - name: Check code formatting
+      run: |
+        black --check --diff ${{ env.testdirs }}
+        isort --profile black --check-only --diff  ${{ env.testdirs }}

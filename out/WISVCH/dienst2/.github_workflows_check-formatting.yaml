@@ -1,0 +1,19 @@
+name: Check formatting
+on: push
+jobs:
+  checkFormatting:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Check formatting using Black
+        uses: docker://python:3.8
+        with:
+          entrypoint: /bin/bash
+          args: >
+            -c "
+            pip install -q black &&
+            black --version &&
+            black --check .
+            "

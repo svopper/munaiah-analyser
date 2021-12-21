@@ -1,0 +1,24 @@
+name: Run test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Setup System
+      run: |
+        sudo apt-get install sqlite3
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+
+    - name: Install dependencies
+      run: make dev-setup
+
+    - name: Run test suite
+      run: make test

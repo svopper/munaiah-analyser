@@ -1,0 +1,15 @@
+name: unit-tests
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt -y install libpng-dev libjpeg-dev libatlas-base-dev libblas-dev libgsl-dev clang
+      - run: |
+          cd lib && ./configure --disable-openmp && cd ..
+          make -C lib lib
+          make -C bin
+          make -C site source
+          make -C test
+          make -C test test

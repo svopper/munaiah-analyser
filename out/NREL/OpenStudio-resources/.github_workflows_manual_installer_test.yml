@@ -1,0 +1,123 @@
+name: Test OS SDK Installer - Full Suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_installer_link:
+        description: 'The Link where to download the LINUX OpenStudio SDK Installer (.DEB)'
+        required: true
+        default: 'https://openstudio-ci-builds.s3.amazonaws.com/develop/OpenStudio-3.1.0-alpha%2B7e9cd9eaf5-Linux.deb'
+      branch_name:
+        description: 'The branch name to use and where to commit the test results. If ommited, it will default to the installer SHA'
+        required: false
+
+jobs:
+  test_installer:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8.x'
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.7
+
+    - name: Download and install OS SDK installer
+      shell: bash
+      run: |
+        set -x
+        echo "Installer link: ${{ github.event.inputs.os_installer_link }}"
+        echo "Branch Name: ${{ github.event.inputs.branch_name }}"
+        sudo apt update
+        wget '${{ github.event.inputs.os_installer_link }}'
+        sudo apt install -y ./OpenStudio*.deb
+        openstudio openstudio_version
+        gem install bundler -v '~> 2.1.4'
+
+    - name: Checkout the branch
+      shell: bash
+      run: |
+        branch_name="${{ github.event.inputs.branch_name }}"
+
+        if [ -z "$branch_name" ]; then
+          branch_name=$(openstudio -e "puts OpenStudio::openStudioVersionBuildSHA")
+        fi;
+
+        echo branch_name=$branch_name >> $GITHUB_ENV
+        git checkout -b $branch_name || git checkout $branch_name
+
+    - name: Setup python deps
+      shell: bash
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run model_tests.rb - first pass
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -x
+        echo "nproc=$(nproc)"
+        N=$(nproc) CUSTOMTAG=SHA openstudio model_tests.rb || true
+
+    - name: Run model_tests - second pass for failed tests
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -x
+        echo "nproc=$(nproc)"
+        DONOTRERUNIFSUCCESS=true N=$(nproc) CUSTOMTAG=SHA openstudio model_tests.rb || true
+
+    # This is a failing step!
+    - name: Run highlevel_tests
+      shell: bash
+      run: |
+        set -x
+        N=$(nproc) openstudio highlevel_tests.rb
+
+    # This is a failing step: We check the last version on record, if there are NEW test failures, we set the job to failed
+    - name: Check Test Status and Generate HTML
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        set -x
+        python process_results.py test-status --max_eplus_versions=3 --all --quiet --ci
+
+    # This is a failing step: We check the last version on record, if there are NEW EUI deviations above threshold, we set the job to failed
+    - name: Check EUI and Generate heatmap
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        set -x
+        python process_results.py heatmap --max_eplus_versions=3 --all --quiet --ci
+
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+          name: Test-Results
+          path: Test-Stability/*
+
+    - name: Commit results
+      if: always()
+      shell: bash
+      run: |
+        set -x
+        git add -f test/*
+        git add -f site_kbtu_pct_change.png || true
+        git add -f Test-Stability/Regression_Test_Status.html || true
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config --global user.name 'github-actions[bot]'
+
+        git commit -m "Add results from workflow_dispatch testing with ${{ github.event.inputs.os_installer_link }}"
+        git push -u origin $branch_name
+
+    - uses: 8398a7/action-slack@v3
+      if: always() # Pick up events even if the job fails or is canceled.
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # selectable (default: repo,message)
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required

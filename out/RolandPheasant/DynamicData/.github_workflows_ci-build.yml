@@ -1,0 +1,95 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  configuration: Release
+  productNamespacePrefix: "DynamicData"
+
+jobs:
+  build:
+    runs-on: windows-2022
+    outputs:
+      nbgv: ${{ steps.nbgv.outputs.SemVer2 }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2.3.5
+      with:
+        fetch-depth: 0
+        lfs: true
+
+    - name: Install Windows SDK 10.0.16299
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?linkid=864422 -OutFile winsdk.exe
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = "winsdk.exe"
+        $startInfo.Arguments = "/norestart /quiet"
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $process.Start()
+        $process.WaitForExit()
+        
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 3.1.x
+
+    - name: Install .NET 5
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Install .NET 6
+      uses: actions/setup-dotnet@v1.8.2
+      with:
+        dotnet-version: 6.0.x
+        include-prerelease: true
+
+    - name: NBGV
+      id: nbgv
+      uses: dotnet/nbgv@master
+      with:
+        setAllVars: true
+
+    - name: Add MSBuild to PATH
+      uses: glennawatson/setup-msbuild@v1.0.3
+      with:
+        prerelease: true
+        
+    - name: NuGet Restore
+      run: msbuild /t:restore /v:minimal /m
+      working-directory: src
+      
+    - name: Build
+      run: msbuild /t:build,pack /maxcpucount /p:NoPackageAnalysis=true /verbosity:minimal /p:Configuration=${{ env.configuration }}
+      working-directory: src
+
+    - name: Run Unit Tests and Generate Coverage
+      uses: glennawatson/coverlet-msbuild@v1
+      with:
+        project-files: '**/*Tests*.csproj'
+        no-build: true
+        exclude-filter: '[${{env.productNamespacePrefix}}.*.Tests.*]*'
+        include-filter: '[${{env.productNamespacePrefix}}*]*'
+        output-format: cobertura
+        output: '../../artifacts/'
+        configuration: ${{ env.configuration }}
+
+    - name: Upload Code Coverage
+      shell: bash
+      run: |
+        echo $PWD
+        bash <(curl -s https://codecov.io/bash) -X gcov -X coveragepy -t ${{ env.CODECOV_TOKEN }} -s '$PWD/artifacts' -f '*.xml'
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Create NuGet Artifacts
+      uses: actions/upload-artifact@master
+      with:
+        name: nuget
+        path: '**/*.nupkg'

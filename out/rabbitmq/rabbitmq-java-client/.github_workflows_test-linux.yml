@@ -1,0 +1,43 @@
+name: Build (Linux)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    services:
+      rabbitmq:
+        image: rabbitmq
+        ports:
+          - 5672:5672
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Get dependencies
+        run: make deps
+      - name: Test with NIO
+        run: ./mvnw verify -P '!setup-test-cluster,use-nio' -Drabbitmqctl.bin=DOCKER:${{job.services.rabbitmq.id}} -Dit.test=ClientTests,FunctionalTests,ServerTests
+      - name: Test with blocking IO
+        run: ./mvnw verify -P '!setup-test-cluster' -Drabbitmqctl.bin=DOCKER:${{job.services.rabbitmq.id}} -Dit.test=ClientTests,FunctionalTests,ServerTests

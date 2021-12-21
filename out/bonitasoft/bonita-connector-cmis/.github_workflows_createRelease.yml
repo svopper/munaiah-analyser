@@ -1,0 +1,65 @@
+name: Create release
+
+on:
+  push:
+    branches: 
+      - release-* 
+
+jobs:
+  build:
+    name: Release pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      
+      - name: Extract version
+        shell: bash
+        run: echo "##[set-output name=version;]$(echo ${GITHUB_REF#refs/heads/} | sed 's/release-//g')"
+        id: extract_version
+      
+      - name: changelog
+        uses: scottbrenner/generate-changelog-action@master 
+        id: Changelog
+        env:
+          REPO: ${{ github.repository }}
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.extract_version.outputs.version }}
+          release_name: Release ${{ steps.extract_version.outputs.version }}
+          body: |
+            ${{ steps.Changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          
+      - name: Release connector
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.ossrh_username }}
+          nexus_password: ${{ secrets.ossrh_password }}
+  
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: target/bonita-connector-cmis-${{ steps.extract_version.outputs.version }}-all.zip
+          asset_name: bonita-connector-cmis-${{ steps.extract_version.outputs.version }}-all.zip
+          asset_content_type: application/zip
+          

@@ -1,0 +1,277 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - nu
+  pull_request:
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
+      go_version: ${{ steps.read.outputs.go_version }}
+      msys2_packages: ${{ steps.read.outputs.msys2_packages }}
+      nebula_changed: ${{ steps.changes.outputs.nebula_changed }}
+      knossos_changed: ${{ steps.changes.outputs.knossos_changed }}
+      updater_changed: ${{ steps.changes.outputs.updater_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Generate short SHA
+        id: sha
+        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
+
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "::set-output name=timestamp::$(date +'%Y%m%d%H%M')"
+
+      - name: Read build settings from repository
+        id: read
+        run: |
+          go_version=$(< .go-version)
+          echo "Go version: ${go_version}"
+          echo "::set-output name=go_version::${go_version}"
+          msys2_packages=$(tr -s '\n' ' ' < msys2-packages.txt)
+          echo "MSYS2 packages: ${msys2_packages}"
+          echo "::set-output name=msys2_packages::${msys2_packages}"
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_ref="origin/${{ github.base_ref }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base_ref="${{ github.event.before }}"
+          else
+            echo "Unsupported event ${{ github.event_name }}"
+            exit 1
+          fi
+
+          changed="$(git diff --name-only "$base_ref..HEAD")"
+
+          echo "::group::Changed files"
+          echo "$changed"
+          echo "::endgroup::"
+
+          if grep -E '^.github/workflows/ci-cd.yml' > /dev/null <<< "$changed"; then
+            echo "::set-output name=nebula_changed::1"
+            echo "::set-output name=knossos_changed::1"
+            echo "::set-output name=updater_changed::1"
+          else
+            if grep -E '^packages/(api|server|front|build-tools)' > /dev/null <<< "$changed"; then
+              echo "::set-output name=nebula_changed::1"
+            fi
+
+            if grep -E '^packages/(api|libarchive|libknossos|libinnoextract|libopenal|client|client-ui|build-tools)' > /dev/null <<< "$changed"; then
+              echo "::set-output name=knossos_changed::1"
+            fi
+
+            if grep -E '^packages/(libarchive|updater|build-tools)' > /dev/null <<< "$changed"; then
+              echo "::set-output name=updater_changed::1"
+            fi
+          fi
+
+  nebula:
+    name: Nebula
+    runs-on: ubuntu-20.04
+    needs: setup
+    if: ${{ needs.setup.outputs.nebula_changed == '1' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.setup.outputs.go_version }}
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v2
+        with:
+          key: golang-${{ github.job }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: golang-${{ github.job }}-${{ runner.os }}-
+          path: |
+            ~/go/pkg
+            ~/.cache/go-build
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v2
+        with:
+          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+          path: |
+            .pnp.*
+            .yarn/
+            !.yarn/releases
+            !.yarn/plugins
+
+      - name: Cache managed dependencies
+        uses: actions/cache@v2
+        with:
+          key: third_party-${{ runner.os }}-${{ hashFiles('packages/build-tools/DEPS.yml') }}
+          restore-keys: third_party-${{ runner.os }}-
+          path: |
+            packages/build-tools/DEPS.stamps
+            third_party
+
+      - name: Configure build
+        run: ./task.sh configure build=Release static_deps=false
+
+      - name: Fetch managed dependencies
+        run: ./task.sh fetch-deps
+
+      - name: Install build tools
+        run: ./task.sh install-tools
+
+      - name: Compile API definitions
+        run: ./task.sh proto-build
+
+      - name: Migrate database
+        run: ./task.sh database-migrate
+
+      - name: Lint
+        if: ${{ github.event_name == 'pull_request' }}
+        run: ./task.sh server-lint
+
+      - name: Build Nebula server
+        run: ./task.sh server-build
+
+      - name: Build Nebula frontend
+        run: ./task.sh front-build
+
+  knossos:
+    name: Knossos / ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    needs: setup
+    if: ${{ needs.setup.outputs.knossos_changed == '1' || needs.setup.outputs.updater_changed == '1' }}
+    strategy:
+      matrix:
+        os: [Windows, macOS, Ubuntu]
+        include:
+          - os: Windows
+            runner: windows-2019
+            bucket: windows
+            script: .\task.ps1
+          - os: macOS
+            runner: macos-10.15
+            bucket: darwin
+            script: ./task.sh
+          - os: Ubuntu
+            runner: ubuntu-20.04
+            bucket: linux
+            script: ./task.sh
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.setup.outputs.go_version }}
+
+      - name: Setup MSYS2 toolchain (Windows)
+        uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          update: true
+          install: ${{ needs.setup.outputs.msys2_packages }}
+
+      - name: Locate MSYS2 installation (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          path=$(cygpath -w /)
+          echo "MSYS2 is installed at ${path}"
+          echo "extra_options=\"msys2_path=${path}\"" >> "$GITHUB_ENV"
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v2
+        with:
+          key: golang-${{ github.job }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: golang-${{ github.job }}-${{ runner.os }}-
+          path: |
+            ~/go/pkg
+            ~/.cache/go-build
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v2
+        with:
+          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+          path: |
+            .pnp.*
+            .yarn/
+            !.yarn/releases
+            !.yarn/plugins
+
+      - name: Cache managed dependencies
+        uses: actions/cache@v2
+        with:
+          key: third_party-${{ runner.os }}-${{ hashFiles('packages/build-tools/DEPS.yml') }}
+          restore-keys: third_party-${{ runner.os }}-
+          path: |
+            packages/build-tools/DEPS.stamps
+            third_party
+
+      - name: Fetch system dependencies (*nix)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "$RUNNER_OS" = 'macOS' ]; then
+            brew install xz boost sdl2
+          elif [ "$RUNNER_OS" = 'Linux' ]; then
+            sudo apt-get install -y libgtk-3-dev liblzma-dev libzstd-dev zlib1g-dev libxss-dev libxxf86vm-dev \
+              libasound2-dev libboost-{iostreams,filesystem,date-time,system,program-options}1.71-dev \
+              libsdl2-dev libopenal-dev libnss3-dev
+          fi
+
+      - name: Configure build
+        run: ${{ matrix.script }} configure build=Release ${{ env.extra_options }}
+
+      - name: Fetch managed dependencies
+        run: ${{ matrix.script }} fetch-deps
+
+      - name: Install build tools
+        run: ${{ matrix.script }} install-tools
+
+      - name: Compile API definitions
+        run: ${{ matrix.script }} proto-build
+
+      - name: Build libarchive
+        run: ${{ matrix.script }} libarchive-build
+
+      - name: Build libinnoextract
+        run: ${{ matrix.script }} libinnoextract-build
+
+      - name: Lint libknossos
+        if: ${{ github.event_name == 'pull_request' && runner.os == 'Linux' }}
+        run: ./task.sh libknossos-lint
+
+      - name: Build libknossos
+        run: ${{ matrix.script }} libknossos-build
+
+      - name: Build Knossos wrapper
+        run: ${{ matrix.script }} client-build
+
+      - name: Build Knossos UI
+        run: ${{ matrix.script }} client-ui-build
+
+      - name: Build uploader
+        run: ${{ matrix.script }} uploader-build
+
+      - name: Upload Knossos build
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./build/updater/uploader 0.0.1-nightly.${{ needs.setup.outputs.timestamp }}-${{ needs.setup.outputs.short_sha }} ${{ matrix.bucket }} build/client/launcher/Release/
+
+      - name: Build updater
+        if: needs.setup.outputs.updater_changed == '1'
+        run: ${{ matrix.script }} updater-build

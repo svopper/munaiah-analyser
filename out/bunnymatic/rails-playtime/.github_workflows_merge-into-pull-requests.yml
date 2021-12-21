@@ -1,0 +1,17 @@
+name: Merge main into PR branches labeled "automerge main"
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  get_pull_requests:
+    runs-on: ubuntu-latest
+    name: Keep PRs up to date
+    steps:
+      - uses: rcode5/keep-prs-up-to-date@main
+        id: merger
+        with:
+          token: ${{github.token}}
+          default_branch: "master"
+          labels: "automerge main"

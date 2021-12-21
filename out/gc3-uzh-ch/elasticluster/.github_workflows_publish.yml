@@ -1,0 +1,56 @@
+name: Publish released code
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Comma-separated list of Docker tags to mark the image with'
+        required: false
+        default: 'latest'
+
+
+jobs:
+  dockerhub:
+    name: Build and upload Docker image
+    runs-on: ubuntu-latest
+    steps:
+
+    #
+    # Install from sources
+    #
+    - name: Checkout ElastiCluster sources
+      # see: https://github.com/actions/checkout
+      uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: "3.7"
+
+    - name: Install `pip` and `setuptools`
+      run: "pip install --upgrade 'setuptools>=21' 'pip>=9.0.0'"
+
+    - name: Install ElastiCluster from sources
+      run: "pip install -e ."
+
+    #
+    # Upload Docker image
+    #
+    - name: Publish to DockerHub
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: "riccardomurri/elasticluster"
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        tags: "${{ github.event.inputs.tags }}"
+        # push tags/release by their git name (e.g. refs/tags/MY_TAG_NAME)
+        tag_names: true
+        # push tags using the semver syntax by their git name
+        # (e.g. refs/tags/v1.2.3 will push four docker tags: 1.2.3, 1.2 and 1)
+        tag_semver: true
+
+    - name: Success
+      run: |
+        echo "OK: Docker image successfully pushed."
+        exit 0

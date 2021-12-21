@@ -1,0 +1,66 @@
+name: Book tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    env:
+      MOZ_HEADLESS: 1
+      LC_ALL: en_GB.UTF-8
+      LANG: en_GB.UTF8
+      LANGUAGE: "en_GB:en"
+
+    steps:
+    - uses: actions/checkout@v1
+    
+    - name: checkout submodules
+      run: |
+        sed -i 's_git@github.com:_https://github.com/_' .gitmodules
+        git submodule update --init --recursive
+
+    - name: setup git user
+      run: |
+        git config --global user.email "elspeth@example.com"
+        git config --global user.name "Elspeth See-Eye"
+    
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Install apt stuff and other dependencies
+      run: |
+        sudo apt update -y
+        sudo apt install -y ruby-dev firefox firefox-geckodriver tree locales language-pack-uk
+        sudo locale-gen en_GB.UTF-8 
+
+    - name: Install asciidoc and other ruby dependencies
+      run: |
+        sudo gem install asciidoctor coderay
+        
+    - name: Install Python requirements.txt
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Check environment
+      run: |
+        locale -a
+        locale
+        env
+
+    # - name: Test chapter 1
+    #   run: |
+    #     make test_chapter_01
+
+    # - name: Test chapter 2
+    #   run: |
+    #     make test_chapter_02_unittest
+
+    - name: Test all chapters in parallel, yolo
+      run: |
+        make build
+        pytest --tb=short --color=yes --numprocesses=4 tests/test_chapter_*

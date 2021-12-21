@@ -1,0 +1,45 @@
+name: Maven Site
+
+on:
+  push:
+    branches:
+      - "!*"
+    tags:
+      - "lombok-maven-*"
+  workflow_dispatch:
+    inputs:
+      siteRef:
+        description: "Optional Git reference (tag/branch/sha) to use for Site"
+        required: false
+        default: ""
+
+jobs:
+  site:
+    name: Generate Maven Site
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, '[maven-release-plugin] prepare release'))
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.siteRef }}
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: "zulu"
+          # Use Java LTS version
+          java-version: 11
+      - name: Build Plugin
+        run: mvn -V -B install
+      - name: Build Site
+        run: mvn -V -B site site:stage
+      - name: Configure Git User
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+      - name: Install SSH key for Publish to gh-pages
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Publish Site to GitHub Pages
+        run: mvn -V -B scm-publish:publish-scm

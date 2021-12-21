@@ -1,0 +1,49 @@
+name: ci
+
+env:
+  CMAKE_BUILD_TYPE: Release
+
+on:
+  push:
+    paths:
+      - "**.py"
+      - "**.cmake"
+      - .github/workflows/ci.yml
+
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - run: pip install -e .[tests,lint]
+    - run: flake8
+    - run: mypy
+    - run: pytest
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - run: pip install -e .[tests]
+    - run: pytest
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - run: pip install -e .[tests]
+    - run: pytest

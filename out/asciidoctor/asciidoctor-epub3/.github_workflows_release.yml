@@ -1,0 +1,32 @@
+name: Publish to RubyGems.org
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'
+    - name: Publish to RubyGems.org
+      uses: dawidd6/action-publish-gem@v1
+      with:
+        api_key: ${{ secrets.RUBYGEMS_API_KEY }}
+    - name: Set release version
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+    - name: Announcement
+      uses: zulip/github-actions-zulip/send-message@v1
+      with:
+        email: ${{ secrets.ZULIP_USERNAME }}
+        api-key: ${{ secrets.ZULIP_API_KEY }}
+        organization-url: 'https://asciidoctor.zulipchat.com'
+        to: '279652'
+        type: 'stream'
+        topic: 'releases'
+        content: |
+          Asciidoctor-EPUB3 ${{ env.RELEASE_VERSION }} is out!
+          https://github.com/asciidoctor/asciidoctor-epub3/releases/tag/${{ env.RELEASE_VERSION }}

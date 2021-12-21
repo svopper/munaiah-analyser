@@ -1,0 +1,194 @@
+name: Build and test
+
+on: [push, pull_request, release]
+
+jobs:
+  build-ubuntu:
+    name: Ubuntu 20.04
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Install dependencies
+        run: sudo apt-get install automake flex llvm-dev check lcov libdw-dev
+      - name: Generate configure script
+        run: ./autogen.sh
+      - name: Configure
+        run: |
+          ./configure --enable-gcov --enable-vhpi --enable-asan \
+               --with-llvm=/usr/bin/llvm-config
+      - name: Build
+        run: ASAN_OPTIONS=detect_leaks=0 make
+      - name: Test
+        run: ASAN_OPTIONS=detect_leaks=0 make check
+      - name: Coverage report
+        run: make cov-generate
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/nvc.info
+
+  build-mac:
+    name: Mac OS
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Install dependencies
+        run: brew install llvm check automake
+      - name: Generate configure script
+        run: ./autogen.sh
+      - name: Configure
+        run: ./configure --enable-vhpi --with-llvm=$(brew --prefix llvm)/bin/llvm-config
+      - name: Build
+        run: make
+      - name: Test
+        run: make check
+
+  build-windows:
+    name: Windows MSYS2
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-llvm
+            mingw-w64-x86_64-check
+            mingw-w64-x86_64-ncurses
+            mingw-w64-x86_64-libffi
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-gcc
+            unzip
+            git
+      - name: Generate configure script
+        run: bash autogen.sh
+      - name: Configure
+        run: bash configure --enable-vhpi
+      - name: Build
+        run: make
+      - name: Test
+        run: make check
+
+  release:
+    name: Release
+    if: github.event_name != 'pull_request'
+    needs: [ build-ubuntu ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Get version
+        id: version
+        run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: Install dependencies
+        run: sudo apt-get install automake flex llvm-dev lcov libdw-dev
+      - name: Generate configure script
+        run: ./autogen.sh
+      - name: Configure
+        run: >-
+          ./configure --enable-vhpi --with-llvm=/usr/bin/llvm-config \
+             --prefix=/opt/nvc-${{ steps.version.outputs.version }}
+      - name: Build
+        run: make
+      - name: Install
+        run: sudo make install
+      - name: Archive
+        run: >-
+          tar -czf nvc-${{ steps.version.outputs.version }}.tar.gz \
+            /opt/nvc-${{ steps.version.outputs.version }}
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: nvc-${{ steps.version.outputs.version }}
+          path: nvc-${{ steps.version.outputs.version }}.tar.gz
+
+  vests:
+    name: VESTs
+    if: github.event_name != 'pull_request'
+    needs: [ release ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - uses: actions/checkout@v2
+        with:
+          repository: nickg/vests
+          path: vests
+          fetch-depth: 1
+      - name: Get version
+        id: version
+        run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: Install dependencies
+        run: sudo apt-get install ruby ruby-colorize llvm libdw1
+      - uses: actions/download-artifact@v2
+        with:
+          name: nvc-${{ steps.version.outputs.version }}
+      - name: Extract pre-built binary
+        run: >-
+          sudo tar -C / -zxvf nvc-${{ steps.version.outputs.version }}.tar.gz
+      - name: Add to PATH
+        run: >-
+          echo /opt/nvc-${{ steps.version.outputs.version }}/bin >> $GITHUB_PATH
+      - name: Check --version output
+        run: nvc --version
+      - name: Run VESTs
+        run: >-
+          cd vests && ../test/run_vests.rb .
+
+  projects:
+    name: External Projects
+    if: github.event_name != 'pull_request'
+    needs: [ release ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - uses: actions/checkout@v2
+        with:
+          repository: nickg/vhdl-projects
+          path: vhdl-projects
+          fetch-depth: 1
+      - name: Get version
+        id: version
+        run: echo ::set-output name=version::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: Install dependencies
+        run: sudo apt-get install llvm libdw1
+      - uses: actions/download-artifact@v2
+        with:
+          name: nvc-${{ steps.version.outputs.version }}
+      - name: Extract pre-built binary
+        run: >-
+          sudo tar -C / -zxvf nvc-${{ steps.version.outputs.version }}.tar.gz
+      - name: Add to PATH
+        run: >-
+          echo /opt/nvc-${{ steps.version.outputs.version }}/bin >> $GITHUB_PATH
+      - name: Check --version output
+        run: nvc --version
+      - name: Test FPHDL
+        run: ./vhdl-projects/fphdl/test.sh
+      - name: Test ZPU
+        run: ./vhdl-projects/zpu/test.sh
+      - name: Test Flopoco
+        run: ./vhdl-projects/flopoco/test.sh
+      - name: Test HardH264
+        run: ./vhdl-projects/hardh264/test.sh
+      - name: Test big RAM
+        run: ./vhdl-projects/bigram/test.sh
+      - name: Test Dummy_Plug
+        run: ./vhdl-projects/dummyplug/test.sh
+      - name: Test OpenRIO
+        run: ./vhdl-projects/openrio/test.sh

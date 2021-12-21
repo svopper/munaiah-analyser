@@ -1,0 +1,71 @@
+name: mdet
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+jobs:
+  tests:
+    name: mdet
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: 3.8
+          channels: conda-forge,defaults
+          channel-priority: strict
+          show-channel-urls: true
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+
+      - name: configure conda and install code
+        shell: bash -l {0}
+        run: |
+          mamba config --set always_yes yes
+          mamba install --quiet \
+            pip \
+            setuptools \
+            numpy \
+            "numba<0.54.0" \
+            flake8 \
+            pyyaml \
+            scipy \
+            pytest \
+            galsim \
+            scikit-learn \
+            statsmodels \
+            emcee \
+            pytest-cov \
+            meds \
+            fitsio \
+            des-sxdes \
+            sep
+
+          pip install git+https://github.com/esheldon/metadetect.git \
+            --force-reinstall --no-deps --no-cache-dir
+
+          python -m pip install -e .
+
+      - name: test
+        shell: bash -l {0}
+        run: |
+          pip install git+https://github.com/esheldon/ngmix.git@master
+          pushd mdet_tests
+          python test_mdet_regression.py master
+          popd
+
+          pip uninstall ngmix -y
+          mamba install ngmix==2.0.1 -y
+          pushd mdet_tests
+          python test_mdet_regression.py v2.0.1
+          popd
+          mamba uninstall ngmix -y
+
+          pip install -e .
+
+          pytest -vvs mdet_tests

@@ -1,0 +1,26 @@
+name: iOS
+on: [push]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - name: Install dependencies
+      run: |
+        brew install boost
+        mkdir include/ios
+        ln -s /usr/local/include/boost include/ios/boost
+    - name: Configure with CMake
+      run: cmake -Bbuild-ios -GXcode -DCMAKE_TOOLCHAIN_FILE=cmake/iOS.toolchain.cmake -DIOS_PLATFORM=SIMULATOR
+    - name: Build with Xcode
+      run: xcodebuild -quiet -project build-ios/jngl.xcodeproj -sdk iphonesimulator -arch x86_64 -target jngl-test
+    - name: Configure with CMake (tvOS)
+      run: cmake -Bbuild-tvossimulator -GXcode -DCMAKE_TOOLCHAIN_FILE=cmake/tvOS.toolchain.cmake -DIOS_PLATFORM=SIMULATOR
+    - name: Build with Xcode (tvOS)
+      run: xcodebuild -quiet -project build-tvossimulator/jngl.xcodeproj -sdk appletvsimulator -arch x86_64 -target jngl-test

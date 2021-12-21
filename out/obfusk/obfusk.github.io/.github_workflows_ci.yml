@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install html5validator Jinja2 Markdown Pygments
+    - name: Test master
+      if: endsWith(github.ref, '/master')
+      run: |
+        git fetch origin code:code
+        git show code:Makefile > Makefile
+        make ci-test HTMLROOT=.
+    - name: Test code
+      if: endsWith(github.ref, '/code')
+      run: |
+        make ci-test

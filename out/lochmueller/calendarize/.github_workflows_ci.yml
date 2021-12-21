@@ -1,0 +1,50 @@
+name: Testing calendarize
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["7.4", "8.0"]
+        typo3: ["10.4", "11.5"]
+        exclude:
+          - php: "8.0"
+            typo3: "10.4"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Get composer cache directory
+        id: composercache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composercache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install the right version
+        run: composer require "typo3/cms-core:^${{ matrix.typo3 }}" "typo3/cms-workspaces:^${{ matrix.typo3 }}" -W
+
+      - name: Unit Tests with phpunit
+        run: composer run tool:phpunit --
+
+      - name: Run PHP CS Fixer checks
+        run: composer run tool:php-cs-fixer-check
+
+#      - name: Run DepTrac
+#        run: composer run tool:deptrac

@@ -1,0 +1,45 @@
+name: build_and_test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build_and_test:
+    # runs-on: ubuntu-latest
+    # Need >= 20.04 for modern sqlite. Can switch to latest when
+    # github change
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install yaml
+        run: sudo apt-get install libyaml-dev
+
+      - name: Install prereqs for setuptools
+        run: pip install wheel
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # We have two cores so we can speed up the testing with xdist
+      - name: Install xdist, openfiles and flake8 for pytest
+        run: pip install pytest-xdist pytest-openfiles pytest-flake8
+
+      - name: Build and install
+        run: pip install -v .
+
+      - name: Run tests
+        run: pytest -r a -v -n 3 --open-files
+
+      - name: Install documenteer
+        run: pip install 'documenteer[pipelines]<0.6'
+
+      - name: Build documentation
+        working-directory: ./doc
+        run: package-docs build

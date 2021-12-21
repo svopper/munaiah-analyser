@@ -1,0 +1,38 @@
+name: Super-Linter
+
+# Run this workflow every time a new commit pushed to our repository
+# and on pull requests.
+on: [push, pull_request]
+
+jobs:
+
+  super-lint:
+    name: Lint code base
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Super-Linter
+        uses: github/super-linter@v3
+        env:
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # `.ts` files are not TypeScript files in this repository
+          # but translation files.
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          # Qt has a custom CSS syntax
+          VALIDATE_CSS: false
+          # Too many false-positives, does not recognize tiff
+          VALIDATE_EDITORCONFIG: false
+          # TODO
+          VALIDATE_MARKDOWN: false
+          VALIDATE_BASH: false
+          VALIDATE_DOCKERFILE: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
+          # TODO: Exclude test dir
+          VALIDATE_JSCPD: false
+          # cpplint uses another code style and not the one from clang-format
+          VALIDATE_CPP: false

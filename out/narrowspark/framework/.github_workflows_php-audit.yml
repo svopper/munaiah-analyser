@@ -1,0 +1,77 @@
+name: 'PHP Audit'
+
+on:
+  push:
+    paths:
+      - '**.json'
+  pull_request:
+    paths:
+      - '**.json'
+
+jobs:
+  narrowspark-audit:
+    runs-on: ${{ matrix.operating-system }}
+
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ["7.4"]
+        dependencies: ["highest", "lowest"]
+
+    name: "Audit on PHP ${{ matrix.php-versions }} and ${{ matrix.operating-system }} OS"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@1.8.2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, xml, ctype, iconv, zip, dom, fileinfo, intl, sodium, curl, pdo, pdo_sqlite, inotify, pcntl, posix
+          tools: composer, composer-prefetcher
+
+      - name: "Configure Container"
+        env:
+          NARROWSPARK_EMAIL: ${{ secrets.NARROWSPARK_EMAIL }}
+          NARROWSPARK_USERNAME: ${{ secrets.NARROWSPARK_USERNAME }}
+        run: |
+          echo "::set-env name=COMPOSER_UP::composer update --no-progress --no-suggest --no-interaction --prefer-source --ansi"
+
+          EMAIL=${NARROWSPARK_EMAIL:-"d.bannert@anolilab.de"}
+          NAME=${NARROWSPARK_USERNAME:-"prisis"}
+
+          git config --global user.email "${EMAIL}"
+          git config --global user.name "${NAME}"
+
+      - name: "Install Automatic Security Audit"
+        run: composer global require --no-progress --no-scripts --no-plugins narrowspark/automatic-security-audit:dev-master
+
+      - name: "Create local composer packages for each patched components and reference them in composer.json when cross-testing components"
+        run: php ./build/build-packages.php HEAD^ $(find src/Viserio -mindepth 3 -type f -name composer.json -printf '%h\n' | sort)
+
+      - name: 'Audit components with highest package versions'
+        if: matrix.dependencies == 'highest'
+        run: |
+          for f in $(find src/Viserio -mindepth 2 -type f -name phpunit.xml.dist -printf '%h\n' | sort); do
+            echo ::group::$f
+            cd "$GITHUB_WORKSPACE/$f"
+            $COMPOSER_UP
+            echo ::endgroup::
+
+            composer audit --no-dev
+          done
+
+      - name: 'Audit components with lowest package versions'
+        if: matrix.dependencies == 'lowest'
+        run: |
+          for f in $(find src/Viserio -mindepth 2 -type f -name phpunit.xml.dist -printf '%h\n' | sort); do
+            echo ::group::$f
+            cd "$GITHUB_WORKSPACE/$f"
+            $COMPOSER_UP --prefer-lowest --prefer-stable
+            echo ::endgroup::
+
+            composer audit --no-dev
+          done

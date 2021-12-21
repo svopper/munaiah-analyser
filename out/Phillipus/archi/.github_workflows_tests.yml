@@ -1,0 +1,29 @@
+name: Archi Tests
+
+on: [push]
+
+jobs:
+  build-and-test:
+    
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    
+    - name: Set up JDK 1.11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.11
+      
+    - name: Cache Maven Repository
+      id: cache-m2
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+    
+    - name: Run Maven tests with a virtual display
+      run: |
+        mvn -v
+        xvfb-run mvn clean verify

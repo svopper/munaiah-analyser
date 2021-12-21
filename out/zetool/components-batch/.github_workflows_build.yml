@@ -1,0 +1,36 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Build
+
+on:
+  push:
+
+jobs:
+  build:
+    name: Java CI with Maven
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Define custom repositories
+      uses: whelk-io/maven-settings-xml-action@v4
+      with:
+        repositories: '[
+        { "id": "github", "name": "GitHub zetool Apache Maven Packages", "url": "https://maven.pkg.github.com/zetool/common" },
+        { "id": "tweety", "name": "TweetyProject", "url": "https://tweetyproject.org/mvn" },
+        { "id": "ekito-public-releases", "name": "Ekito", "url": "https://raw.github.com/Ekito/maven-repo/master/releases" }
+        ]'
+        servers: '[{ "id": "github", "username": "zetool-bot", "password": "${GITHUB_TOKEN}" }]'
+    - name: Test with Maven
+      run: mvn -B test --file pom.xml
+    - name: Build with Maven
+      run: mvn -B package -DskipTests --file pom.xml

@@ -1,0 +1,92 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# This workflow will download a prebuilt Ruby version, install dependencies and run tests with Rake
+# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version:
+          - 2.4
+          - 2.5
+          - 2.6
+          - 2.7
+          - 3.0
+        gemfile:
+          - ar4.2
+          - ar5.0
+          - ar5.1
+          - ar6.0
+          - ar6.1
+          - mongoid5
+          - mongoid6
+          - mongoid7
+          - noorm
+        exclude:
+          - ruby-version: 2.4
+            gemfile: ar6.0
+          - ruby-version: 2.4
+            gemfile: ar6.1
+          - ruby-version: 2.7
+            gemfile: ar4.2
+          - ruby-version: 2.7
+            gemfile: mongoid5
+          - ruby-version: 3.0
+            gemfile: ar4.2
+          - ruby-version: 3.0
+            gemfile: ar5.0
+          - ruby-version: 3.0
+            gemfile: ar5.1
+          - ruby-version: 3.0
+            gemfile: mongoid5
+          - ruby-version: 3.0
+            gemfile: mongoid6
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: blueprints_boy
+          POSTGRES_PASSWORD: blueprints_boy
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+      mongo:
+        image: mongo
+        env:
+          MONGO_INITDB_DATABASE: blueprints_boy
+        ports:
+          - '27017:27017'
+    env: # $BUNDLE_GEMFILE must be set at the job level, so it is set for all steps
+      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
+      DATABASE_URL: "postgres://blueprints_boy:blueprints_boy@localhost:5432/blueprints_boy"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
+        # change this to (see https://github.com/ruby/setup-ruby#versioning):
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Run rubocop
+        run: bundle exec rubocop
+      - name: Run tests
+        run: bundle exec rake

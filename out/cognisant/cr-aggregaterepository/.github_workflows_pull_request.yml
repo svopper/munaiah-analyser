@@ -1,0 +1,12 @@
+on: pull_request
+name: PR Checklist
+jobs:
+  createPRComment:
+    name: Create PR Comment
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Create PR Comment
+      uses: cognisant/code-review-checklist@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

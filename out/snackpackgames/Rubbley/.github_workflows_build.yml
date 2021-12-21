@@ -1,0 +1,39 @@
+name: Rubbley CI
+
+on:
+  pull_request: {}
+  push: { branches: [main] }
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+
+jobs:
+  build:
+    name: Build Rubbley
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+
+      # Cache
+      - uses: actions/cache@v1.1.0
+        with:
+          path: Library
+          key: Library
+
+      # Build
+      - name: Build Unity Project
+        uses: game-ci/unity-builder@v2.0-aplha-5
+        with:
+          unityVersion: 2019.4.14f1
+          targetPlatform: StandaloneWindows
+
+      # Output
+      - name: Archive Artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: Build
+          path: build

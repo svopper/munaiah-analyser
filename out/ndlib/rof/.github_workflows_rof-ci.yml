@@ -1,0 +1,23 @@
+name: rof-ci
+
+on:
+  push:
+jobs:
+  test-ruby:
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+    - name: Install bundler
+      run: gem install bundler
+    - name: Install bundled dependencies
+      run: bundle install
+    - name: Run rspec Tests
+      env:
+        RAILS_ENV: test
+      run: bundle exec rspec

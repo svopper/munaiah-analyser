@@ -1,0 +1,77 @@
+name: PullRequest
+
+on: [ pull_request ]
+
+jobs:
+  buildTest:
+    name: Build & Test JDK ${{ matrix.java_version }}
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        java_version: [ 11 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.5
+        with:
+          fetch-depth: 0
+      - name: Install JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: ${{ matrix.java_version }}
+      - name: Install Android SDK
+        uses: malinskiy/action-android/install-sdk@release/0.1.2
+      - name: Run tests
+        run: ./gradlew test
+        env:
+          VERSION: ${{ github.ref }}
+      - name: Run instrumentation tests
+        uses: malinskiy/action-android/emulator-run-cmd@release/0.1.2
+        env:
+          VERSION: ${{ github.ref }}
+        with:
+          cmd: ./gradlew cAT --continue
+          api: 28
+          tag: default
+          abi: x86
+      - name: Archive Espresso results
+        uses: actions/upload-artifact@v2.2.4
+        if: ${{ always() }}
+        with:
+          name: IOIO-Espresso-report
+          path: applications/**/build/reports/androidTests/connected/
+      - name: Save logcat output
+        uses: actions/upload-artifact@v2.2.4
+        if: failure()
+        with:
+          name: IOIO-logcat
+          path: artifacts/logcat.log
+      - name: Archive screenshots
+        uses: actions/upload-artifact@v2.2.4
+        if: ${{ always() }}
+        with:
+          name: IOIO-Screenshots
+          path: applications/screenshots/adb/
+  Check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.5
+        with:
+          fetch-depth: 0
+      - name: Install JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+      - name: Install Android SDK
+        uses: malinskiy/action-android/install-sdk@release/0.1.2
+      - name: Code checks
+        run: ./gradlew check
+      - name: Archive Lint report
+        uses: actions/upload-artifact@v2.2.4
+        if: ${{ always() }}
+        with:
+          name: IOIO-Lint-report
+          path: applications/**/build/reports/lint-results.html

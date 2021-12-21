@@ -1,0 +1,338 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  cross:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - armhf
+          - mipsel
+
+    container:
+      image: debian:bullseye
+      options: --privileged
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install deps
+        run: HOST=${{ matrix.arch }} sh .ci/deps.sh
+
+      - name: Prepare the system
+        run: |
+          sh .ci/test/prepare.sh
+          update-binfmts --enable
+          rm -f /dev/net/tun
+
+      - name: Run tests with default settings
+        run: sudo -u build CI=1 HOST=${{ matrix.arch }} sh .ci/test/run.sh default
+
+      - name: Run tests without legacy protocol
+        run: sudo -u build CI=1 HOST=${{ matrix.arch }} sh .ci/test/run.sh nolegacy
+        if: always()
+
+      - name: Run tests with libgcrypt
+        run: sudo -u build CI=1 HOST=${{ matrix.arch }} sh .ci/test/run.sh gcrypt
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests_cross_${{ matrix.arch }}
+          path: /tmp/logs/tests.*.tar.gz
+        if: always()
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install tools
+        run: |
+          sudo apt-get install -y astyle clang-tidy-$CLANG
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-$CLANG 100
+          curl -OL "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK/shellcheck-v${SHELLCHECK}.linux.x86_64.tar.xz"
+          tar -C ~ --strip-components=1 --wildcards -xf ./shellcheck-*.tar.xz 'shellcheck-*/shellcheck'
+          curl -o ~/shfmt -L "https://github.com/mvdan/sh/releases/download/v$SHFMT/shfmt_v${SHFMT}_linux_amd64"
+          chmod 755 ~/shfmt ~/shellcheck
+          pip3 install --user compiledb
+        env:
+          CLANG: 11
+          SHELLCHECK: 0.7.2
+          SHFMT: 3.3.0
+
+      - name: Install deps
+        run: sudo sh .ci/deps.sh
+
+      - name: Configure and compile
+        run: |
+          autoreconf -fsi
+          ./configure $(sh .ci/conf.sh)
+
+      - name: Run clang-tidy
+        run: sh .ci/tidy/run.sh
+        if: always()
+
+      - name: Check code formatting
+        run: "! astyle -r --options=.astylerc --dry-run --formatted '*.c' '*.h' | grep '^Formatted'"
+        if: always()
+
+      - name: Check scripts formatting
+        run: find -type f -regextype egrep -regex '.+\.(sh|sh\.in|test)$' -exec ~/shfmt -d -i 2 -s '{}' +
+        if: always()
+
+      - name: Run static analysis on scripts
+        run: find -type f -regextype egrep -regex '.+\.sh(\.in)?$' -exec shellcheck -x '{}' +
+        if: always()
+
+      - name: Run static analysis on tests
+        run: find -type f -name '*.test' -execdir shellcheck -x '{}' +
+        if: always()
+
+      - name: Check warnings (gcc)
+        run: bash .ci/warn/run.sh
+        env:
+          CC: gcc
+        if: always()
+
+      - name: Check warnings (clang)
+        run: bash .ci/warn/run.sh
+        env:
+          CC: clang
+        if: always()
+
+  sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer:
+          - address
+          - thread
+          - undefined
+    env:
+      SANITIZER: "${{ matrix.sanitizer }}"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install deps
+        run: sudo sh .ci/deps.sh
+
+      - name: Sanitize tests with default settings
+        run: bash .ci/sanitizers/run.sh default
+
+      - name: Sanitize tests without legacy protocol
+        run: bash .ci/sanitizers/run.sh nolegacy
+        if: always()
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests_sanitizer_${{ matrix.sanitizer }}
+          path: /tmp/logs/tests.*.tar.gz
+        if: always()
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - alpine
+          - centos:7 # aka RHEL 7
+          - almalinux:8 # aka RHEL 8
+          - fedora
+          - debian:buster
+          - debian:bullseye
+          - debian:testing
+          - ubuntu # current LTS
+          - ubuntu:rolling # latest
+    container:
+      image: ${{ matrix.os }}
+      options: --privileged
+      env:
+        CI: 1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install deps
+        run: sh .ci/deps.sh
+
+      - name: Assign name for test results artifact
+        run: echo ARTIFACT="$(echo '${{ matrix.os }}' | sed 's|[:/]|_|g')" >>"$GITHUB_ENV"
+
+      - name: Create a non-privileged user
+        run: sh .ci/test/prepare.sh
+
+      - name: Run tests with default settings
+        run: sudo -u build CI=1 sh .ci/test/run.sh default
+
+      - name: Run tests without legacy protocol
+        run: sudo -u build CI=1 sh .ci/test/run.sh nolegacy
+        if: always()
+
+      - name: Run tests with libgcrypt
+        run: sudo -u build CI=1 sh .ci/test/run.sh gcrypt
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests_${{ env.ARTIFACT }}
+          path: /tmp/logs/tests.*.tar.gz
+        if: always()
+
+      - name: Build package
+        run: sh .ci/package/build.sh
+        if: github.ref == 'refs/heads/1.1' || startsWith(github.ref, 'refs/tags/release-')
+
+      - name: Upload package
+        uses: actions/upload-artifact@v2
+        with:
+          name: pkg-${{ env.ARTIFACT }}
+          path: |
+            *.deb
+            ~/rpmbuild/RPMS/*/*.rpm
+
+  pkg-publish:
+    if: always() && (github.ref == 'refs/heads/1.1' || startsWith(github.ref, 'refs/tags/release-'))
+    runs-on: ubuntu-latest
+    needs:
+      - linux
+      - windows
+
+    steps:
+      - name: Create artifact directory
+        run: mkdir -p /tmp/artifacts
+
+      - name: Download packages
+        uses: actions/download-artifact@v2
+        with:
+          path: /tmp/artifacts
+
+      - name: Publish packages (dev)
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
+          title: Development release
+          prerelease: true
+          files: /tmp/artifacts/**/*.(deb|rpm|exe)
+        if: startsWith(github.ref, 'refs/heads/')
+
+      - name: Publish packages (release)
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            /tmp/artifacts/**/*.deb
+            /tmp/artifacts/**/*.rpm
+            /tmp/artifacts/**/*.exe
+        if: startsWith(github.ref, 'refs/tags/')
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Install build deps
+        run: sh .ci/deps.sh
+
+      - name: Run tests with default settings
+        run: sh .ci/test/run.sh default
+
+      - name: Run clang-tidy
+        run: |
+          export PATH="$PATH:$(brew --prefix llvm)/bin:$HOME/Library/Python/3.9/bin"
+          sh .ci/tidy/run.sh
+
+      - name: Run tests without legacy protocol
+        run: sh .ci/test/run.sh nolegacy
+        if: always()
+
+      - name: Run tests with libgcrypt
+        run: sh .ci/test/run.sh gcrypt
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests_macos
+          path: /tmp/logs/tests.*.tar.gz
+        if: always()
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          # https://packages.msys2.org/package/
+          install: >-
+            base-devel
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-libgcrypt
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-lzo2
+            mingw-w64-x86_64-lz4
+            mingw-w64-x86_64-ncurses
+            mingw-w64-x86_64-miniupnpc
+            mingw-w64-x86_64-nsis
+            git
+            netcat
+            procps
+
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Run tests with default settings
+        shell: msys2 {0}
+        run: sh .ci/test/run.sh default
+
+      - name: Create installer
+        shell: msys2 {0}
+        run: sh .ci/package/build.sh
+        if: github.ref == 'refs/heads/1.1' || startsWith(github.ref, 'refs/tags/release-')
+
+      - name: Upload package
+        uses: actions/upload-artifact@v2
+        with:
+          name: pkg-windows
+          path: .ci/package/win/tinc-*.exe
+
+      - name: Run tests without legacy protocol
+        shell: msys2 {0}
+        run: sh .ci/test/run.sh nolegacy
+        if: always()
+
+      - name: Run tests with libgcrypt
+        shell: msys2 {0}
+        run: sh .ci/test/run.sh gcrypt
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests_windows
+          path: /tmp/logs/tests.*.tar.gz
+        if: always()

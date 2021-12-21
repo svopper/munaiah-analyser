@@ -1,0 +1,34 @@
+name: Android
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  Build:
+    name: "Build Android"
+    runs-on: ubuntu-latest
+    container: ghcr.io/khronosgroup/vulkan-samples
+
+    steps:
+    - name: Install dependencies
+      run: | 
+        apt-get update 
+        apt install ninja-build
+      
+    - name: Clone
+      uses: actions/checkout@v2
+
+    - name: Generate project
+      run: ./Samples/Sponza/GenerateAndroidProject.sh
+    
+    - name: local.properties
+      run: |
+        echo "sdk.dir=/usr/local/android-sdk" > AndroidProject_Sponza/local.properties
+        echo "ndk.dir=/usr/local/android-ndk" >> AndroidProject_Sponza/local.properties
+
+    - name: Build
+      working-directory: AndroidProject_Sponza
+      run: ./gradlew build

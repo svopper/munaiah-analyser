@@ -1,0 +1,43 @@
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: CI
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [ 3.6, 3.7, 3.8, 3.9 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install tox tox-gh-actions
+        working-directory: ./example_project
+      - name: Run tests
+        run: tox
+      - name: Flake8
+        if: ${{ matrix.python == 3.8 }}
+        run: |
+          pip install flake8
+          flake8 ./
+      - name: Isort
+        if: ${{ matrix.python == 3.8 }}
+        uses: jamescurtin/isort-action@master
+      - name: Coverage
+        if: ${{ matrix.python == 3.8 }}
+        run: |
+          pip install coverage[toml] django
+          coverage run ./example_project/manage.py test photologue
+      - name: Upload coverage
+        if: ${{ matrix.python == 3.8 }}
+        uses: codecov/codecov-action@v1
+        with:
+          name: Python ${{ matrix.python }}

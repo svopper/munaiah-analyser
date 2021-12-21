@@ -1,0 +1,19 @@
+name: Commando Training
+on: [push, pull_request]
+jobs:
+  Benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Execution
+      uses: spoutn1k/mcmap-benchmark@cmake
+    - name: Upload time data
+      uses: actions/upload-artifact@v1
+      with:
+        name: results.log
+        path: time.log
+    - name: Upload results
+      uses: actions/upload-artifact@v1
+      with:
+        name: images.tgz
+        path: images.tgz

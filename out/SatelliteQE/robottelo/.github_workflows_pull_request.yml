@@ -1,0 +1,73 @@
+# CI stages to execute against Pull Requests
+name: Robottelo - CI
+
+on:
+  pull_request:
+    types: ["opened", "synchronize", "reopened"]
+
+env:
+    PYCURL_SSL_LIBRARY: openssl
+
+jobs:
+  codechecks:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+    steps:
+      - name: Checkout Robottelo
+        uses: actions/checkout@v2
+
+      - name: Set Up Python-${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt-get install -y libgnutls28-dev libcurl4-openssl-dev libssl-dev
+          wget https://raw.githubusercontent.com/SatelliteQE/broker/master/broker_settings.yaml.example
+          # link vs compile time ssl implementations can break the environment when installing requirements
+          # Uninstall pycurl - its likely not installed, but in case the ubuntu-latest packages change
+          # Then compile and install it with PYCURL_SSL_LIBRARY set to openssl
+          pip install -U pip
+          pip uninstall -y pycurl
+          pip install --compile --no-cache-dir pycurl
+          pip install -U -r requirements.txt -r requirements-optional.txt
+          for conffile in conf/*.yaml.template; do mv -- "$conffile" "${conffile%.yaml.template}.yaml"; done
+          cp broker_settings.yaml.example broker_settings.yaml
+
+      - name: Pre Commit Checks
+        uses: pre-commit/action@v2.0.0
+
+      - name: Collect Tests
+        run: |
+          pytest --collect-only --disable-pytest-warnings tests/foreman/ tests/robottelo/
+          pytest --collect-only --disable-pytest-warnings -m pre_upgrade tests/upgrades/
+          pytest --collect-only --disable-pytest-warnings -m post_upgrade tests/upgrades/
+
+      - name: Collect Tests with xdist
+        run: |
+          pytest --collect-only --disable-pytest-warnings -n 2 tests/foreman/ tests/robottelo/
+          pytest --collect-only --disable-pytest-warnings -n 2 -m pre_upgrade tests/upgrades/
+          pytest --collect-only --disable-pytest-warnings -n 2 -m post_upgrade tests/upgrades/
+
+      - name: Test Robottelo Coverage
+        run: pytest --cov --cov-config=.coveragerc --cov-report=xml tests/robottelo
+
+      - name: Make Docs
+        run: |
+          make test-docstrings
+          make docs
+
+      - name: Analysis (git diff)
+        if: failure()
+        run: git diff
+
+      - name: Upload Codecov Coverage
+        uses: codecov/codecov-action@v1.0.13
+        with:
+          file: coverage.xml
+          name: ${{ github.run_id }}-py-${{ matrix.python-version }}

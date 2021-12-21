@@ -1,0 +1,44 @@
+on:
+  push:
+    branches:
+      - main
+      - 'test-*'
+    paths:
+      - 'bin/**'
+      - 'lib/**'
+      - 'plugins/**'
+      - 'test/**'
+      - 'templates/**'
+      - 'Gemfile'
+      - 'vagrant.gemspec'
+      - 'Rakefile'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'bin/**'
+      - 'lib/**'
+      - 'plugins/**'
+      - 'test/**'
+      - 'Gemfile'
+      - 'templates/**'
+      - 'vagrant.gemspec'
+      - 'Rakefile'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        ruby: [ '2.5', '2.6', '2.7', '3.0' ]
+    name: Vagrant unit tests on Ruby ${{ matrix.ruby }}
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v1
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{matrix.ruby}}
+          architecture: 'x64'
+      - name: Run Tests
+        run: .ci/test.sh

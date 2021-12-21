@@ -1,0 +1,129 @@
+# GitHubActions for releasing
+# read the docs: https://help.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow
+# see for event payloads: https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads#release
+
+name: Release
+
+on:
+  release:
+    types: [ 'created' ]
+
+defaults:
+  run:
+    working-directory: python-package
+
+env:
+  project-directory: python-package
+  dist-dir: dist
+  latest-python-version: '3.9'
+
+jobs:
+  test:
+    name: Tests
+    # these tests are just to ensure that a minimal quality is given. full tests are done in `tests` action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        # see https://github.com/actions/checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        # see https://github.com/actions/setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.latest-python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U wheel setuptools pip
+          python -m pip install tox -c requirements/tox.txt
+      - name: Run tests
+        run: python -m tox -r -s false
+        env:
+          NP_VERSION_EXPECTED: ${{ github.event.release.tag_name }}
+          # test against `pyXX` - ${{ env.latest-python-version }}
+          TOXENV: style, version, tests_start, py39, build, install
+          TOX_PARALLEL_NO_SPINNER: 1
+  build:
+    name: Build
+    needs: [ 'test' ]
+    # build in an isolated env
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        # see https://github.com/actions/checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        # see https://github.com/actions/setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.latest-python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U wheel setuptools pip
+          python -m pip install tox -c requirements/tox.txt
+      - name: Build package
+        run: python -m tox -r -s false -e build
+        env:
+          NP_DIST_DIR: ${{ env.dist-dir }}
+      - name: Artifact build results
+        # see https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-results
+          path: ${{ env.project-directory }}/${{ env.dist-dir }}/
+          if-no-files-found: error
+  publish-release:
+    name: Publish to assets
+    needs: [ 'build' ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch build results
+        # see https://github.com/actions/download-artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build-results
+          path: ${{ env.dist-dir }}
+      - name: Find dist files
+        id: files
+        run: |
+          echo "::set-output name=source::$(ls -qb1 *.tar.gz)"
+          echo "::set-output name=wheel::$(ls -qb1 *.whl)"
+        working-directory: ${{ env.dist-dir }}
+      - name: Publish wheel
+        # see https://github.com/actions/upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.dist-dir }}/${{ steps.files.outputs.wheel }}
+          asset_name: ${{ steps.files.outputs.wheel }}
+          asset_content_type: application/x-pywheel+zip
+      - name: Publish source
+        # see https://github.com/actions/upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.dist-dir }}/${{ steps.files.outputs.source }}
+          asset_name: ${{ steps.files.outputs.source }}
+          asset_content_type: application/tar+gzip
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [ 'build' ]
+    if: ${{ github.repository_owner == 'k4cg' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build results
+        # see https://github.com/actions/download-artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build-results
+          path: ${{ env.dist-dir }}
+      - name: Publish
+        # see https://github.com/pypa/gh-action-pypi-publish
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages_dir: ${{ env.dist-dir }}

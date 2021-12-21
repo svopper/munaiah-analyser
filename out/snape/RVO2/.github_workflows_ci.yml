@@ -1,0 +1,391 @@
+---
+name: ci
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+  bazel_arch:
+    name: bazel arch latest
+    runs-on: ubuntu-20.04
+    container: archlinux:latest
+    steps:
+      - name: setup
+        run: |
+          pacman --needed --noconfirm --noprogressbar -S -u -y \
+            bazel \
+            ca-certificates \
+            gcc \
+            git \
+            python \
+            which
+          rm -rf \
+            /var/cache/pacman/pkg/* \
+            /var/lib/pacman/sync/*
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: bazel test ...
+        shell: bash
+
+  bazel_macos:
+    name: bazel macos latest
+    runs-on: macos-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup
+        run: |
+          rm -f /usr/local/bin/2to3
+          brew unlink gcc@8
+          brew unlink gcc@9
+          brew update
+          brew uninstall -q bazelisk
+          brew bundle install --no-lock
+        shell: zsh -efuo pipefail {0}
+      - name: build test package
+        run: bazel test ...
+        shell: zsh -efuo pipefail {0}
+
+  bazel_ubuntu:
+    name: bazel ubuntu latest
+    runs-on: ubuntu-20.04
+    container: ubuntu:latest
+    steps:
+      - name: setup
+        run: |
+          apt-get -qq update
+          apt-get -qq -o Dpkg::Use-Pty=0 --no-install-recommends install \
+            ca-certificates \
+            g++ \
+            git \
+            gnupg \
+            python-is-python3
+          apt-key adv -q --fetch-keys https://bazel.build/bazel-release.pub.gpg
+          echo 'deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8' \
+            > /etc/apt/sources.list.d/bazel.list
+          apt-get -qq update
+          apt-get -qq -o Dpkg::Use-Pty=0 --no-install-recommends install bazel
+          rm -rf /var/lib/apt/lists/*
+        env:
+          APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE: 1
+          DEBIAN_FRONTEND: noninteractive
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: bazel test ...
+        shell: bash
+
+  cmake_alpine:
+    name: cmake alpine latest
+    runs-on: ubuntu-20.04
+    container: alpine:latest
+    steps:
+      - name: setup
+        run: |
+          apk add --no-cache \
+            ca-certificates \
+            cmake \
+            doxygen \
+            g++ \
+            git \
+            graphviz \
+            make \
+            pkgconf
+        shell: sh
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=ON \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G TGZ
+          cpack -G TGZ --config CPackSourceConfig.cmake
+        shell: sh
+
+  cmake_arch:
+    name: cmake arch latest
+    runs-on: ubuntu-20.04
+    container: archlinux:latest
+    steps:
+      - name: setup
+        run: |
+          pacman --needed --noconfirm --noprogressbar -S -u -y \
+            ca-certificates \
+            cmake \
+            doxygen \
+            gcc \
+            git \
+            graphviz \
+            make \
+            pkgconf
+          rm -rf \
+            /var/cache/pacman/pkg/* \
+            /var/lib/pacman/sync/*
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=ON \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G TGZ
+          cpack -G TGZ --config CPackSourceConfig.cmake
+        shell: bash
+
+  cmake_centos:
+    name: cmake centos latest
+    runs-on: ubuntu-20.04
+    container: centos:latest
+    steps:
+      - name: setup
+        run: |
+          dnf install -q -y \
+            ca-certificates \
+            cmake \
+            dnf-plugins-core \
+            gcc-c++ \
+            git \
+            glibc-langpack-en \
+            graphviz \
+            make \
+            pkgconf-pkg-config \
+            redhat-lsb-core \
+            rpm-build
+          dnf config-manager --set-enabled powertools
+          dnf install -q -y doxygen
+          dnf clean all
+          rm -rf /var/cache/yum
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=ON \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G RPM
+          cpack -G RPM --config CPackSourceConfig.cmake
+        shell: bash
+
+  cmake_fedora:
+    name: cmake fedora latest
+    runs-on: ubuntu-20.04
+    container: fedora:latest
+    steps:
+      - name: setup
+        run: |
+          dnf install -q -y \
+            ca-certificates \
+            cmake \
+            doxygen \
+            gcc-c++ \
+            git \
+            glibc-langpack-en \
+            graphviz \
+            make \
+            pkgconf-pkg-config \
+            redhat-lsb-core \
+            rpm-build
+          dnf clean all
+          rm -rf /var/cache/yum
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=ON \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G RPM
+          cpack -G RPM --config CPackSourceConfig.cmake
+        shell: bash
+
+  cmake_macos:
+    name: cmake macos latest
+    runs-on: macos-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup
+        run: |
+          rm -f /usr/local/bin/2to3
+          brew unlink gcc@8
+          brew unlink gcc@9
+          brew update
+          brew uninstall -q bazelisk
+          brew bundle install --no-lock
+        shell: zsh -efuo pipefail {0}
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=OFF \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G TGZ
+          cpack -G TGZ --config CPackSourceConfig.cmake
+        shell: zsh -efuo pipefail {0}
+
+  cmake_ubuntu:
+    name: cmake ubuntu latest
+    runs-on: ubuntu-20.04
+    container: ubuntu:latest
+    steps:
+      - name: setup
+        run: |
+          apt-get -qq update
+          apt-get -qq -o Dpkg::Use-Pty=0 --no-install-recommends install \
+            ca-certificates \
+            cmake \
+            doxygen \
+            dpkg \
+            dpkg-dev \
+            file \
+            g++ \
+            git \
+            graphviz \
+            make \
+            pkg-config
+          rm -rf /var/lib/apt/lists/*
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        shell: bash
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake \
+            -DBUILD_DOCUMENTATION:BOOL=ON \
+            -DBUILD_TESTING:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=install \
+            -DENABLE_HARDENING:BOOL=ON \
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON \
+            -DENABLE_OPENMP:BOOL=ON \
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF \
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF \
+            -DWARNINGS_AS_ERRORS:BOOL=ON \
+            --warn-uninitialized \
+            ..
+          cmake --build .
+          ctest .
+          cmake --install .
+          cpack -G DEB
+          cpack -G DEB --config CPackSourceConfig.cmake
+        shell: bash
+
+  cmake_windows:
+    name: cmake windows latest
+    runs-on: windows-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup
+        run: |
+          cup cmake.install -r -y --install-arguments=ADD_CMAKE_TO_PATH=System `
+            --no-progress
+          cinst doxygen.install -f -r -y
+        shell: pwsh
+      - name: build test package
+        run: |
+          mkdir _build
+          cd _build
+          cmake `
+            -DBUILD_DOCUMENTATION:BOOL=ON `
+            -DBUILD_TESTING:BOOL=ON `
+            -DCMAKE_INSTALL_PREFIX:PATH=install `
+            -DENABLE_HARDENING:BOOL=ON `
+            -DENABLE_INTERPROCEDURAL_OPTIMIZATION:BOOL=ON `
+            -DENABLE_OPENMP:BOOL=OFF `
+            -DOUTPUT_TIME_AND_POSITIONS:BOOL=OFF `
+            -DSEED_RANDOM_NUMBER_GENERATOR:BOOL=OFF `
+            -DWARNINGS_AS_ERRORS:BOOL=ON `
+            --warn-uninitialized `
+            ..
+          cmake --build . --config Release
+          ctest . --build-config Release
+          cmake --install .
+          cpack -C Release -G ZIP
+          cpack -C Release -G ZIP --config CPackSourceConfig.cmake
+        shell: pwsh

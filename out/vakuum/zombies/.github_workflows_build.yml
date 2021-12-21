@@ -1,0 +1,17 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - run: gcc zombies.c -o zombies
+    - run: ./zombies 50 &
+    - run: sleep 5
+    - run: top -b -n 1 | grep -q "50 zombie"

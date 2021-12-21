@@ -1,0 +1,22 @@
+name: Build and publish to pages
+on:
+  push:
+    branches:
+    - source
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: build
+      uses: docker://iquiw/alpine-emacs
+      if: github.event.deleted == false
+      with:
+        args: sh -c "apk add git;emacs -nw  -q -l ./build/org-publish.el --batch --funcall toggle-debug-on-error  --funcall publish-my-note-all"
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      if: success()
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./blog

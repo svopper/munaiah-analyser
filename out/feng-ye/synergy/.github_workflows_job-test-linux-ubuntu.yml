@@ -1,0 +1,38 @@
+name: Ubuntu
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-arch64:
+    runs-on: ubuntu-latest
+    container: symless/synergy-core:ubuntu${{ matrix.distro }}
+    env:
+      GIT_COMMIT: ${{ github.sha }}
+    strategy:
+      matrix:
+        distro: ['20.04', '21.04', '18.04']
+        flag: ['-j']
+        include:
+          - distro: '16.04'
+            flag: '-j1'
+
+
+    name: ubuntu${{ matrix.distro }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          . ./version
+          make ${{ matrix.flag }}
+
+      - name: Run unit test
+        run: ./build/bin/unittests

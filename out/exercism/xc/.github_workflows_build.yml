@@ -1,0 +1,18 @@
+name: Test Exercises
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+    - uses: actions/checkout@1e204e9a9253d643386038d443f96446fa156a97
+    - name: Test Exercises
+      env:
+        CC: ${{ matrix.compiler }}
+      run: ./bin/run-tests

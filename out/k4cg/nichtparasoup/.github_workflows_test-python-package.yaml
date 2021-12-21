@@ -1,0 +1,279 @@
+# GitHubActions for testing
+# read the docs: https://help.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow
+
+name: PythonPackage Test
+
+on:
+  workflow_dispatch:
+  push:
+    tags: [ '*.*.*' ]  # run again on release tags to have tools mark them
+    branches: [ 'master', '3.0-dev' ]
+    paths:
+      - '.github/workflows/test-python-package.yaml'
+      - '.github/codeql/python-package.yaml'
+      - 'python-package/**'
+      - '!python-package/src/nichtparasoup/_web-ui/static/**'
+      - '!python-package/docs/**'
+      - '!python-package/images/**'
+      - '!python-package/**.md'
+      - '!python-package/**.rst'
+      - '!python-package/AUTHORS'
+      - '!python-package/CHANGELOG'
+      - '!python-package/INSTALL'
+      - '!python-package/LICENSE'
+  pull_request:
+    branches: [ 'master', '3.0-dev' ]
+    paths:
+      - '.github/workflows/test-python-package.yaml'
+      - '.github/codeql/python-package.yaml'
+      - 'python-package/**'
+      - '!python-package/src/nichtparasoup/_web-ui/static/**'
+      - '!python-package/docs/**'
+      - '!python-package/images/**'
+      - '!python-package/**.md'
+      - '!python-package/**.rst'
+      - '!python-package/AUTHORS'
+      - '!python-package/CHANGELOG'
+      - '!python-package/INSTALL'
+      - '!python-package/LICENSE'
+  schedule:
+    # schedule weekly tests, since install dependencies are not intended to be pinned
+    # this means: at 23:42 on Fridays
+    - cron: '42 23 * * 5'
+
+defaults:
+  run:
+    working-directory: python-package
+
+env:
+  project-directory: python-package
+  reports-directory: reports
+  reports-artifact: reports
+  coverage-artifact: coverage
+  latest-python-version: '3.9'
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    env:
+      coverage-artifact-dir: _coverage
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # check the style
+          - name: 'Style'
+            os: ubuntu-latest
+            python: '3.9'  # should be ${{ env.latest-python-version }}
+            toxenv: tests_start, style
+            no-unit-test: true
+          # check latest Python for all OS
+          - name: Linux
+            os: 'ubuntu-latest'
+            python: '3.9'  # should be ${{ env.latest-python-version }}
+            toxenv: tests_start, py39, build, install
+          - name: Windows
+            os: windows-latest
+            python: '3.9'  # should be ${{ env.latest-python-version }}
+            toxenv: tests_start, py39, build, install
+          - name: 'MacOs'
+            os: macos-latest
+            python: '3.9'  # should be ${{ env.latest-python-version }}
+            toxenv: tests_start, py39, build, install
+            # no server - missing the network entitlement on headless macOS
+            pytest_args: -m 'not server'
+          # check older Python
+          - name: '3.8'
+            os: ubuntu-latest
+            python: '3.8'
+            toxenv: tests_start, py38, build, install
+          - name: '3.7'
+            os: ubuntu-latest
+            python: '3.7'
+            toxenv: tests_start, py37, build, install
+          - name: '3.6'
+            os: ubuntu-latest
+            python: '3.6'
+            toxenv: tests_start, py36, build, install
+    steps:
+      - name: Fetch Code
+        # see https://github.com/actions/checkout
+        uses: actions/checkout@v2
+      - name: Setup Python ${{ matrix.python_version }}
+        # see https://github.com/actions/setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Get pip cache dir
+        id: pip-cache
+        # as shown here: https://github.com/actions/cache/blob/master/examples.md#using-pip-to-get-cache-location
+        run: echo "::set-output name=dir::$(python -m pip cache dir)"
+      - name: Setup pip cache dir
+        continue-on-error: true
+        # see https://github.com/actions/cache
+        uses: actions/cache@v2.1.6
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: pip-${{ runner.os }}-${{ matrix.python }}-${{ hashFiles(format('{0}/requirements/*.txt', env.project-directory)) }}
+          restore-keys: pip-${{ runner.os }}-${{ matrix.python }}-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U wheel setuptools pip
+          python -m pip install tox -c requirements/tox.txt
+      - name: Test ${{ env.project-directory }}
+        id: tests
+        run:
+          python -m tox -r -s false --
+          ${{ matrix.pytest_args }}
+          --junit-xml=${{ env.reports-directory }}/pytests/${{ runner.os }}-${{ matrix.python }}.xml
+          -o junit_suite_name=${{ runner.os }}-${{ matrix.python }}
+        env:
+          TOXENV: ${{ matrix.toxenv }}
+          TOX_PARALLEL_NO_SPINNER: 1
+          NP_TESTLOG_NAME: ${{ matrix.name }}
+      # has some issues with multiple parallel runs -- reports are sent to wrong run some times
+      # - name: Publish pytest results
+      #  if: ${{ ! cancelled() && ! matrix.no-unit-test }}
+      #  # see https://github.com/mikepenz/action-junit-report
+      #  uses: mikepenz/action-junit-report@v1
+      #  with:
+      #    check_name: Pytests Report ${{ matrix.name }} PythonPackage
+      #    report_paths: ${{ env.project-directory }}/${{ env.reports-directory }}/pytests/${{ runner.os }}-${{ matrix.python }}.xml
+      #    github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Artifact testlogs
+        if: ${{ ! cancelled() && steps.tests.outcome == 'failure' && ! matrix.no-unit-test }}
+        # see https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: testlogs
+          # see `LOGDIR` in `tests/__init__.py`
+          path: ${{ env.project-directory }}/tests/.logs/
+          if-no-files-found: warn
+      - name: Artifact reports
+        if: ${{ ! cancelled() && ! matrix.no-unit-test }}
+        # see https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.reports-artifact }}
+          path: ${{ env.project-directory }}/${{ env.reports-directory }}/
+          if-no-files-found: error
+      - name: Rename coverage for artifact
+        if: ${{ ! cancelled() && ! matrix.no-unit-test }}
+        run: |
+          mkdir ${{ env.coverage-artifact-dir }}
+          mv .coverage ${{ env.coverage-artifact-dir }}/${{ runner.os }}-${{ matrix.python }}.coverage
+      - name: Artifact coverage
+        if: ${{ ! cancelled() && ! matrix.no-unit-test }}
+        # see https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.coverage-artifact }}
+          path: ${{ env.project-directory }}/${{ env.coverage-artifact-dir }}/
+          if-no-files-found: error
+      - name: Tidy pip cache dir
+        if: ${{ always() }}
+        run: python -m pip cache remove 'nichtparasoup*' || true
+  test-reporting_merge:
+    name: Merge test reports
+    needs: [ 'test' ]
+    # just wait until 'test' finished, but run regardless of the outcome
+    if: ${{ ! cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      coverage-artifact-dir: _coverage
+    steps:
+      - name: Fetch Code
+        # see https://github.com/actions/checkout
+        uses: actions/checkout@v2
+      - name: Fetch reports
+        # see https://github.com/actions/download-artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.reports-artifact }}
+          path: ${{ env.project-directory }}/${{ env.reports-directory }}
+      - name: Fetch coverage
+        # see https://github.com/actions/download-artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.coverage-artifact }}
+          path: ${{ env.project-directory }}/${{ env.coverage-artifact-dir }}
+      - name: Setup Python
+        # see https://github.com/actions/setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.latest-python-version }}
+      - name: Get pip cache dir
+        id: pip-cache
+        # as shown here: https://github.com/actions/cache/blob/master/examples.md#using-pip-to-get-cache-location
+        run: echo "::set-output name=dir::$(python -m pip cache dir)"
+      - name: Setup pip cache dir
+        continue-on-error: true
+        # see https://github.com/actions/cache
+        uses: actions/cache@v2.1.6
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: pip-${{ runner.os }}-${{ env.latest-python-version }}-${{ hashFiles(format('{0}/requirements/*.txt', env.project-directory)) }}
+          restore-keys: pip-${{ runner.os }}-${{ env.latest-python-version }}-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U wheel setuptools pip
+          python -m pip install coverage tox -c requirements/tests.txt -c requirements/tox.txt
+      - name: Merge pytest-reports
+        run: python -m tox -r -e pytests_merge
+      - name: Merge coverage
+        run: |
+          python -m coverage combine ${{ env.coverage-artifact-dir }}/*
+          python -m tox -r -e coverage_report
+      - name: Artifact combined reports
+        # see https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.reports-artifact }}
+          path: ${{ env.project-directory }}/${{ env.reports-directory }}/
+          if-no-files-found: error
+
+
+  can-sonar:
+    runs-on: ubuntu-latest
+    outputs:
+      has_token: ${{ steps.has-token.outputs.has_token }}
+    steps:
+      - id: has-token
+        run: |
+          if [[ -n "$SONAR_TOKEN" ]]
+          then
+            echo '::set-output name=has_token::false'
+          fi
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        working-directory: .
+  sonarcloud:
+    name: SonarScanner
+    needs: [ 'can-sonar', 'test', 'test-reporting_merge' ]
+    # have forks backed-up: Anyone without write access to a repository cannot read and use secrets
+    if: ${{ needs.can-sonar.outputs.has_token && ! cancelled() && github.repository_owner == 'k4cg' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Code
+        # see https://github.com/actions/checkout
+        uses: actions/checkout@v2
+        with:
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 0
+      - name: Fetch reports
+        continue-on-error: true
+        # see https://github.com/actions/download-artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.reports-artifact }}
+          path: ${{ env.project-directory }}/${{ env.reports-directory }}
+      - name: SonarCloud Scan
+        # see https://github.com/SonarSource/sonarcloud-github-action
+        uses: sonarsource/sonarcloud-github-action@v1.6
+        with:
+          projectBaseDir: ${{ env.project-directory }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

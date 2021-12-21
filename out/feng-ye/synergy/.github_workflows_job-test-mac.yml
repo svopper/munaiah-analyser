@@ -1,0 +1,51 @@
+name: Mac
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-macos:
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+
+    strategy:
+      matrix:
+        include:
+          - os: "macos-10.15"
+            target: "10.14"
+            shell: "bash"
+          - os: [self-hosted, macOS, arm64]
+            target: ""
+            shell: "/usr/bin/arch -arch arm64e /bin/bash --noprofile --norc -eo pipefail {0}"
+
+    env:
+      GIT_COMMIT: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install brew dependencies
+        run: |
+          brew list qt5 &>/dev/null || brew install qt5
+          brew list openssl &>/dev/null || brew install openssl
+
+      - name: Build
+        env:
+          CMAKE_OSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+        run: |
+          mkdir build
+          cd build
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt5);$(brew --prefix openssl)" ..
+          . ./version
+          make -j
+
+      - name: Run unit test
+        run: ./build/bin/unittests

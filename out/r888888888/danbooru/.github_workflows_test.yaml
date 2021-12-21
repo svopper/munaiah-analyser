@@ -1,0 +1,104 @@
+# Run the test suite after the Docker image is successfully built.
+
+name: Test
+
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#permissions
+permissions: read-all
+
+on:
+  # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#workflow_run
+  workflow_run:
+    workflows: ["Docker Build"]
+    types: [completed]
+
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: "Run the workflow with remote debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: false
+
+jobs:
+  test:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    # Don't run the test suite multiple times for the same commit.
+    concurrency: "test-${{ github.sha }}"
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/danbooru/danbooru:${{ github.sha }}
+      options: --user root
+
+    env:
+      RAILS_ENV: test
+      PARALLEL_WORKERS: 8 # number of parallel tests to run
+      RUBYOPT: -W0 # silence ruby warnings
+      VIPS_WARNING: 0 # silence libvips warnings
+
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      DATABASE_URL: postgresql://danbooru:danbooru@postgres/danbooru
+      DANBOORU_SECRET_KEY_BASE: 1234
+      DANBOORU_AWS_SQS_ENABLED: false
+      DANBOORU_TWITTER_API_KEY: ${{ secrets.DANBOORU_TWITTER_API_KEY }}
+      DANBOORU_TWITTER_API_SECRET: ${{ secrets.DANBOORU_TWITTER_API_SECRET }}
+      DANBOORU_PIXIV_PHPSESSID: ${{ secrets.DANBOORU_PIXIV_PHPSESSID }}
+      DANBOORU_NIJIE_LOGIN: ${{ secrets.DANBOORU_NIJIE_LOGIN }}
+      DANBOORU_NIJIE_PASSWORD: ${{ secrets.DANBOORU_NIJIE_PASSWORD }}
+      DANBOORU_NICO_SEIGA_LOGIN: ${{ secrets.DANBOORU_NICO_SEIGA_LOGIN }}
+      DANBOORU_NICO_SEIGA_PASSWORD: ${{ secrets.DANBOORU_NICO_SEIGA_PASSWORD }}
+      DANBOORU_TUMBLR_CONSUMER_KEY: ${{ secrets.DANBOORU_TUMBLR_CONSUMER_KEY }}
+      DANBOORU_DEVIANTART_CLIENT_ID: ${{ secrets.DANBOORU_DEVIANTART_CLIENT_ID }}
+      DANBOORU_DEVIANTART_CLIENT_SECRET: ${{ secrets.DANBOORU_DEVIANTART_CLIENT_SECRET }}
+      DANBOORU_PAWOO_CLIENT_ID: ${{ secrets.DANBOORU_PAWOO_CLIENT_ID }}
+      DANBOORU_PAWOO_CLIENT_SECRET: ${{ secrets.DANBOORU_PAWOO_CLIENT_SECRET }}
+      DANBOORU_BARAAG_CLIENT_ID: ${{ secrets.DANBOORU_BARAAG_CLIENT_ID }}
+      DANBOORU_BARAAG_CLIENT_SECRET: ${{ secrets.DANBOORU_BARAAG_CLIENT_SECRET }}
+      DANBOORU_DISCORD_WEBHOOK_ID: ${{ secrets.DANBOORU_DISCORD_WEBHOOK_ID }}
+      DANBOORU_DISCORD_WEBHOOK_SECRET: ${{ secrets.DANBOORU_DISCORD_WEBHOOK_SECRET }}
+      DANBOORU_RAKISMET_KEY: ${{ secrets.DANBOORU_RAKISMET_KEY }}
+      DANBOORU_RAKISMET_URL: ${{ secrets.DANBOORU_RAKISMET_URL }}
+      DANBOORU_IP_REGISTRY_API_KEY: ${{ secrets.DANBOORU_IP_REGISTRY_API_KEY }}
+      DANBOORU_GOOGLE_CLOUD_CREDENTIALS: ${{ secrets.DANBOORU_GOOGLE_CLOUD_CREDENTIALS }}
+      DANBOORU_STRIPE_SECRET_KEY: ${{ secrets.DANBOORU_STRIPE_SECRET_KEY }}
+      DANBOORU_STRIPE_PUBLISHABLE_KEY: ${{ secrets.DANBOORU_STRIPE_PUBLISHABLE_KEY }}
+      DANBOORU_STRIPE_WEBHOOK_SECRET: ${{ secrets.DANBOORU_STRIPE_WEBHOOK_SECRET }}
+      DANBOORU_STRIPE_GOLD_USD_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_GOLD_USD_PRICE_ID }}
+      DANBOORU_STRIPE_GOLD_EUR_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_GOLD_EUR_PRICE_ID }}
+      DANBOORU_STRIPE_PLATINUM_USD_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_PLATINUM_USD_PRICE_ID }}
+      DANBOORU_STRIPE_PLATINUM_EUR_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_PLATINUM_EUR_PRICE_ID }}
+      DANBOORU_STRIPE_GOLD_TO_PLATINUM_USD_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_GOLD_TO_PLATINUM_USD_PRICE_ID }}
+      DANBOORU_STRIPE_GOLD_TO_PLATINUM_EUR_PRICE_ID: ${{ secrets.DANBOORU_STRIPE_GOLD_TO_PLATINUM_EUR_PRICE_ID }}
+
+    services:
+      postgres:
+        image: ghcr.io/danbooru/postgres:14.0
+        env:
+          POSTGRES_USER: danbooru
+          POSTGRES_PASSWORD: danbooru
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+
+    steps:
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 20
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+        sudo: false
+
+    - name: Prepare database
+      run: |
+        export HOME=/root
+        cd /danbooru
+        bin/rails db:test:prepare
+
+    - name: Run tests
+      run: |
+        export HOME=/root
+        cd /danbooru
+        ln -s packs public/packs-test
+        bin/rails test

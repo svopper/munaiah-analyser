@@ -1,0 +1,31 @@
+
+# See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  Package:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/yast/head/containers/yast-cpp:latest
+      options: --privileged
+
+    steps:
+
+    - name: Git Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: zypper --non-interactive install --no-recommends yast2-ruby-bindings
+
+    # just for easier debugging...
+    - name: Inspect Installed Packages
+      run: rpm -qa | sort
+
+    - name: Package Build
+      # The Perl syntax check cannot be used because at the time to call it YCP.pm, which is compiled
+      # from YCP.cc, is not available yet.
+      # FIXME: enable it after removing pluglib-bindings
+      run:  yast-ci-cpp -x perl_syntax

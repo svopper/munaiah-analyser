@@ -1,0 +1,37 @@
+name: Build
+on:
+  push:
+  pull_request:
+  repository_dispatch:
+    types: [build-pre-rel]
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Check out source code
+        uses: actions/checkout@v2
+        with:
+          # needed to calc build number via git log --oneline
+          fetch-depth: 0
+
+      - name: Build
+        env:
+          CERT_PWD: ${{ secrets.CERT_PWD }}
+        run: .\doit.bat -ci
+
+      # a separate step from -ci to make logs easier to read
+      - name: Upload to spaces and s3
+        env:
+          AWS_SECRET: ${{ secrets.AWS_SECRET }}
+          AWS_ACCESS: ${{ secrets.AWS_ACCESS }}
+          SPACES_KEY: ${{ secrets.SPACES_KEY }}
+          SPACES_SECRET: ${{ secrets.SPACES_SECRET }}
+          WASABI_ACCESS: ${{ secrets.WASABI_ACCESS }}
+          WASABI_SECRET: ${{ secrets.WASABI_SECRET }}
+        run: .\doit.bat -ci-upload

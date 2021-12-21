@@ -1,0 +1,47 @@
+name: Update location
+on:
+  schedule:
+    - cron: '28 * * * *'
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          cache: yarn
+      - name: Check location
+        id: location
+        run: ./scripts/check-location.js
+      - name: Install build dependencies
+        if: steps.location.outputs.updated
+        run: yarn install --frozen-lockfile --production
+      - name: Update location
+        if: steps.location.outputs.updated
+        run: ./scripts/update-location.js
+        env:
+          GMAPS_TOKEN: ${{ secrets.GMAPS_TOKEN }}
+          FORCE_COLOR: 2
+      - name: Build static files
+        if: steps.location.outputs.updated
+        run: yarn build
+        env:
+          FORCE_COLOR: 2
+      - name: Install Google Cloud
+        if: steps.location.outputs.updated
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: '274.0.1'
+          service_account_key: ${{ secrets.GCLOUD_AUTH }}
+      - name: Deploy files
+        if: steps.location.outputs.updated
+        run: yarn run ssdeploy deploy
+        env:
+          GCLOUD_APP: ${{ secrets.GCLOUD_APP }}
+          GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
+          CLOUDFLARE_ZONE: ${{ secrets.CLOUDFLARE_ZONE }}
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+          FORCE_COLOR: 2

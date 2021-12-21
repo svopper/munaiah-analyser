@@ -1,0 +1,40 @@
+name: Run Tests
+
+on:
+  # Run tests for pull requests or pushes to the main branch
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build and Test
+
+    runs-on: ubuntu-20.04
+
+    env:
+      # Use buildkit for faster builds
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_PROGRESS: plain
+
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v2
+        with:
+          # Needed by Codecov
+          fetch-depth: 2
+
+      - name: Build test environment
+        run: composer run start:integration-services
+
+      - name: Run tests
+        run: composer run test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          files: test/coverage/clover.xml

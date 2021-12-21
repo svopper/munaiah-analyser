@@ -1,0 +1,76 @@
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/*'
+name: release-please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      MOD_NAME: ultimate-menu
+    steps:
+      - uses: GoogleCloudPlatform/release-please-action@v2
+        id: release
+        with:
+          release-type: php
+          package-name: ${{ env.MOD_NAME }}
+      - uses: actions/github-script@v3
+        id: vars
+        with:
+          script: |
+            const response = await github.pulls.get({
+              pull_number: ${{ steps.release.outputs.pr }},
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            core.info("\u001B[32m✔\u001B[39mBranch: \u001B[1;32m" + response.data.head.ref);
+            core.setOutput("branch", response.data.head.ref);
+        if: ${{ steps.release.outputs.pr && !steps.release.outputs.release_created }}
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.vars.outputs.branch }}
+        if: ${{ steps.release.outputs.pr && !steps.release.outputs.release_created }}
+      - if: ${{ steps.release.outputs.pr && !steps.release.outputs.release_created }}
+        run: |
+          version=$(cat ./composer.json | jq -r '.version')
+          for f in src/*.php; do
+            sed -i "/@version/c \ * @version   $version" "$f"
+          done
+          sed -i "/<version>/c \	<version>$version</version>" src/package-info.xml
+          sed -i -E "1s/[0-9]+\.[0-9]+\.[0-9]+/$version/" src/install.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -am "build: Update versions in mod files"
+          git push
+      - uses: actions/checkout@v2
+        if: ${{ steps.release.outputs.release_created }}
+      - run: tar -czvf myfile.tgz LICENSE README.md -C src $(ls src)
+        if: ${{ steps.release.outputs.release_created }}
+      - name: Upload release asset
+        uses: actions/github-script@v2
+        with:
+          script: |
+            const fs = require('fs');
+            await github.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              url: "${{ steps.release.outputs.upload_url }}",
+              repo: context.repo.repo,
+              headers: {
+                "content-type": "application/gzip",
+                "content-length": fs.statSync("./myfile.tgz").size
+              },
+              name: "${{ env.MOD_NAME }}_${{ steps.release.outputs.major }}-${{ steps.release.outputs.minor }}-${{ steps.release.outputs.patch }}.tgz",
+              data: fs.readFileSync("./myfile.tgz")
+            });
+            const release = await github.repos.getReleaseByTag({
+              ...context.repo,
+              tag: "${{ steps.release.outputs.tag_name }}",
+            });
+            await github.repos.updateRelease({
+              ...context.repo,
+              release_id: release.data.id,
+            });
+        if: ${{ steps.release.outputs.release_created }}

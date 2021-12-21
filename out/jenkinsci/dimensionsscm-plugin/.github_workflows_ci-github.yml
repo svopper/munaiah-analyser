@@ -1,0 +1,28 @@
+# GitHub Action based CI build
+name: ci github
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up cache for ~/.m2/repository
+        uses: actions/cache@v2.1.6
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ matrix.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-${{ matrix.os }}-
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: 8
+          java-package: jdk
+      - name: Build with Maven
+        run: mvn verify -e -B -V

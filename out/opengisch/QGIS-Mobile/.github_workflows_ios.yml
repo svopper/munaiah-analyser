@@ -1,0 +1,165 @@
+name: 🍏 iOS build
+
+on:
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - published
+      - released
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  BuildIpa:
+
+    runs-on: macOS-latest
+    env:
+      SDK_VERSION: '142'
+      DEPLOYMENT_TARGET: '12.0'
+      PLATFORM: 'OS64'
+      QT_VERSION: '5.15.2'
+      BUILD_TYPE: 'Release'
+      BITCODE: 'FALSE'
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install deps
+      run: brew install gnu-sed
+
+    - name: "🌍 Pull Translations"
+      run: |
+        if [[ -z "${TX_TOKEN}" ]]; then
+          echo "TX_TOKEN not set, skip tx pull"
+        else
+          pip install transifex-client
+          ./scripts/ci/pull_translations.sh
+        fi
+      env:
+        TX_TOKEN: ${{ secrets.TX_TOKEN }}
+
+    - name: Download artifact
+      env:
+        SDK_VERSION: ${{ env.SDK_VERSION }}
+      run: |
+        wget -O OSGeo4I-arm64.zip https://github.com/opengisch/qfield-sdk/releases/download/${SDK_VERSION}/OSGeo4I-Qt${{ env.QT_VERSION }}-arm64-${{ env.SDK_VERSION }}.zip
+        unzip OSGeo4I-arm64.zip -d ${{ github.workspace }}
+
+    - name: Cache Qt
+      id: cache-qt
+      uses: pat-s/always-upload-cache@v2.1.5
+      with:
+        path: ${{ github.workspace }}/Qt-${{ runner.os }}-${{ env.QT_VERSION }}
+        key: ${{ runner.os }}-QtCache-${{ env.QT_VERSION }}-ios
+
+    - name: ⬆️ Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{ env.QT_VERSION }}
+        target: ios
+        dir: ${{ github.workspace }}/Qt-${{ runner.os }}-${{ env.QT_VERSION }}
+        modules: 'qtcharts'
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+
+    - name: 🔥 Delete Qt built-in styles (QField use Material)
+      run: |
+        rm -rf ${Qt5_Dir}/qml/QtQuick/Controls.2/designer
+        rm -rf ${Qt5_Dir}/qml/QtQuick/Controls.2/Fusion
+        rm -rf ${Qt5_Dir}/qml/QtQuick/Controls.2/Imagine
+        rm -rf ${Qt5_Dir}/qml/QtQuick/Controls.2/Universal
+      shell: bash
+
+    - uses: Apple-Actions/import-codesign-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.IOS_CERTIFICATES_FILE_BASE64 }}
+        p12-password: ${{ secrets.IOS_CERTIFICATES_PASSWORD }}
+
+    - uses: Apple-Actions/download-provisioning-profiles@v1
+      with:
+        bundle-id: ch.opengis.qfield
+        issuer-id: ${{ secrets.IOS_APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.IOS_APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.IOS_APPSTORE_PRIVATE_KEY }}
+
+    - name: Prepare env
+      run: |
+        ./scripts/ci/env_gh.sh
+
+    - name: 🔧 Configure
+      run: |
+        source ./scripts/version_number.sh
+        source ./scripts/ci/generate-version-details.sh
+        mkdir -p build
+        cmake \
+          -G "Xcode" \
+          -DAPK_VERSION_CODE=${APK_VERSION_CODE} \
+          -DAPP_VERSION=${APP_VERSION} \
+          -DAPP_VERSION_STR=${APP_VERSION_STR} \
+          -DAPP_PACKAGE_NAME=${APP_PACKAGE_NAME} \
+          -DCMAKE_PREFIX_PATH=${{ github.workspace }}/OSGeo4I/arm64 \
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/OSGeo4I/cmake/ios.toolchain.cmake \
+          -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
+          -DDEPLOYMENT_TARGET=${{ env.DEPLOYMENT_TARGET }} \
+          -DFORCE_STATIC_LIBS=TRUE \
+          -DPLATFORM=${{ env.PLATFORM }} \
+          -DENABLE_VISIBILITY=FALSE \
+          -DENABLE_BITCODE=${{ env.BITCODE }} \
+          -DENABLE_ARC=TRUE \
+          -DQT_IOS_TEAM_ID=${{ secrets.IOS_TEAM_ID }} \
+          -DQT_IOS_CODE_SIGN_IDENTITY=${{ secrets.IOS_CODE_SIGN_IDENTITY }} \
+          -DQT_IOS_PROVISIONING_PROFILE_SPECIFIER=${{ secrets.IOS_PROVISIONING_PROFILE_SPECIFIER }} \
+          -DENABLE_TESTS=OFF \
+          -B ./build/ -S .
+
+    - name: 🔨 Build qfield
+      run: cmake --build build --target qfield --config "${{ env.BUILD_TYPE }}"
+
+    - name: 🔨 Build qfield Archive
+      run: cmake --build build --target qfieldArchive --config "${{ env.BUILD_TYPE }}"
+
+    - name: 🚀 Deploy qfield Ipa
+      run: |
+        rm /Users/runner/work/QField/QField/build/output/bin/qfield.app
+        cmake --build build --target qfieldIpa --config "${{ env.BUILD_TYPE }}"
+
+    - name: 📦 Upload qfield App
+      uses: actions/upload-artifact@v2
+      with:
+        name: qfield-${{ env.PLATFORM }}-${{ env.DEPLOYMENT_TARGET }}.app
+        path: build/output/bin/${{ env.BUILD_TYPE }}/qfield.app
+
+    - name: 📦 Upload qfield Ipa
+      uses: actions/upload-artifact@v2
+      with:
+        name: qfield-i${{ env.PLATFORM }}-${{ env.DEPLOYMENT_TARGET }}.ipa
+        path: build/src/app/qfieldIpa/qfield.ipa
+
+    - uses: Apple-Actions/upload-testflight-build@v1
+      if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/v')
+      name: 🚀 Release to TestFlight
+      with:
+        app-path: build/src/app/qfieldIpa/qfield.ipa
+        issuer-id: ${{ secrets.IOS_APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.IOS_APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.IOS_APPSTORE_PRIVATE_KEY }}
+
+    - name: 🚀 Upload Release Asset
+      if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/v')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: build/src/app/qfieldIpa/qfield.ipa
+        asset_name: qfield-i${{ env.PLATFORM }}-${{ env.DEPLOYMENT_TARGET }}.ipa
+        asset_content_type: application/zip

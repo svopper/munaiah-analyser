@@ -1,0 +1,138 @@
+name: Unit tests & build apps
+
+on: ['push', 'pull_request']
+
+jobs:
+
+  flake8:
+    name: Flake8 tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout python-for-android
+      uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2.2.1
+      with:
+        python-version: 3.7
+    - name: Run flake8
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox>=2.0
+        tox -e pep8
+
+  test:
+    name: Pytest [Python ${{ matrix.python-version }} | ${{ matrix.os }}]
+    needs: flake8
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7]
+        os: [ubuntu-latest, macOs-latest]
+    steps:
+    - name: Checkout python-for-android
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2.2.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Tox tests
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox>=2.0
+        make test
+    - name: Coveralls
+      uses: AndreMiras/coveralls-python-action@develop
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      with:
+        parallel: true
+        flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}
+
+  build_apk:
+    name: Unit test apk
+    needs: [flake8]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout python-for-android
+      uses: actions/checkout@v2
+    # helps with GitHub runner getting out of space
+    - name: Free disk space
+      run: |
+        df -h
+        sudo swapoff -a
+        sudo rm -f /swapfile
+        sudo apt -y clean
+        docker rmi $(docker image ls -aq)
+        df -h
+    - name: Pull docker image
+      run: |
+        make docker/pull
+    - name: Build multi-arch apk Python 3 (armeabi-v7a, arm64-v8a, x86_64, x86)
+      run: |
+        mkdir -p apks
+        make docker/run/make/with-artifact/apk/testapps-with-numpy
+    - uses: actions/upload-artifact@v1
+      with:
+        name: bdist_unit_tests_app-debug-1.1-.apk
+        path: apks
+
+  build_aab:
+    name: Unit test aab
+    needs: [flake8]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout python-for-android
+      uses: actions/checkout@v2
+    # helps with GitHub runner getting out of space
+    - name: Free disk space
+      run: |
+        df -h
+        sudo swapoff -a
+        sudo rm -f /swapfile
+        sudo apt -y clean
+        docker rmi $(docker image ls -aq)
+        df -h
+    - name: Pull docker image
+      run: |
+        make docker/pull
+    - name: Build Android App Bundle Python 3 (armeabi-v7a, arm64-v8a, x86_64, x86)
+      run: |
+        mkdir -p aabs
+        make docker/run/make/with-artifact/aab/testapps-with-numpy-aab
+    - uses: actions/upload-artifact@v1
+      with:
+        name: bdist_unit_tests_app-release-1.1-.aab
+        path: aabs
+
+  rebuild_updated_recipes:
+    name: Test updated recipes
+    needs: [flake8]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout python-for-android
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    # helps with GitHub runner getting out of space
+    - name: Free disk space
+      run: |
+        df -h
+        sudo swapoff -a
+        sudo rm -f /swapfile
+        sudo apt -y clean
+        docker rmi $(docker image ls -aq)
+        df -h
+    - name: Pull docker image
+      run: |
+        make docker/pull
+    - name: Rebuild updated recipes
+      run: |
+        make docker/run/make/rebuild_updated_recipes
+
+  coveralls_finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: AndreMiras/coveralls-python-action@develop
+      with:
+        parallel-finished: true

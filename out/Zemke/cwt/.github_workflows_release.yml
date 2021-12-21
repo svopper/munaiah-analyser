@@ -1,0 +1,39 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  build:
+    name: Release and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: mvn -B clean package -DskipTests
+        run: mvn -B clean package -DskipTests
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: SCP to Ocean
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.ocean_host }}
+          username: ${{ secrets.ocean_user }}
+          password: ${{ secrets.ocean_pass }}
+          port: ${{ secrets.ocean_port }}
+          source: "cwt-spring/target/cwt-spring-SNAPSHOT.jar"
+          strip_components: 2
+          target: "/var/github-release"
+

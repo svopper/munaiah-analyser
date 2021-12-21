@@ -1,0 +1,47 @@
+name: R check build
+
+on: [push, pull_request]
+
+
+jobs:
+
+  check-build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Installation of dependencies
+        run: | 
+          sudo apt update && sudo apt install -y \
+            cmake \
+            libboost-all-dev libgdal-dev rapidjson-dev \
+            qt5-default qtbase5-dev-tools qttools5-dev-tools libqt5svg5-dev \
+            gnuplot p7zip-full graphviz
+      - name: Installation of required R packages
+        run: |
+          sudo Rscript \
+            -e 'install.packages("RUnit")' \
+            -e 'install.packages("roxygen2")'
+      - name: Checkout of OpenFLUID source code
+        uses: actions/checkout@v2
+        with: 
+            repository: 'OpenFLUID/openfluid'
+            path: "./openfluid"
+      - name: Build and installation of OpenFLUID
+        run: |
+          mkdir -p _build
+          cd _build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DOFBUILD_ENABLE_GUI=OFF -DOFBUILD_ENABLE_DOCS=OFF
+          make -j 2
+          cpack -G DEB
+          sudo dpkg -i openfluid*.deb
+        working-directory: ./openfluid
+      - name: Checkout of ROpenFLUID source code
+        uses: actions/checkout@v2
+        with: 
+            path: "./ropenfluid"
+      - name: R Check
+        run: cmake -P check.cmake
+        working-directory: ./ropenfluid
+      - name: R Build
+        run: cmake -P build.cmake
+        working-directory: ./ropenfluid

@@ -1,0 +1,466 @@
+# Docs: https://docs.github.com/en/actions
+
+
+name: CI/CD
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+
+jobs:
+
+  lint:
+
+    name: Linters
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e lint --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/lint/*/python
+
+      - name: Run Linters
+        run: tox -e lint
+
+
+  mypy:
+
+    name: Mypy (static type checker)
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e mypy --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/mypy/*/python
+
+      - name: Run Mypy
+        run: tox -e mypy
+
+
+  bandit:
+
+    name: Bandit (security static analyzer)
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e bandit --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/bandit/*/python
+
+      - name: Run Bandit
+        run: tox -e bandit
+
+
+  safety:
+
+    name: Safety (dependency security checker)
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e safety --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/safety/*/python
+
+      - name: Run Safety
+        run: tox -e safety
+
+
+  docs:
+
+    name: Build documentation
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e docs --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/docs/*/python
+
+      - name: Build documentation
+        run: tox -e docs
+
+
+  packaging:
+    name: Packaging
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e packaging --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/packaging/*/python
+
+      - name: Check packaging
+        run: tox -e packaging
+
+
+  unit:
+
+    name: "Py:${{ matrix.python-version }} - ${{ matrix.os }}"
+
+    needs: [lint, mypy, docs, packaging]
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.optional }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.9"]
+        tox-prefix: ["test"]
+        optional: [false]
+        include:
+          # test Python 3.10 with coverage
+          - os: "ubuntu-latest"
+            python-version: "3.10.0"
+            optional: false
+            tox-prefix: "coverage"
+          # # test Python 3.11 but allow it to fail
+          # - os: "ubuntu-latest"
+          #   python-version: "3.11.0-alpha.1"  # alpha.1 fails to run tox
+          #   optional: true
+          #   tox-prefix: "test"
+
+    services:
+      mysql:
+        image: mysql/mysql-server:5.6
+        env:
+          MYSQL_ROOT_HOST: "%"
+          MYSQL_ROOT_PASSWORD: ims
+          MYSQL_USER: ims
+          MYSQL_PASSWORD: ims
+        ports:
+          - 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: System Python Information
+        uses: twisted/python-info-action@v1
+
+      - name: Translate Python version to Tox environment
+        id: tox_env
+        shell: python
+        run: |
+          py = "${{ matrix.python-version }}"
+          py = "".join(py.split(".")[:2])   # Combine major/minor, toss rest
+          py = py.replace("pypy", "py")     # For Pypy: have a litte less py
+          print(f"::set-output name=value::${{ matrix.tox-prefix }}-py{py}")
+
+      - name: Set up Tox environment
+        run: |
+          pip install tox
+          tox -e ${{ steps.tox_env.outputs.value }} --notest
+
+      - name: Tox Python Information
+        uses: twisted/python-info-action@v1
+        with:
+          python-path: .tox/${{ steps.tox_env.outputs.value }}/*/python
+
+      - name: Run unit tests
+        run: tox -e ${{ steps.tox_env.outputs.value }}
+        env:
+          IMS_TEST_MYSQL_HOST: localhost
+          IMS_TEST_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+          IMS_TEST_MYSQL_ROOT_PASSWORD: ims
+          IMS_TEST_MYSQL_USERNAME: ims
+          IMS_TEST_MYSQL_PASSWORD: ims
+
+      - name: Upload Trial log artifact
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: trial
+          path: .tox/${{ steps.tox_env.outputs.value }}/log/trial.log
+
+      # Use the latest supported Python version for combining coverage to
+      # prevent parsing errors in older versions when looking at modern code.
+      - uses: "actions/setup-python@v2"
+        if: ${{ matrix.tox-prefix == 'coverage' }}
+        with:
+          python-version: "3.10"
+
+      - name: "Upload coverage to Codecov"
+        uses: "codecov/codecov-action@v2.1.0"
+        if: ${{ matrix.tox-prefix == 'coverage' }}
+        with:
+          files: .tox/coverage.xml
+          env_vars: GITHUB_REF,GITHUB_COMMIT,GITHUB_USER,GITHUB_WORKFLOW
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_COMMIT: ${{ github.sha }}
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+
+
+  docker-build:
+    name: Build Docker image
+
+    needs: [unit]
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: ./bin/build
+
+      - name: Save Docker image
+        run: docker image save ranger-ims-server:dev | gzip -9 > docker_image.tgz
+
+      - name: Upload Docker image artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: docker
+          path: docker_image.tgz
+
+
+  docker-test:
+
+    name: Test Docker image
+
+    needs: [docker-build]
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2.0.10
+        with:
+          name: docker
+
+      - name: Load Docker image
+        run: gzip --uncompress --stdout docker_image.tgz | docker image load
+
+      - name: Test Docker image
+        run: ./bin/test_docker
+
+
+  docker-trivy:
+
+    name: Trivy (security scan)
+
+    needs: [docker-build]
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2.0.10
+        with:
+          name: docker
+
+      - name: Load Docker image
+        run: gzip --uncompress --stdout docker_image.tgz | docker image load
+
+      - name: Run Trivy
+        run: docker run -v /var/run/docker.sock:/var/run/docker.sock --rm aquasec/trivy image --exit-code 1 --no-progress ranger-ims-server:dev
+
+      - name: Supress error
+        if: ${{ failure() }}
+        run: echo Trivy check failed.
+
+  deploy-staging:
+    name: Deploy image built from master branch to the staging environment
+
+    needs: [docker-test]
+    if: ${{ github.ref == 'refs/heads/master' }}
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download Docker image artifacts
+        uses: actions/download-artifact@v2.0.10
+        with:
+          name: docker
+
+      - name: Load Docker image
+        run: gzip --uncompress --stdout docker_image.tgz | docker image load
+
+      - name: Install Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.10"
+
+      - name: Deploy to staging
+        run: ./bin/deploy staging
+        env:
+          # https://github.com/burningmantech/ranger-ims-server/settings/secrets
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_ECR_IMAGE_NAME: ${{ secrets.AWS_ECR_IMAGE_NAME }}
+          AWS_ECS_CLUSTER_STAGING: rangers
+          AWS_ECS_SERVICE_STAGING: ${{ secrets.AWS_ECS_SERVICE_STAGING }}
+          NOTIFY_SMTP_HOST: ${{ secrets.NOTIFY_SMTP_HOST }}
+          NOTIFY_SMTP_USER: ${{ secrets.NOTIFY_SMTP_USER }}
+          NOTIFY_SMTP_PASSWORD: ${{ secrets.NOTIFY_SMTP_PASSWORD }}
+          NOTIFY_EMAIL_RECIPIENT: ${{ secrets.NOTIFY_EMAIL_RECIPIENT }}
+          NOTIFY_EMAIL_SENDER: ${{ secrets.NOTIFY_EMAIL_SENDER }}
+          CI: true
+          PROJECT_NAME: Ranger IMS Server
+          REPOSITORY_ID: ${{ github.repository }}
+          BUILD_NUMBER: 0
+          BUILD_URL: https://github.com/burningmantech/ranger-ims-server/commit/${{ github.sha }}/checks
+          COMMIT_ID: ${{ github.event.head_commit.id }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          COMMIT_AUTHOR_USER: ${{ github.event.head_commit.author.username }}
+          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}

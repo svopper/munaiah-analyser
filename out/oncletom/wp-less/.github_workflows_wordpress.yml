@@ -1,0 +1,24 @@
+name: Deploy to wordress.org
+
+on:
+  push:
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Install project dependencies
+      uses: php-actions/composer@v6
+
+    - name: WordPress Plugin Deploy
+      if: ${{ github.event_name == 'release' }}
+      uses: 10up/action-wordpress-plugin-deploy@2.0.0
+      env:
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SLUG: wp-less

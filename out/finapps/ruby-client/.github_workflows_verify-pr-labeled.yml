@@ -1,0 +1,23 @@
+name: "Require PR labels"
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mheap/github-action-required-labels@v1.1.2
+        with:
+          mode: minimum
+          count: 1
+          #
+          # Releases will group changes under Added/Fixed/Changed sub-headers 
+          # based on labels and follwing these rules: 
+          #
+          # Added: enhancement
+          # Fixed: bug
+          # Changed: maintenance, change, dependencies (used by Dependabot)
+          # Ignore: skip-changelog
+          #
+          labels: "enhancement, bug, maintenance, change, dependencies, skip-changelog"

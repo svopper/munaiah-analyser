@@ -1,0 +1,17 @@
+name: build-and-test
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+          python-version: [3.6]
+    services:
+      rabbitmq:
+        image: rabbitmq:3.8
+        ports:
+          - 5672:5672
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build with Makefile
+        run: make

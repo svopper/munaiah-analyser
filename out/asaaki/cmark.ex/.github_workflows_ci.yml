@@ -1,0 +1,81 @@
+name: CI
+
+env:
+  MIX_ENV: ci
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CC: clang
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: OTP ${{matrix.otp}} | Elixir ${{matrix.elixir}} | ${{matrix.cc}}
+
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        otp: [24, 23, 22]
+        elixir: ['1.11', '1.10']
+        cc: [gcc, clang]
+
+    steps:
+    - uses: actions/checkout@v2.3.5
+    - uses: actions/cache@v2.1.6
+      with:
+        path: |
+          deps
+          _build
+        key: ${{ runner.os }}-${{matrix.otp}}-${{matrix.elixir}}-${{matrix.cc}}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-${{matrix.otp}}-${{matrix.elixir}}-${{matrix.cc}}-
+          ${{ runner.os }}-${{matrix.otp}}-${{matrix.elixir}}-
+          ${{ runner.os }}-${{matrix.otp}}-
+          ${{ runner.os }}-
+
+    - uses: erlef/setup-elixir@v1.9
+      with:
+        otp-version: ${{matrix.otp}}
+        elixir-version: ${{matrix.elixir}}
+
+    - run: mix deps.get
+
+    - run: mix compile
+      env:
+        CC: ${{ matrix.cc }}
+
+    - run: mix test
+
+  quality:
+    name: Quality checks
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2.3.5
+    - uses: actions/cache@v2.1.6
+      with:
+        path: |
+          deps
+          _build
+        key: ${{ runner.os }}-quality-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-quality
+
+    - uses: erlef/setup-elixir@v1.9
+      with:
+        otp-version: 23
+        elixir-version: '1.11'
+
+    - run: mix deps.get
+    - run: mix compile
+    - run: mix credo --strict
+    - run: mix inch.report
+    - run: mix hex.outdated
+      # skip step for dependabot, since it is the reason it opens a PR
+      if: github.actor != 'dependabot[bot]'
+    - run: mix coveralls.github
