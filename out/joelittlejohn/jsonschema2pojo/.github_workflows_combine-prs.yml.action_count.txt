@@ -1,0 +1,3 @@
+actions/github-script@v4.0.2
+actions/checkout@v2.3.3
+actions/github-script@v4.0.2

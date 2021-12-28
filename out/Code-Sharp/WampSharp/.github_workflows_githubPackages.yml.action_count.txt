@@ -1,0 +1,2 @@
+actions/checkout@master
+nuget/setup-nuget@v1

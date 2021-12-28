@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-node@v1
+actions/cache@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v2
+cicirello/jacoco-badge-generator@v2.0.1
+actions/upload-artifact@v2

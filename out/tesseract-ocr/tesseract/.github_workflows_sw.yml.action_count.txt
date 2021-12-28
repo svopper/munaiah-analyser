@@ -1,0 +1,4 @@
+actions/checkout@v2
+egorpugin/sw-action@master
+actions/upload-artifact@v2
+mikepenz/action-junit-report@v1

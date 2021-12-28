@@ -1,0 +1,9 @@
+fcurella/gh-status-check@main
+fcurella/gh-action-label-to-semver@main
+actions/checkout@v2
+fcurella/gh-action-next-version@main
+fcurella/gh-action-update-changelog@main
+fcurella/gh-action-bump2version@main
+ad-m/github-push-action@master
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@master

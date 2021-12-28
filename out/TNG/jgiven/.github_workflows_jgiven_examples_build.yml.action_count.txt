@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v2
+android-actions/setup-android@v2
+olafurpg/setup-scala@v13
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/upload-artifact@v2

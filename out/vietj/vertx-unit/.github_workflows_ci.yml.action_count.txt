@@ -1,0 +1,7 @@
+actions/cache@v2
+actions/checkout@v2
+joschi/setup-jdk@v2
+scacap/action-surefire-report@v1
+actions/cache@v2
+actions/checkout@v2
+joschi/setup-jdk@v2

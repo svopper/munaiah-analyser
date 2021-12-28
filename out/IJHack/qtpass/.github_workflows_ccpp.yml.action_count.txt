@@ -1,0 +1,3 @@
+actions/checkout@v1
+ilammy/msvc-dev-cmd@v1
+jurplel/install-qt-action@v2

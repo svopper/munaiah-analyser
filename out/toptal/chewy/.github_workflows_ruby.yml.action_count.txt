@@ -1,0 +1,8 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+elastic/elastic-github-actions/elasticsearch@9de0f78f306e4ebc0838f057e6b754364685e759
+actions/checkout@v2
+ruby/setup-ruby@v1
+elastic/elastic-github-actions/elasticsearch@9de0f78f306e4ebc0838f057e6b754364685e759
+actions/checkout@v2
+ruby/setup-ruby@v1

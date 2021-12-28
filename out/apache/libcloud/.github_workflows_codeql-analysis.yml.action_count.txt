@@ -1,0 +1,6 @@
+actions/checkout@master
+./.github/actions/skip-duplicate-actions
+actions/checkout@v2
+github/codeql-action/init@v1
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1

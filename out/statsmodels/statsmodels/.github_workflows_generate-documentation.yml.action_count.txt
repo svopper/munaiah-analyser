@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+r-lib/actions/setup-pandoc@v1
+ts-graphviz/setup-graphviz@v1
+actions/setup-python@v2

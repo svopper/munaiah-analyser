@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+aws-actions/amazon-ecr-login@v1
+aws-actions/amazon-ecs-render-task-definition@v1
+aws-actions/amazon-ecs-deploy-task-definition@v1
+aws-actions/amazon-ecs-render-task-definition@v1
+aws-actions/amazon-ecs-deploy-task-definition@v1

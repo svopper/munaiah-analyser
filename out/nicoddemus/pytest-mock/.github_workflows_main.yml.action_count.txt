@@ -1,0 +1,7 @@
+actions/checkout@v1
+actions/setup-python@v2
+actions/checkout@v1
+actions/setup-python@v1
+actions/checkout@v1
+actions/setup-python@v1
+pypa/gh-action-pypi-publish@master

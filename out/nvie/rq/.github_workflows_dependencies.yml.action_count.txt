@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+supercharge/redis-github-action@1.1.0
+actions/checkout@v2
+actions/setup-python@v2
+supercharge/redis-github-action@1.1.0
+actions/upload-artifact@v2
+actions/download-artifact@v2

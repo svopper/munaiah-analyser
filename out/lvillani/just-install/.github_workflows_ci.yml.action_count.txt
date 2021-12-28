@@ -1,0 +1,5 @@
+shimataro/ssh-key-action@aa7b7211f80a584d3180fd08c5aef7f9e0cd7a6c
+actions/setup-go@v2
+actions/checkout@v1
+actions/upload-artifact@v2
+actions/upload-artifact@v2

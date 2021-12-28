@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2

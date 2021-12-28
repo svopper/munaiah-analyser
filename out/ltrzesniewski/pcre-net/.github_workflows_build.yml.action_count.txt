@@ -1,0 +1,15 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+darenm/Setup-VSTest@v1
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+actions/download-artifact@v2
+actions/download-artifact@v2
+geekyeggo/delete-artifact@v1
+actions/upload-artifact@v2

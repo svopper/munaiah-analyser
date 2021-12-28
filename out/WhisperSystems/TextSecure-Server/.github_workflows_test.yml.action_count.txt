@@ -1,0 +1,2 @@
+actions/checkout@v2
+actions/setup-java@3bc31aaf88e8fc94dc1e632d48af61be5ca8721c

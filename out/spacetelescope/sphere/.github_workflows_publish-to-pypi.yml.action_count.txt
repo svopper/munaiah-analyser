@@ -1,0 +1,4 @@
+spacetelescope/action-publish_to_pypi/validate@master
+spacetelescope/action-publish_to_pypi/build-wheel@master
+spacetelescope/action-publish_to_pypi/build-sdist@master
+spacetelescope/action-publish_to_pypi/publish@master

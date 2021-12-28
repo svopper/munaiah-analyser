@@ -1,0 +1,2 @@
+actions/checkout@v1
+sand4rt/ftp-deployer@v1.1

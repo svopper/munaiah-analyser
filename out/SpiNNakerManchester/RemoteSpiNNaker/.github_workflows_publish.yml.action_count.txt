@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+JamesIves/github-pages-deploy-action@3.7.1

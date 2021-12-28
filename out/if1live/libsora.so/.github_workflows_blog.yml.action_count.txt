@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-go@v2.1.3
+cpina/github-action-push-to-another-repository@master

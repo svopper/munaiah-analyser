@@ -1,0 +1,6 @@
+actions/checkout@v2
+shivammathur/setup-php@master
+actions/cache@v1
+actions/checkout@v2
+shivammathur/setup-php@master
+softprops/action-gh-release@v1

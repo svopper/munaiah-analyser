@@ -1,0 +1,3 @@
+actions/checkout@v2
+checkmarx-ts/checkmarx-cxflow-github-action@v1.0
+github/codeql-action/upload-sarif@v1

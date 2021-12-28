@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@v2
+warchant/setup-sonar-scanner@v3

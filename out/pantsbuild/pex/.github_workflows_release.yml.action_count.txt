@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-python@v2
+pantsbuild/actions/run-tox@95209b287c817c78a765962d40ac6cea790fc511
+actions/checkout@v2
+actions/setup-python@v2
+pantsbuild/actions/run-tox@95209b287c817c78a765962d40ac6cea790fc511
+softprops/action-gh-release@v1

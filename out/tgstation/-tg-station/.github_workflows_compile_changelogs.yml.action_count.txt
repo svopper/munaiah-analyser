@@ -1,0 +1,3 @@
+actions/setup-python@v1
+actions/checkout@v1
+ad-m/github-push-action@master

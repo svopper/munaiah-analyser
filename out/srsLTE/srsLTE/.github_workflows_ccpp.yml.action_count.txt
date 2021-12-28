@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/checkout@v1
+actions/checkout@v1
+uraimo/run-on-arch-action@master

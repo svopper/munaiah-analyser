@@ -1,0 +1,2 @@
+actions/checkout@v2
+andrewmcodes/rubocop-linter-action@v3.0.0

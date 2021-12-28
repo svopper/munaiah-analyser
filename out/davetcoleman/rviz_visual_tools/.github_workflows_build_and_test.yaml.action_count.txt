@@ -1,0 +1,6 @@
+actions/checkout@v2
+pat-s/always-upload-cache@v2.1.5
+pat-s/always-upload-cache@v2.1.5
+ros-industrial/industrial_ci@master
+actions/upload-artifact@v2
+codecov/codecov-action@v1

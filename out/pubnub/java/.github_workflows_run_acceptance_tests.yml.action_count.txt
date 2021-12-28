@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+./client-engineering-deployment-tools/actions/mock-server
+actions/upload-artifact@v2

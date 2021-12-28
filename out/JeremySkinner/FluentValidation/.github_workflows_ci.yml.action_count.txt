@@ -1,0 +1,2 @@
+actions/checkout@v2
+JeremySkinner/global-json-dotnet-install@master

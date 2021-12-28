@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+Gottox/irc-message-action@v1
+Gottox/irc-message-action@v1

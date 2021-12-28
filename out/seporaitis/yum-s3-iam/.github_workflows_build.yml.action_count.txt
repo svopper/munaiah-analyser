@@ -1,0 +1,4 @@
+actions/checkout@v2
+seporaitis/rpmbuild-centos6-github-action@master
+actions/checkout@v2
+seporaitis/rpmbuild-centos7-github-action@master

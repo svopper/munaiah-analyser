@@ -1,0 +1,2 @@
+actions/checkout@v2
+myci-actions/add-deb-repo@10

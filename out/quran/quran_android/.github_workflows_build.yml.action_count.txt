@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v1
+reactivecircus/android-emulator-runner@v2
+actions/checkout@v2
+actions/setup-java@v1

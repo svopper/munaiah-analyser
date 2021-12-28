@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://ergebnis/composer-normalize-action
+actions/checkout@v2
+docker://nyholm/roave-bc-check-ga

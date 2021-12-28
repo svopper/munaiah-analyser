@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v2
+scacap/action-surefire-report@v1
+benc-uk/workflow-dispatch@v1.1

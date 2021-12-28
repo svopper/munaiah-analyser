@@ -1,0 +1,2 @@
+actions/checkout@v1
+WyriHaximus/github-action-composer.lock-diff@v1

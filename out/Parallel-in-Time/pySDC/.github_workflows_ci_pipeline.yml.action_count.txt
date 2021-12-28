@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/cache@v2
+conda-incubator/setup-miniconda@v2
+JamesIves/github-pages-deploy-action@4.1.4

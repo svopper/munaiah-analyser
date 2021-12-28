@@ -1,0 +1,1 @@
+marvinpinto/action-automatic-releases@4edd7a5aabb1bc62e6dc99b3302d587bf3134e20

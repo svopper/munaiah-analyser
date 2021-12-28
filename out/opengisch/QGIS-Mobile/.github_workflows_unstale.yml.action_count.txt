@@ -1,0 +1,2 @@
+actions/checkout@v2
+actions-ecosystem/action-remove-labels@v1

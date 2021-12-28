@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+lukka/get-cmake@latest
+ilammy/msvc-dev-cmd@v1.10.0
+jurplel/install-qt-action@v2
+turtlebrowser/get-conan@v1.0

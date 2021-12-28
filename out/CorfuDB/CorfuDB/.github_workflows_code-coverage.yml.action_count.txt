@@ -1,0 +1,5 @@
+actions/checkout@v2
+styfle/cancel-workflow-action@0.6.0
+actions/cache@v2
+actions/setup-java@v1
+codacy/codacy-coverage-reporter-action@v1

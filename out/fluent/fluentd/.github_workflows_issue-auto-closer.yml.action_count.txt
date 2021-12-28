@@ -1,0 +1,1 @@
+roots/issue-closer-action@v1.1

@@ -1,0 +1,9 @@
+actions/checkout@v1
+actions/setup-python@v1
+wbari/start-mongoDB@v0.2
+zhulik/redis-action@1.1.0
+codecov/codecov-action@v1
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1
+docker/login-action@v1
+docker/build-push-action@v2

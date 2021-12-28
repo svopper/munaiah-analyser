@@ -1,0 +1,2 @@
+fkirc/skip-duplicate-actions@master
+actions/checkout@v2

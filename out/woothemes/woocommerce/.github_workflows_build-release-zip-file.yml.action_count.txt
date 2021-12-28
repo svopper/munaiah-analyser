@@ -1,0 +1,3 @@
+actions/checkout@v2
+woocommerce/action-build@v2
+actions/upload-artifact@v2

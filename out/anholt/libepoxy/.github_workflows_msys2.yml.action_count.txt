@@ -1,0 +1,2 @@
+actions/checkout@master
+msys2/setup-msys2@v2

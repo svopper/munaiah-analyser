@@ -1,0 +1,5 @@
+actions/create-release@v1
+actions/checkout@v1
+warrenbuckley/Setup-Nuget@v1
+warrenbuckley/Setup-MSBuild@v1
+actions/upload-release-asset@v1

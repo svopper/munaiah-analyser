@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+supercharge/mongodb-github-action@1.3.0
+JamesIves/github-pages-deploy-action@3.6.2

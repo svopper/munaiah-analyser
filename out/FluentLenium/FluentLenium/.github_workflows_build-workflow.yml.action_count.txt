@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+./.github/actions/fluentlenium-maven-install
+actions/checkout@v2
+actions/setup-java@v1
+./.github/actions/fluentlenium-maven-install

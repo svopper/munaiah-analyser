@@ -1,0 +1,8 @@
+actions/checkout@v2
+snickerbockers/submodules-init@v4
+actions/cache@v1
+jurplel/install-qt-action@v2.11.1
+ryankurte/action-apt@v0.2.0
+lukka/run-vcpkg@v7.4
+actions/cache@v2
+actions/upload-artifact@v2

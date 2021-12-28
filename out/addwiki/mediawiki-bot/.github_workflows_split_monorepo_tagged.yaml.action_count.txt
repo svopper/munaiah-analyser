@@ -1,0 +1,6 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+WyriHaximus/github-action-get-previous-tag@master
+symplify/github-action-monorepo-split@2.1

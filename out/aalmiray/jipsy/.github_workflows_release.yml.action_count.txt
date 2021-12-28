@@ -1,0 +1,6 @@
+actions/checkout@v2.3.4
+actions/cache@v2.1.4
+actions/setup-java@v1.4.3
+metcalfc/changelog-generator@v0.4.4
+actions/create-release@v1
+ethomson/send-tweet-action@v1

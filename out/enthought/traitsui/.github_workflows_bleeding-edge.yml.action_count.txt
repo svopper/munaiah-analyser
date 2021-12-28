@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+./.github/actions/apt-get-qt-deps
+GabrielBB/xvfb-action@v1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1

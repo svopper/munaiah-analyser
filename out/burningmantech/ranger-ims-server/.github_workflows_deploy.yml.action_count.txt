@@ -1,0 +1,4 @@
+aws-actions/configure-aws-credentials@v1
+actions/checkout@v2
+actions/setup-python@v2
+twisted/python-info-action@v1

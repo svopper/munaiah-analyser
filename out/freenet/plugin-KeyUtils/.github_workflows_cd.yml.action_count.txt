@@ -1,0 +1,5 @@
+olegtarasov/get-tag@v2
+actions/checkout@v2
+eskatos/gradle-command-action@v1
+actions/create-release@v1
+actions/upload-release-asset@v1

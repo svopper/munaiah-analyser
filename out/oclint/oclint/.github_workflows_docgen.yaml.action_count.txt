@@ -1,0 +1,2 @@
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1

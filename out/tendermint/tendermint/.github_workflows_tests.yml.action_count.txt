@@ -1,0 +1,15 @@
+actions/setup-go@v2
+actions/checkout@v2.3.5
+technote-space/get-diff-action@v5
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/setup-go@v2
+actions/checkout@v2.3.5
+technote-space/get-diff-action@v5
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/setup-go@v2
+actions/checkout@v2.3.5
+technote-space/get-diff-action@v5
+actions/cache@v2.1.6
+actions/cache@v2.1.6

@@ -1,0 +1,4 @@
+actions/checkout@v2
+seanmiddleditch/gha-setup-ninja@v3
+nttld/setup-ndk@v1
+actions/upload-artifact@v2

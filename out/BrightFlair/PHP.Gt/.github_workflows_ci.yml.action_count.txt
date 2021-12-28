@@ -1,0 +1,7 @@
+actions/checkout@v2
+php-actions/composer@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+php-actions/phpunit@v9
+actions/download-artifact@v2
+php-actions/phpstan@master

@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v1
+pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+actions/checkout@v2
+actions/setup-python@v1
+julia-actions/setup-julia@v1
+actions/setup-python@v1
+pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29

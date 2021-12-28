@@ -1,0 +1,4 @@
+actions/checkout@v2
+cylc/release-actions/configure-git@v1
+cylc/release-actions/checkout-copyright-branch@v1
+cylc/release-actions/create-pr@v1

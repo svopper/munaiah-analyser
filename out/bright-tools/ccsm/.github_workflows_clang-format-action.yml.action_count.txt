@@ -1,0 +1,2 @@
+actions/checkout@v2
+bright-tools/clang-format-action@master

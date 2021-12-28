@@ -1,0 +1,5 @@
+actions/checkout@v2
+coverallsapp/github-action@master
+actions/checkout@v2
+cmb69/setup-php-sdk@v0.2
+ilammy/msvc-dev-cmd@v1

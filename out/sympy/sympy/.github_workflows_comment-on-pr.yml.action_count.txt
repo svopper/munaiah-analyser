@@ -1,0 +1,7 @@
+dawidd6/action-download-artifact@v2
+juliangruber/read-file-action@v1.0.0
+dawidd6/action-download-artifact@v2
+juliangruber/read-file-action@v1.0.0
+juliangruber/read-file-action@v1.0.0
+peter-evans/find-comment@v1
+peter-evans/create-or-update-comment@v1

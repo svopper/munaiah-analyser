@@ -1,0 +1,8 @@
+actions/checkout@v2
+./.github/actions/install
+./.github/actions/build
+./.github/actions/test
+actions/checkout@v2
+./.github/actions/install
+./.github/actions/build
+./.github/actions/test

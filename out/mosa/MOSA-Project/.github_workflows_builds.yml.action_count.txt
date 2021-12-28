@@ -1,0 +1,9 @@
+actions/setup-dotnet@v1
+travisj/build-number-action@v1
+actions/checkout@v1
+microsoft/setup-msbuild@v1
+nuget/setup-nuget@v1
+actions/upload-artifact@master
+actions/upload-artifact@master
+actions/setup-dotnet@v1
+actions/checkout@v1

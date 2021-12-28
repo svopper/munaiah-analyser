@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+seanmiddleditch/gha-setup-ninja@master
+actions/checkout@v2
+docker/setup-qemu-action@v1

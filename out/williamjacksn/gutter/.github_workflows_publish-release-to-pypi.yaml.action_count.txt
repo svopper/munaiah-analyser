@@ -1,0 +1,3 @@
+actions/checkout@v2.3.5
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2

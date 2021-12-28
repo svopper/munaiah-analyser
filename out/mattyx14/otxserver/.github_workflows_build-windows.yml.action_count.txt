@@ -1,0 +1,6 @@
+actions/checkout@v2
+lukka/get-cmake@latest
+lukka/run-vcpkg@v7
+lukka/run-cmake@v3
+actions/upload-artifact@v2
+actions/upload-artifact@v2

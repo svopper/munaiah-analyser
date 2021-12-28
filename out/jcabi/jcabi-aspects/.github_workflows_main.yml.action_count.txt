@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+codecov/codecov-action@v1.0.13
+actions/checkout@v2
+actions/setup-ruby@v1
+actions/setup-java@v1

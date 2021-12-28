@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/download-artifact@v1
+actions/setup-python@v2
+actions/download-artifact@v1
+actions/upload-release-asset@v1.0.1

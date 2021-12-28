@@ -1,0 +1,5 @@
+Gottox/irc-message-action@v1
+actions/checkout@v2
+webiny/action-post-run@1.0.0
+Gottox/irc-message-action@v1
+Gottox/irc-message-action@v1

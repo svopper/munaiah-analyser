@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-go@v1
+mislav/bump-homebrew-formula-action@v1

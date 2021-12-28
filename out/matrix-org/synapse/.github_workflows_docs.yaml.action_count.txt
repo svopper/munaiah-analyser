@@ -1,0 +1,3 @@
+actions/checkout@v2
+peaceiris/actions-mdbook@4b5ef36b314c2599664ca107bb8c02412548d79d
+peaceiris/actions-gh-pages@068dc23d9710f1ba62e86896f84735d869951305

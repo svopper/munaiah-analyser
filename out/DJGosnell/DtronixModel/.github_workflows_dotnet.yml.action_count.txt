@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2
+olegtarasov/get-tag@v2.1
+softprops/action-gh-release@v1

@@ -1,0 +1,2 @@
+actions/checkout@v1
+ashutoshgngwr/validate-fastlane-supply-metadata@v1

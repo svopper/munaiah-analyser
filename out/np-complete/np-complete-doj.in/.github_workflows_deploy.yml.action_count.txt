@@ -1,0 +1,6 @@
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+aws-actions/aws-cloudformation-github-deploy@v1
+actions/checkout@v2
+actions/setup-node@v2
+aws-actions/configure-aws-credentials@v1

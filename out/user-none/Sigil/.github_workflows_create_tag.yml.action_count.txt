@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions-ecosystem/action-regex-match@v2
+crazy-max/ghaction-import-gpg@v3
+ncipollo/release-action@v1

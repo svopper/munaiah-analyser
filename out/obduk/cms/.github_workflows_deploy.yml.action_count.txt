@@ -1,0 +1,2 @@
+actions/checkout@v2
+hashicorp/setup-terraform@v1

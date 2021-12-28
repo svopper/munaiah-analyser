@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+uraimo/run-on-arch-action@v2.0.7
+codecov/codecov-action@v1

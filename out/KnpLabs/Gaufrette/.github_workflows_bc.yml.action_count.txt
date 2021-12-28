@@ -1,0 +1,2 @@
+actions/checkout@master
+docker://nyholm/roave-bc-check-ga

@@ -1,0 +1,4 @@
+actions/checkout@v1
+manimaul/android-builder-action@v2
+manimaul/android-builder-action@v2
+manimaul/android-builder-action@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+gabrielfalcao/pyenv-action@v5
+actions/upload-artifact@v2
+actions/upload-artifact@v2

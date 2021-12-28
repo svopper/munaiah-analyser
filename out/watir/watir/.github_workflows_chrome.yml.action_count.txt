@@ -1,0 +1,4 @@
+actions/checkout@v2
+./.github/actions/setup-linux
+./.github/actions/install-chrome
+ruby/setup-ruby@v1

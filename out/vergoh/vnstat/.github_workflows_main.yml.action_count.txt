@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+crate-ci/typos@master
+natanlao/perl-critic-action@v1.1

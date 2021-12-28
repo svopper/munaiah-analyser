@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/upload-artifact@v2
+mattermost/action-mattermost-notify@master
+actions/checkout@v2
+actions/download-artifact@v2
+actions/upload-artifact@v2
+geekyeggo/delete-artifact@v1
+mattermost/action-mattermost-notify@master

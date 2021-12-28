@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+psf/black@stable
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1.1.1

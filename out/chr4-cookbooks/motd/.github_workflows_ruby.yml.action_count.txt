@@ -1,0 +1,3 @@
+actions/checkout@master
+actionshub/chef-install@master
+actionshub/test-kitchen@master

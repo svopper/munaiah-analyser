@@ -1,0 +1,2 @@
+actions/checkout@v2
+goanpeca/setup-miniconda@v1

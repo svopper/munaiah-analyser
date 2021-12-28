@@ -1,0 +1,2 @@
+actions/checkout@v2
+koj-co/dependabot-pr-action@master

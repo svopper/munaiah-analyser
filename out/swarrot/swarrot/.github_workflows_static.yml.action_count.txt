@@ -1,0 +1,4 @@
+actions/checkout@master
+docker://odolbeau/swarrot-phpqa:latest
+actions/checkout@master
+docker://odolbeau/swarrot-phpqa:latest

@@ -1,0 +1,2 @@
+actions/checkout@master
+chabad360/hugo-gh-pages@master

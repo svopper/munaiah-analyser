@@ -1,0 +1,12 @@
+actions/checkout@v2
+marceloprado/has-changed-path@v1
+actions/setup-java@v1
+actions/cache@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v1
+AdoptOpenJDK/install-jdk@v1
+wei/curl@v1
+actions/cache@v2
+actions/download-artifact@v2
+actions/upload-artifact@v2

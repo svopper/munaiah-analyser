@@ -1,0 +1,3 @@
+actions/checkout@master
+avsm/setup-ocaml@master
+actions/upload-artifact@master

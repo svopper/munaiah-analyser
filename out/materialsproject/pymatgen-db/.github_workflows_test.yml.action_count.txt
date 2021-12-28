@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+supercharge/mongodb-github-action@1.4.0
+AndreMiras/coveralls-python-action@v20201129

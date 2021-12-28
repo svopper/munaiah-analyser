@@ -1,0 +1,10 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1
+actions/checkout@v2
+StephaneBour/actions-php-security-checker@1.1
+SonarSource/sonarcloud-github-action@master
+ShiftLeftSecurity/scan-action@master
+actions/upload-artifact@v2
+actions/upload-artifact@v2

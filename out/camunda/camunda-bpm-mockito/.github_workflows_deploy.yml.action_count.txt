@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v1
+camunda-community-hub/community-action-maven-release@v1
+actions/upload-release-asset@v1

@@ -1,0 +1,1 @@
+SonarSource/gh-action_nightly_build@master

@@ -1,0 +1,2 @@
+actions/checkout@v1
+10up/action-wordpress-plugin-asset-update@1.4.1

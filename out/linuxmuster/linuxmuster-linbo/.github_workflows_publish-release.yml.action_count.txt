@@ -1,0 +1,3 @@
+Itsblue/download-release-assets-action@v4
+appleboy/scp-action@master
+appleboy/ssh-action@master

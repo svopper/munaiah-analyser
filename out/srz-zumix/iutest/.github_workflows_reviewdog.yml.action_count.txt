@@ -1,0 +1,6 @@
+actions/checkout@v2
+reviewdog/action-cpplint@master
+actions/checkout@v2
+reviewdog/action-shellcheck@v1
+actions/checkout@v2
+reviewdog/action-actionlint@v1

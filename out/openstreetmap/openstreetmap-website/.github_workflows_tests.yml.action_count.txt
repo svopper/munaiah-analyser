@@ -1,0 +1,6 @@
+actions/checkout@v2.3.5
+actions/setup-ruby@v1.1.3
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+coverallsapp/github-action@1.1.3
+coverallsapp/github-action@1.1.3

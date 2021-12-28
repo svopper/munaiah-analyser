@@ -1,0 +1,4 @@
+actions/checkout@v2
+niden/actions-memcached@v7
+actions/setup-python@v2
+codecov/codecov-action@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+shogo82148/actions-setup-redis@v1
+actions/setup-node@v1

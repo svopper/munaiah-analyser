@@ -1,0 +1,7 @@
+actions/checkout@v2
+./.github/actions/path-diff
+docker/setup-buildx-action@v1
+docker/build-push-action@v2
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/upload-artifact@v2

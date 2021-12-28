@@ -1,0 +1,3 @@
+actions/checkout@v2.3.4
+laminas/automatic-releases@1.12.2
+laminas/automatic-releases@1.12.2

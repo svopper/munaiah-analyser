@@ -1,0 +1,5 @@
+ankane/setup-mysql@v1
+ilammy/msvc-dev-cmd@v1
+jurplel/install-qt-action@v2
+actions/checkout@v2
+actions/checkout@v2

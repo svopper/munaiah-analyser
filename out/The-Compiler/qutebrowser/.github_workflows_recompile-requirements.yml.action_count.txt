@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-python@v2
+peter-evans/create-pull-request@v3
+Gottox/irc-message-action@v1
+Gottox/irc-message-action@v1

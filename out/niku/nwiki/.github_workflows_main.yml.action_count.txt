@@ -1,0 +1,2 @@
+actions/checkout@v2
+elgohr/Publish-Docker-Github-Action@2.11

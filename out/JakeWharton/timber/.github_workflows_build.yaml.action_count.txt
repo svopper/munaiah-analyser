@@ -1,0 +1,4 @@
+actions/checkout@v2.3.5
+gradle/wrapper-validation-action@v1
+actions/setup-java@v2
+JamesIves/github-pages-deploy-action@releases/v3

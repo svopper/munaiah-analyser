@@ -1,0 +1,8 @@
+actions/checkout@v2
+sigmonsays/dpkg-buildpackage-go@master
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+actions/create-release@v1.1.4
+actions/download-artifact@v2
+actions/upload-release-asset@v1.0.2

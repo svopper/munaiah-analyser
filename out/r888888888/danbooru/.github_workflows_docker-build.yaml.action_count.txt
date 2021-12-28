@@ -1,0 +1,5 @@
+docker/setup-buildx-action@v1
+docker/login-action@v1
+docker/login-action@v1
+docker/metadata-action@v3
+docker/build-push-action@v2

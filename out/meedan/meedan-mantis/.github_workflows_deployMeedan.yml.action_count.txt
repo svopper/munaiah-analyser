@@ -1,0 +1,6 @@
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+aws-actions/amazon-ecr-login@v1
+aws-actions/amazon-ecs-render-task-definition@v1
+aws-actions/amazon-ecs-deploy-task-definition@v1
+8398a7/action-slack@v3

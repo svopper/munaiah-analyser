@@ -1,0 +1,10 @@
+actions/checkout@v1
+actions/checkout@v1
+actions/upload-artifact@v1
+actions/checkout@v1
+actions/upload-artifact@v1
+actions/checkout@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+softprops/action-gh-release@v1

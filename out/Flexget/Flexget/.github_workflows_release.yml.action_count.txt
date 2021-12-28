@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+deliverybot/deployment-status@v1
+ncipollo/release-action@v1
+deliverybot/deployment-status@v1
+deliverybot/deployment-status@v1

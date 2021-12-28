@@ -1,0 +1,3 @@
+actions/checkout@v2
+Mudlet/lupdate-action@master
+gr2m/create-or-update-pull-request-action@v1.x

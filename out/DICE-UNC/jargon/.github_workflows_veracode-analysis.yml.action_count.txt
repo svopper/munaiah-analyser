@@ -1,0 +1,8 @@
+actions/checkout@v2
+papeloto/action-zip@v1
+actions/upload-artifact@v1
+wei/curl@master
+actions/setup-java@v1
+actions/upload-artifact@v1
+veracode/veracode-pipeline-scan-results-to-sarif@master
+github/codeql-action/upload-sarif@v1

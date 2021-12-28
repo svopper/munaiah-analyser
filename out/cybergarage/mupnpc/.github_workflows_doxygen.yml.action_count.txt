@@ -1,0 +1,4 @@
+actions/checkout@v2
+mattnotmitt/doxygen-action@v1.1.0
+mattnotmitt/doxygen-action@v1.1.0
+peaceiris/actions-gh-pages@v3

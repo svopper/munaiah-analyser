@@ -1,0 +1,6 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+skitionek/notify-microsoft-teams@master
+actions/checkout@v2
+ruby/setup-ruby@v1
+skitionek/notify-microsoft-teams@master

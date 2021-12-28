@@ -1,0 +1,5 @@
+actions/checkout@v2.3.4
+./.github/actions/environment
+./.github/actions/pack_and_deploy
+./.github/actions/send-telegram-notify
+actions/upload-artifact@v2

@@ -1,0 +1,3 @@
+actions/checkout@v2
+egor-tensin/setup-mingw@v2
+marvinpinto/action-automatic-releases@v1.2.1

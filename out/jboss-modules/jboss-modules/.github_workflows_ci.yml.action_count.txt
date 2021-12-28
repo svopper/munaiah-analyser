@@ -1,0 +1,6 @@
+actions/checkout@v2
+AdoptOpenJDK/install-jdk@v1
+AdoptOpenJDK/install-jdk@v1
+AdoptOpenJDK/install-jdk@v1
+AdoptOpenJDK/install-jdk@v1
+actions/upload-artifact@v2

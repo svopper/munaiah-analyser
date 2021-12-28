@@ -1,0 +1,4 @@
+zendesk/checkout@v2
+zendesk/setup-ruby@v1
+zendesk/checkout@v2
+docker://jruby:1.7.27

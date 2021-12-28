@@ -1,0 +1,10 @@
+actions/checkout@v2
+./.github/actions/yum/install
+./.github/actions/apt-get/install
+./.github/actions/yum/install
+./.github/actions/apt-get/install
+./.github/actions/mapnik/build-and-install
+./.github/actions/build
+./.github/actions/install
+./.github/actions/apache/configure
+./.github/actions/test

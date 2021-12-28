@@ -1,0 +1,3 @@
+actions/checkout@v2
+supercharge/mongodb-github-action@1.3.0
+actions/setup-python@v2

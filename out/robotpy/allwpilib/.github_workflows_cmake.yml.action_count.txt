@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+lukka/run-vcpkg@v7
+lukka/run-cmake@v3

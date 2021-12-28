@@ -1,0 +1,8 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+codecov/codecov-action@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2
+ilammy/msvc-dev-cmd@v1
+actions/checkout@v2
+jurplel/install-qt-action@v2

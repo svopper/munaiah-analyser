@@ -1,0 +1,3 @@
+actions/checkout@v1
+lukka/run-vcpkg@v7
+actions/upload-artifact@v2

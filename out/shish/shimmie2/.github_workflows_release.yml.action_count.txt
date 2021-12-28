@@ -1,0 +1,4 @@
+actions/checkout@master
+actions/create-release@latest
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+py-actions/py-dependency-install@v2
+actions-x/commit@v2

@@ -1,0 +1,14 @@
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+mstachniuk/ci-skip@v1
+actions/checkout@v2
+actions/checkout@v2

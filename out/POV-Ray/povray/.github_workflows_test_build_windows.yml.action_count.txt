@@ -1,0 +1,5 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1.0.2
+POV-Ray/povray/.github/actions/windows_build@gh-actions-v1
+POV-Ray/povray/.github/actions/git_check_repo@gh-actions-v1
+actions/upload-artifact@v2

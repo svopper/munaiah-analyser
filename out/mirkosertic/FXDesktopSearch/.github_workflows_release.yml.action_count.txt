@@ -1,0 +1,4 @@
+actions/checkout@v1
+joschi/setup-jdk@v1
+actions/upload-artifact@v1
+AButler/upload-release-assets@v2.0

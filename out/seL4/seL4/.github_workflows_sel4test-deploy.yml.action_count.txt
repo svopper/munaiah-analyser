@@ -1,0 +1,9 @@
+seL4/ci-actions/repo-checkout@master
+seL4/ci-actions/sel4test-sim@master
+seL4/ci-actions/sel4test-hw@master
+actions/upload-artifact@v2
+actions/checkout@v2
+seL4/ci-actions/march-of-platform@master
+actions/download-artifact@v2
+seL4/ci-actions/sel4test-hw-run@master
+seL4/ci-actions/manifest-deploy@master

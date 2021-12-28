@@ -1,0 +1,5 @@
+actions/checkout@master
+leafo/gh-actions-lua@master
+leafo/gh-actions-luarocks@master
+coverallsapp/github-action@master
+coverallsapp/github-action@master

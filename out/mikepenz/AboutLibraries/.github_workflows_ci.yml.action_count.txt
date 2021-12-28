@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+gradle/wrapper-validation-action@v1
+actions/cache@v2
+ruby/setup-ruby@v1
+actions/upload-artifact@v2
+mikepenz/release-changelog-builder-action@v2
+softprops/action-gh-release@91409e712cf565ce9eff10c87a8d1b11b81757ae

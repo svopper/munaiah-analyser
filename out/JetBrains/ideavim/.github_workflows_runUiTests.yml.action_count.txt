@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v2.1.0
+jtalk/url-health-check-action@1.5
+actions/upload-artifact@v2

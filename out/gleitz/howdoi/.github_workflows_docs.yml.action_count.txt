@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v2
+mhausenblas/mkdocs-deploy-gh-pages@1.17

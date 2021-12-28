@@ -1,0 +1,2 @@
+actions/checkout@v2
+OskarStark/php-cs-fixer-ga@3.0.0

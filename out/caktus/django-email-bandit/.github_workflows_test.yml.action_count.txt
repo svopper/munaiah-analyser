@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2
+pre-commit/action@v2.0.0
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2

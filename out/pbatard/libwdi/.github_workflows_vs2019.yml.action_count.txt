@@ -1,0 +1,5 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+actions/upload-artifact@v2
+crazy-max/ghaction-upx@v1
+actions/upload-artifact@v2

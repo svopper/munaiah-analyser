@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@master
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v2

@@ -1,0 +1,3 @@
+msys2/setup-msys2@v2
+actions/checkout@master
+actions/upload-artifact@master

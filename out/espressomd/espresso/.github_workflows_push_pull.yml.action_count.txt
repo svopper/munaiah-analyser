@@ -1,0 +1,7 @@
+actions/checkout@main
+actions/setup-python@v2
+./.github/actions/build_and_check
+actions/checkout@main
+actions/setup-python@v2
+./.github/actions/build_and_check
+alialaa/issue-action@v1

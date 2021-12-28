@@ -1,0 +1,7 @@
+actions/checkout@master
+shivammathur/setup-php@master
+actions/checkout@v2
+anothrNick/github-tag-action@master
+docker/setup-buildx-action@master
+docker/login-action@v1
+docker/build-push-action@v2

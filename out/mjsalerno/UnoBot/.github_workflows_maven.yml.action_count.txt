@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v2
+codecov/codecov-action@v1.5.0
+codacy/codacy-coverage-reporter-action@1.0.0

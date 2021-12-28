@@ -1,0 +1,3 @@
+actions/checkout@v2
+ashutoshvarma/action-cmake-build@master
+actions/upload-artifact@v2

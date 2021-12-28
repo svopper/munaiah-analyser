@@ -1,0 +1,8 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+suisei-cn/actions-download-file@v1
+suisei-cn/actions-download-file@v1
+suisei-cn/actions-download-file@v1
+egor-tensin/vs-shell@v2
+actions/upload-artifact@master
+actions/upload-artifact@master

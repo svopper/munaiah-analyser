@@ -1,0 +1,4 @@
+ts-graphviz/setup-graphviz@v1
+actions/setup-python@v2
+actions/setup-python@v2
+actions/checkout@v2

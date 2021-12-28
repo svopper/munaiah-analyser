@@ -1,0 +1,7 @@
+actions/setup-node@v1
+actions/checkout@v2
+actions/checkout@v2
+shivammathur/cache-extensions@v1
+actions/cache@v1
+shivammathur/setup-php@v2
+actions/cache@v1

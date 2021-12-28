@@ -1,0 +1,3 @@
+actions/checkout@v2
+./util/ci/actions/archlinux-test
+actions/upload-artifact@v2

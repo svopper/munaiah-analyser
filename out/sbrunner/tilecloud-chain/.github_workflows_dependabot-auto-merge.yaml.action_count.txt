@@ -1,0 +1,1 @@
+ridedott/dependabot-auto-merge-action@master

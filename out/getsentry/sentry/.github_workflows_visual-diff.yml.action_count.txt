@@ -1,0 +1,1 @@
+getsentry/action-visual-snapshot@v2

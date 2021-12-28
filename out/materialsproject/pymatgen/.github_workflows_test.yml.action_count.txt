@@ -1,0 +1,11 @@
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+actions/cache@v2
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/setup-python@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+AndreMiras/coveralls-python-action@v20201129

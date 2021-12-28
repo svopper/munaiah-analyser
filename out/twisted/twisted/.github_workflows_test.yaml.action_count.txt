@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+twisted/python-info-action@v1
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+twisted/python-info-action@v1
+pypa/gh-action-pypi-publish@v1.3.1

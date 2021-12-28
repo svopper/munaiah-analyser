@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+codecov/codecov-action@v2.1.0
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/checkout@v2
+wagoid/commitlint-github-action@v4.1.9
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/checkout@v2
+relekang/python-semantic-release@v7.19.2

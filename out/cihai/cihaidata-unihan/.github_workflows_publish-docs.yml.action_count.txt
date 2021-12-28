@@ -1,0 +1,6 @@
+actions/checkout@v1
+dorny/paths-filter@v2.7.0
+actions/setup-python@v1
+actions/cache@v2
+jakejarvis/s3-sync-action@master
+chetan/invalidate-cloudfront-action@master

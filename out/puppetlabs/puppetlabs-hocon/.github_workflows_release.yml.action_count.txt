@@ -1,0 +1,4 @@
+actions/checkout@v1
+puppetlabs/action-litmus_parallel@master
+actions/checkout@v1
+puppetlabs/action-litmus_spec@master

@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/checkout@master
+nanasess/setup-php@master
+nanasess/composer-installer-action@master

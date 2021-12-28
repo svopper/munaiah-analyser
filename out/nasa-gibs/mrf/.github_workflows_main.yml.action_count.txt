@@ -1,0 +1,2 @@
+actions/checkout@master
+nasa-gibs/trufflehog-actions-scan@master

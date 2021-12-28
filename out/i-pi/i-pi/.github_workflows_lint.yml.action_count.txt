@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+psf/black@stable
+rbialon/flake8-annotations@v1

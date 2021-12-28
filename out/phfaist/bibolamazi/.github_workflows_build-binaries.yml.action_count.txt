@@ -1,0 +1,3 @@
+actions/checkout@v2
+JackMcKew/pyinstaller-action-windows@main
+actions/upload-artifact@v2

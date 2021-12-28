@@ -1,0 +1,5 @@
+actions/checkout@v1
+shivammathur/setup-php@v1
+actions/cache@v1
+actions/checkout@v1
+localheinz/composer-normalize-action@0.5.2

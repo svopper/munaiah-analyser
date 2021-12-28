@@ -1,0 +1,2 @@
+actions/checkout@v2
+GitGuardian/gg-shield-action@master

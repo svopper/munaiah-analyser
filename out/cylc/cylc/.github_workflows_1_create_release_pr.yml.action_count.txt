@@ -1,0 +1,9 @@
+cylc/release-actions/stage-1/sanitize-inputs@v1
+actions/checkout@v2
+cylc/release-actions/check-shortlog@v1
+actions/setup-python@v2
+cylc/release-actions/stage-1/checkout-pr-branch@v1
+cylc/release-actions/stage-1/set-python-package-version@v1
+cylc/release-actions/stage-1/update-changelog-release-date@v1
+cylc/release-actions/build-python-package@v1
+cylc/release-actions/stage-1/create-release-pr@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+woocommerce/action-build@v2
+actions/upload-release-asset@v1
+aurelien-baudet/workflow-dispatch@v2

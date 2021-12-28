@@ -1,0 +1,10 @@
+actions/checkout@v2
+./.github/actions/get-workflow-origin
+./.github/actions/checks-action
+actions/checkout@v2
+actions/checkout@v2
+./.github/actions/label-when-approved-action
+./.github/actions/checks-action
+./.github/actions/label-when-approved-action
+./.github/actions/label-when-approved-action
+./.github/actions/checks-action

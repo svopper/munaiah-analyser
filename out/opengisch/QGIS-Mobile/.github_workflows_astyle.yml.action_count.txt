@@ -1,0 +1,6 @@
+actions/github-script@v5
+actions/checkout@v2
+actions/checkout@v2
+khan/pull-request-comment-trigger@master
+thollander/actions-comment-pull-request@main
+EndBug/add-and-commit@v7.4.0

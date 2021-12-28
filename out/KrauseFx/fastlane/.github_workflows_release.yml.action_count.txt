@@ -1,0 +1,2 @@
+actions/checkout@master
+fastlane/github-actions/communicate-on-pull-request-released@latest

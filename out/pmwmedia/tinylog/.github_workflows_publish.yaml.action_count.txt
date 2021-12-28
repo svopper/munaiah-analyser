@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+samuelmeuli/action-maven-publish@v1
+kevinpainchaud/simple-ftp-deploy-action@v1.2.1
+ncipollo/release-action@v1
+kevinpainchaud/simple-ftp-deploy-action@v1.2.1
+actions/setup-java@v1
+kevinpainchaud/simple-ftp-deploy-action@v1.2.1

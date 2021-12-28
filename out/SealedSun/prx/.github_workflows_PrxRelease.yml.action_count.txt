@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-dotnet@v1.7.2
+actions/cache@v2
+softprops/action-gh-release@v1

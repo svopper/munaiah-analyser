@@ -1,0 +1,4 @@
+actions/checkout@v2
+nbprojekt/gource-action@v1
+nbprojekt/gource-action@v1
+actions/upload-artifact@v2

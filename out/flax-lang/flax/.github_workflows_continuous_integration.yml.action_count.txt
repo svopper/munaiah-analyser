@@ -1,0 +1,6 @@
+actions/checkout@v1
+actions/checkout@v1
+seanmiddleditch/gha-setup-ninja@v1
+seanmiddleditch/gha-setup-vsdevenv@master
+actions/checkout@v1
+actions/cache@v1.0.0

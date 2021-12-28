@@ -1,0 +1,7 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+jurplel/install-qt-action@v2
+actions/checkout@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2
+microsoft/setup-msbuild@v1.0.2

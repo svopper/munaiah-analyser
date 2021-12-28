@@ -1,0 +1,2 @@
+actions/checkout@v1
+xbmc/action-kodi-addon-checker@v1.1

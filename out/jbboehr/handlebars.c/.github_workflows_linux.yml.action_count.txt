@@ -1,0 +1,8 @@
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+coverallsapp/github-action@master
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+actions/upload-artifact@v2

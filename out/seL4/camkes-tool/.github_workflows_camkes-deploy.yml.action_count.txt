@@ -1,0 +1,8 @@
+seL4/ci-actions/repo-checkout@master
+seL4/ci-actions/camkes-test@master
+actions/upload-artifact@v2
+seL4/ci-actions/camkes-test@master
+actions/checkout@v2
+actions/download-artifact@v2
+seL4/ci-actions/camkes-hw@master
+seL4/ci-actions/manifest-deploy@master

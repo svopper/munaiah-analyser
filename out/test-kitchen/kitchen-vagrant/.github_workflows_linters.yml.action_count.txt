@@ -1,0 +1,4 @@
+actions/checkout@master
+actionshub/yamllint@main
+actions/checkout@v2
+ruby/setup-ruby@v1

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+actions/github-script@v3
+actions/create-release@v1
+actions/upload-release-asset@v1

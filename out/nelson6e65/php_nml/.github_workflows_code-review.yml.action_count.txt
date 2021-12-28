@@ -1,0 +1,8 @@
+fkirc/skip-duplicate-actions@v3.3.0
+actions/checkout@v2
+actions/setup-node@v2.1.2
+actions/cache@v2
+fkirc/skip-duplicate-actions@v3.3.0
+actions/checkout@v2
+nanasess/setup-php@v3.0.6
+actions/cache@v2

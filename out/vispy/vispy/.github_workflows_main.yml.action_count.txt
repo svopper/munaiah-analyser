@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/cache@v2
+mamba-org/provision-with-micromamba@v7
+actions/upload-artifact@v2
+peaceiris/actions-gh-pages@v3
+actions/checkout@v2
+actions/cache@v2
+mamba-org/provision-with-micromamba@v7
+AndreMiras/coveralls-python-action@develop
+AndreMiras/coveralls-python-action@develop

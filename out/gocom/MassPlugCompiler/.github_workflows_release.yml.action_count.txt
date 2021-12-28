@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/create-release@master
+actions/upload-release-asset@v1.0.1

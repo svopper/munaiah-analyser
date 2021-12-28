@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+glennawatson/setup-msbuild@v1.0.3

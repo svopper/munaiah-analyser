@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+nanasess/setup-chromedriver@master
+actions/cache@v2
+AndreMiras/coveralls-python-action@develop
+AndreMiras/coveralls-python-action@develop

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-ruby@v1
+actions/cache@v1
+paambaati/codeclimate-action@v2.5.4

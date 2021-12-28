@@ -1,0 +1,4 @@
+actions/checkout@v2
+mikehardy/buildcache-action@v1.2.2
+microsoft/setup-msbuild@v1
+actions/upload-artifact@v2

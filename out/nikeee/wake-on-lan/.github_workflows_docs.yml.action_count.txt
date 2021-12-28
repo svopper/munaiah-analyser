@@ -1,0 +1,3 @@
+actions/checkout@v1
+nikeee/docfx-action@master
+maxheld83/ghpages@master

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+TrueBrain/actions-flake8@master

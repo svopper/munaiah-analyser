@@ -1,0 +1,13 @@
+rokroskar/workflow-run-cleanup-action@master
+actions/checkout@v2
+actions/setup-python@v2
+jamescurtin/isort-action@master
+py-actions/flake8@v1
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+joerick/cibuildwheel@v1.11.0
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/setup-python@v2
+joerick/cibuildwheel@v1.11.0
+actions/upload-artifact@v1

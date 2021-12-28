@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v2
+OctopusDeploy/install-octopus-cli-action@v1.1.7
+OctopusDeploy/push-package-action@v1.1.1
+OctopusDeploy/create-release-action@v1.1.1

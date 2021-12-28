@@ -1,0 +1,3 @@
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+coverallsapp/github-action@8cbef1dea373ebce56de0a14c68d6267baa10b44
+coverallsapp/github-action@8cbef1dea373ebce56de0a14c68d6267baa10b44

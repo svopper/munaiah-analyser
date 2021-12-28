@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v2
+shogo82148/actions-upload-release-asset@v1.3.1

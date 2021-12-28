@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker://guite/generator-action:latest
+peter-evans/create-pull-request@v3

@@ -1,0 +1,6 @@
+actions/github-script@v3
+dsaltares/fetch-gh-release-asset@9b9f2b2336797d56925bd755fb9033ece2b37f3c
+azure/login@v1
+azure/CLI@v1
+azure/webapps-deploy@v2
+azure/CLI@v1

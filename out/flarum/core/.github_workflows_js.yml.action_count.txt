@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2
+flarum/action-build@2
+actions/checkout@v2
+actions/setup-node@v2
+flarum/action-build@2

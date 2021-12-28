@@ -1,0 +1,3 @@
+actions/setup-go@v2
+actions/checkout@v2
+codecov/codecov-action@v1

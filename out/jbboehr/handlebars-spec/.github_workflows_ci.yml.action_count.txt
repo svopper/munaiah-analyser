@@ -1,0 +1,7 @@
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+actions/setup-node@v1
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+actions/setup-node@v1
+shivammathur/setup-php@v2

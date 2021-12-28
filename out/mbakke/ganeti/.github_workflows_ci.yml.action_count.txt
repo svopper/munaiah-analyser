@@ -1,0 +1,6 @@
+actions/checkout@v1
+docker://ganeti/ci:buster-py3
+docker://ganeti/ci:buster-py3
+docker://ganeti/ci:buster-py3
+docker://ganeti/ci:buster-py3
+docker://ganeti/ci:buster-py3

@@ -1,0 +1,2 @@
+actions/checkout@v2
+ibiqlik/action-yamllint@v3.0.1

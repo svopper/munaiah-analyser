@@ -1,0 +1,3 @@
+actions/checkout@v2
+niden/actions-memcached@v7
+actions/setup-java@v2

@@ -1,0 +1,3 @@
+Brightspace/third-party-actions@actions/checkout
+Brightspace/third-party-actions@aws-actions/configure-aws-credentials
+aws-actions/amazon-ecr-login@v1

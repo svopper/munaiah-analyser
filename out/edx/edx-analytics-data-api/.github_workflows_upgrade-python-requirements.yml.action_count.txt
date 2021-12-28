@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-python@v2
+dawidd6/action-send-mail@v3
+dawidd6/action-send-mail@v3

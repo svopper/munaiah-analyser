@@ -1,0 +1,3 @@
+actions/checkout@v1
+cadwallion/publish-rubygems-action@master
+cadwallion/publish-rubygems-action@master

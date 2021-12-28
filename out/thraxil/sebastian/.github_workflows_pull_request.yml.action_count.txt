@@ -1,0 +1,2 @@
+actions/checkout@master
+jessfraz/branch-cleanup-action@master

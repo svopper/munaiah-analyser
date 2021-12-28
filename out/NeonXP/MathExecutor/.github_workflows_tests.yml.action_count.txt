@@ -1,0 +1,3 @@
+actions/checkout@v1
+shivammathur/setup-php@v2
+StephaneBour/actions-php-cs-fixer@1.0

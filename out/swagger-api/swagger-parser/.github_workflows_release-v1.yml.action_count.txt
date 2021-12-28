@@ -1,0 +1,7 @@
+actions/checkout@v2
+tibdex/github-app-token@v1
+actions/setup-python@v2
+actions/setup-java@v2
+actions/cache@v2
+samuelmeuli/action-maven-publish@v1
+peter-evans/create-pull-request@v2

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v1
+py-actions/flake8@v1
+actions/checkout@v2
+psf/black@stable
+stefanzweifel/git-auto-commit-action@v4.1.2

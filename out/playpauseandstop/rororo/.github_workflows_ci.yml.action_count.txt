@@ -1,0 +1,13 @@
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+actions/cache@v2.1.6
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+actions/cache@v2.1.6
+pre-commit/action@v2.0.3
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+pypa/gh-action-pypi-publish@v1.4.2
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+actions/create-release@v1.1.4

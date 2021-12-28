@@ -1,0 +1,11 @@
+potiuk/cancel-workflow-runs@master
+actions/cache@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+docker/login-action@v1
+docker/build-push-action@v2
+actions/checkout@v2
+codecov/codecov-action@v1
+actions/checkout@v2

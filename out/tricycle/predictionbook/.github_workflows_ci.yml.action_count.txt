@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v2
+pullreminders/slack-action@a5a262c896a1cc80dcbae59ba95513e2dfb21439

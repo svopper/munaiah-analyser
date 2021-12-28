@@ -1,0 +1,3 @@
+atlassian/gajira-login@master
+atlassian/gajira-create@master
+jungwinter/comment@v1

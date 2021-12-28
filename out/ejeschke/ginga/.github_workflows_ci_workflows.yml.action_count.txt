@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+jurplel/install-qt-action@88f3374475d094ce56ca6a7cc41cfda5a6ec093c
+actions/checkout@v2
+actions/setup-python@v2
+jurplel/install-qt-action@88f3374475d094ce56ca6a7cc41cfda5a6ec093c
+actions/checkout@v2
+actions/setup-python@v2
+jurplel/install-qt-action@88f3374475d094ce56ca6a7cc41cfda5a6ec093c
+actions/checkout@v2
+actions/setup-python@v2

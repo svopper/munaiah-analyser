@@ -1,0 +1,7 @@
+actions/checkout@v2
+harmon758/postgresql-action@v1
+mirromutth/mysql-action@v1.1
+jakejarvis/wait-action@v0.1.0
+jwalton/gh-docker-logs@v1.0.0
+actions/setup-python@v2
+codacy/codacy-coverage-reporter-action@master

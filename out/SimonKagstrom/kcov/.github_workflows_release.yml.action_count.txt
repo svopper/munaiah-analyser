@@ -1,0 +1,5 @@
+actions/checkout@v2
+uraimo/run-on-arch-action@v1.0.9
+actions/upload-artifact@v2
+actions/download-artifact@v2
+ncipollo/release-action@v1

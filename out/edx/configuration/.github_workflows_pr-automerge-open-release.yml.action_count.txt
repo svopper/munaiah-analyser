@@ -1,0 +1,4 @@
+tspascoal/get-user-teams-membership@v1
+andrewmusgrave/automatic-pull-request-review@0.0.5
+andymckay/labeler@978f846c4ca6299fd136f465b42c5e87aca28cac
+pascalgn/automerge-action@v0.13.1

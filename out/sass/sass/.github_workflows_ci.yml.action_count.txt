@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+tj-actions/changed-files@b86b537e2b78397b630cfb1a8d0aec1e03379737

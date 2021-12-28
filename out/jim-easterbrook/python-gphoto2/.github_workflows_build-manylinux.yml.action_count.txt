@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+pypa/cibuildwheel@v2.1.1
+actions/upload-artifact@v2

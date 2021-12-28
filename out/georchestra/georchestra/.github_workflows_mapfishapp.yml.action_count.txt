@@ -1,0 +1,5 @@
+actions/checkout@v1
+textbook/git-checkout-submodule-action@2.0.0
+actions/setup-java@v1
+actions/cache@v1
+azure/docker-login@v1

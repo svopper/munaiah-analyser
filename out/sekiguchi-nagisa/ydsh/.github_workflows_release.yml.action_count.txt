@@ -1,0 +1,5 @@
+actions/checkout@v2
+./tools/dockerfiles/cpack-rpm-build
+actions/create-release@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

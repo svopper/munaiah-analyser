@@ -1,0 +1,3 @@
+actions/checkout@v1
+niden/actions-memcached@v7
+actions/setup-python@v2

@@ -1,0 +1,4 @@
+actions/checkout@master
+nanasess/setup-php@master
+actions/cache@v1
+nanasess/setup-chromedriver@master

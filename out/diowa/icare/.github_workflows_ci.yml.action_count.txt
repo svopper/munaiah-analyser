@@ -1,0 +1,6 @@
+actions/checkout@v2
+nanasess/setup-chromedriver@v1.0.1
+ruby/setup-ruby@v1
+actions/setup-node@v2
+actions/cache@v2
+coverallsapp/github-action@master

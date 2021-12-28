@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-python@v2
+twisted/python-info-action@v1.0.1
+actions/upload-artifact@v2
+actions/checkout@v2
+twisted/python-info-action@v1.0.1
+actions/checkout@v2
+twisted/python-info-action@v1.0.1
+actions/download-artifact@v2

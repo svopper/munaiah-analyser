@@ -1,0 +1,9 @@
+actions/checkout@v2
+enonic/release-tools/generate-changelog@master
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/cache@v2
+enonic/release-tools/publish-vars@master
+actions/download-artifact@v2
+actions/create-release@v1

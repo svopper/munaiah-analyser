@@ -1,0 +1,2 @@
+actions/checkout@v2
+ruby/setup-ruby@b00551441a6fa3d528f3443dbff264a934b6e316

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+reactivecircus/android-emulator-runner@v2
+reactivecircus/android-emulator-runner@v2
+iRoachie/slack-github-actions@v2.0.1

@@ -1,0 +1,6 @@
+shivammathur/setup-php@v2
+korelstar/phplint-problem-matcher@v1
+korelstar/xmllint-problem-matcher@v1
+actions/checkout@v2
+ramsey/composer-install@v1
+ChristophWurst/xmllint-action@v1

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+actions/create-release@v1
+actions/github-script@v3

@@ -1,0 +1,13 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+ramsey/composer-install@v1
+shivammathur/setup-php@v2
+coverallsapp/github-action@master

@@ -1,0 +1,6 @@
+actions/checkout@v2
+perl-actions/install-with-cpanm@v1
+actions/setup-java@v2
+actions/checkout@v2
+perl-actions/install-with-cpanm@v1
+actions/setup-java@v2

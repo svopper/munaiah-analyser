@@ -1,0 +1,2 @@
+actions/checkout@master
+fnkr/github-action-ghr@v1

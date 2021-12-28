@@ -1,0 +1,6 @@
+styfle/cancel-workflow-action@0.9.0
+actions/checkout@v2
+actions/cache@v2
+styfle/cancel-workflow-action@0.9.0
+actions/checkout@v2
+actions/cache@v2

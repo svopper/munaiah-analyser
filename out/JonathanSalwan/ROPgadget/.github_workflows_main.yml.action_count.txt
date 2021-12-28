@@ -1,0 +1,2 @@
+actions/checkout@v2
+wemake-services/wemake-python-styleguide@0.14.1

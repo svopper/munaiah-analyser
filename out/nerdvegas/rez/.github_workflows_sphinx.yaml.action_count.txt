@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-python@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2

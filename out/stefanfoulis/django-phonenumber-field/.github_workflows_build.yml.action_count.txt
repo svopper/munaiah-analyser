@@ -1,0 +1,2 @@
+actions/checkout@master
+sonarsource/sonarcloud-github-action@master

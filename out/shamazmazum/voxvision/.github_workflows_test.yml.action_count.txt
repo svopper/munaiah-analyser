@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+KyleMayes/install-llvm-action@v1
+peaceiris/actions-gh-pages@v3

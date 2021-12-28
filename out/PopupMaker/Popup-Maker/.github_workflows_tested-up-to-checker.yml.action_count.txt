@@ -1,0 +1,1 @@
+skaut/wordpress-version-checker@v1.0.0

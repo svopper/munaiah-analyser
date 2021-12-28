@@ -1,0 +1,4 @@
+actions/checkout@v2
+superchargejs/redis-github-action@1.1.0
+shivammathur/setup-php@v2
+actions/cache@v2.1.4

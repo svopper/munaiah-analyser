@@ -1,0 +1,2 @@
+actions/checkout@v2.3.5
+peaceiris/actions-gh-pages@v3.8.0

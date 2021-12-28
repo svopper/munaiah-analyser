@@ -1,0 +1,3 @@
+actions/checkout@v2
+at-wat/bloom-release-action@v0
+actions/create-release@v1

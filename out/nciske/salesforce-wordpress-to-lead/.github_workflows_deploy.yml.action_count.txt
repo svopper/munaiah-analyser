@@ -1,0 +1,3 @@
+actions/checkout@v2
+10up/action-wordpress-plugin-deploy@master
+actions/upload-release-asset@v1

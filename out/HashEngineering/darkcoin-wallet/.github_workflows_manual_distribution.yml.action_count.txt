@@ -1,0 +1,6 @@
+kanga333/variable-mapper@master
+actions/checkout@v2
+actions/setup-java@v2
+actions/setup-ruby@v1
+actions/cache@v2
+actions/cache@v2

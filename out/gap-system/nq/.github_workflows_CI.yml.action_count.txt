@@ -1,0 +1,7 @@
+actions/checkout@v2
+gap-actions/setup-gap-for-packages@v1
+gap-actions/run-test-for-packages@v1
+actions/checkout@v2
+gap-actions/setup-gap-for-packages@v1
+gap-actions/compile-documentation-for-packages@v1
+actions/upload-artifact@v2

@@ -1,0 +1,2 @@
+actions/checkout@v2
+burnett01/rsync-deployments@4.0

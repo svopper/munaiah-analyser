@@ -1,0 +1,7 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/setup-node@v1
+mirromutth/mysql-action@v1.1
+actions/cache@v2
+actions/cache@v2
+actions/upload-artifact@v2

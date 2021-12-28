@@ -1,0 +1,4 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+lukka/run-cmake@v3
+github/codeql-action/analyze@v1

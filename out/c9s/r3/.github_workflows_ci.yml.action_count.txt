@@ -1,0 +1,4 @@
+actions/checkout@v2
+coverallsapp/github-action@1.1.3
+actions/checkout@v2
+actions/checkout@v2

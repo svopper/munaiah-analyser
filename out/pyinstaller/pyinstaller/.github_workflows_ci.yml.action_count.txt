@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+xoviat/actions-pytest@0.1-alpha2
+actions/checkout@v2

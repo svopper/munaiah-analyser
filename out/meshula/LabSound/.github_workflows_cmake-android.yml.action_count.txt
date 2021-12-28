@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v2
+nttld/setup-ndk@v1

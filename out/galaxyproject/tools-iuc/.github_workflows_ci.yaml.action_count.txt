@@ -1,0 +1,17 @@
+peter-evans/create-or-update-comment@v1
+actions/setup-python@v1
+actions/cache@v2
+actions/checkout@v2
+galaxyproject/planemo-ci-action@v1
+actions/checkout@v2
+actions/setup-python@v1
+actions/cache@v2
+galaxyproject/planemo-ci-action@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+actions/setup-python@v1
+actions/cache@v2
+galaxyproject/planemo-ci-action@v1
+actions/upload-artifact@v2
+peter-evans/create-or-update-comment@v1
+galaxyproject/planemo-ci-action@v1

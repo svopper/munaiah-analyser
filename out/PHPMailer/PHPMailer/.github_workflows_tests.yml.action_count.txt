@@ -1,0 +1,12 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+ramsey/composer-install@v1
+nick-invision/retry@v2
+codecov/codecov-action@v1

@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-java@v1
+axel-op/googlejavaformat-action@v3
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+GabrielBB/xvfb-action@v1.0

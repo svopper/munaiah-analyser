@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+jamescurtin/isort-action@master
+codecov/codecov-action@v1

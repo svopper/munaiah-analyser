@@ -1,0 +1,12 @@
+actions/checkout@master
+actions/setup-python@v2
+actions/setup-java@v1
+actions/upload-artifact@master
+actions/checkout@master
+docker://quay.io/pypa/manylinux2010_x86_64
+actions/upload-artifact@master
+actions/download-artifact@master
+softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
+softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
+pypa/gh-action-pypi-publish@master
+pypa/gh-action-pypi-publish@master

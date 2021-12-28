@@ -1,0 +1,4 @@
+actions/checkout@v2.3.4
+actions/setup-dotnet@v1
+microsoft/setup-msbuild@v1.0.2
+jasonleenaylor/nunit-reporter@63ab85dd5da111c3f4ef95f2fb73bbe667f58db9

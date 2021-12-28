@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v1
+eskatos/gradle-command-action@v1

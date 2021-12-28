@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v2.3.0
+actions/cache@v2.1.6
+actions/upload-artifact@v2.2.4

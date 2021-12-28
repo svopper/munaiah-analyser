@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-node@v1.4.4
+actions/checkout@v2
+actions/setup-node@v1.4.4
+docker-practice/actions-setup-docker@1.0.4
+iamsauravsharma/create-dotenv@v1.2.0

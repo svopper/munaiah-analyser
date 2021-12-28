@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/cache@v1
+actions/setup-java@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/cache@v1
+actions/download-artifact@v2
+actions/setup-java@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+geekyeggo/delete-artifact@v1

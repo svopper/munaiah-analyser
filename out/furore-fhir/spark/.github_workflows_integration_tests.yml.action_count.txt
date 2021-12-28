@@ -1,0 +1,6 @@
+actions/checkout@v2
+yuzutech/annotations-action@v0.1.0
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2

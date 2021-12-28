@@ -1,0 +1,4 @@
+actions/checkout@v2
+nikeee/docfx-action@v1.0.0
+JamesIves/github-pages-deploy-action@3.6.2
+actions/upload-artifact@v2

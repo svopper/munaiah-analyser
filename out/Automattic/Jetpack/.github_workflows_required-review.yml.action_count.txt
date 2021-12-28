@@ -1,0 +1,2 @@
+actions/checkout@v2
+automattic/action-required-review@v2

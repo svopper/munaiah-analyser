@@ -1,0 +1,2 @@
+Homebrew/actions/check-commit-format@master
+Homebrew/actions/label-pull-requests@master

@@ -1,0 +1,6 @@
+actions/checkout@v2
+docker/login-action@v1.8.0
+actions/checkout@v2
+docker/login-action@v1.8.0
+actions/checkout@v2
+EndBug/add-and-commit@v6

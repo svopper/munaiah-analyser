@@ -1,0 +1,3 @@
+actions/checkout@v2
+superfly/flyctl-actions@1.1
+juankaram/sentry-release@master

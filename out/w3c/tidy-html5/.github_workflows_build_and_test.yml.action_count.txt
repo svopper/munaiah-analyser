@@ -1,0 +1,4 @@
+actions/checkout@v2
+egor-tensin/setup-mingw@v2
+egor-tensin/setup-cygwin@v3
+ruby/setup-ruby@v1

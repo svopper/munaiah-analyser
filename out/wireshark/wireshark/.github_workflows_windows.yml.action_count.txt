@@ -1,0 +1,7 @@
+actions/checkout@v2
+shogo82148/actions-setup-perl@v1
+jurplel/install-qt-action@v2
+microsoft/setup-msbuild@v1.0.2
+ilammy/msvc-dev-cmd@v1
+actions/setup-python@v1
+actions/upload-artifact@v1

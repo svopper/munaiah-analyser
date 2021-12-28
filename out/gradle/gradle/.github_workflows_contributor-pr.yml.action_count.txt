@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/github-script@v5
+gradle/gradle-build-action@v2
+actions/checkout@v2
+actions/setup-java@v2
+gradle/gradle-build-action@v2
+actions/checkout@v2
+actions/setup-java@v2
+gradle/gradle-build-action@v2

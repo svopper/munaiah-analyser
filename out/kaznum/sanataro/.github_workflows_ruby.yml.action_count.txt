@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/setup-ruby@v1
+bcomnes/cleanup-xvfb@v1

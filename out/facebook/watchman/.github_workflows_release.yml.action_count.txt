@@ -1,0 +1,8 @@
+actions/create-release@v1
+actions/checkout@v1
+actions/upload-release-asset@v1
+actions/checkout@v1
+actions/upload-release-asset@v1
+actions/checkout@v1
+actions/upload-release-asset@v1
+fanzeyi/bump-homebrew-formula-action@1.11

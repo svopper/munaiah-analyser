@@ -1,0 +1,5 @@
+actions/checkout@v2
+forward3d/gh-gem-tag-action@master
+actions/create-release@v1
+actions/checkout@v1
+jstastny/publish-gem-to-github@master

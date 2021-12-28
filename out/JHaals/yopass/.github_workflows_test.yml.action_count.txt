@@ -1,0 +1,5 @@
+actions/setup-go@v1
+actions/checkout@v1
+codecov/codecov-action@v1.0.3
+actions/checkout@v1
+cypress-io/github-action@v2

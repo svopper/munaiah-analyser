@@ -1,0 +1,4 @@
+actions/checkout@master
+warrenbuckley/Setup-MSBuild@v1
+NuGet/setup-nuget@v1.0.2
+actions/upload-artifact@v1.0.0

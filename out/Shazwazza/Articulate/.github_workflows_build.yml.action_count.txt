@@ -1,0 +1,7 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1.0.2
+nuget/setup-nuget@v1
+gittools/actions/gitversion/setup@v0.9.7
+gittools/actions/gitversion/execute@v0.9.7
+actions/upload-artifact@v2
+actions/upload-artifact@v2

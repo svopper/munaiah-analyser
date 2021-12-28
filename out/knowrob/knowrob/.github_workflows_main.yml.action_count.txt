@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+betwo/github-setup-catkin@master
+daniel86/junit-report-annotations-action@master
+JamesIves/github-pages-deploy-action@3.5.7

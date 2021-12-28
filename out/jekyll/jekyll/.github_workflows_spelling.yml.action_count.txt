@@ -1,0 +1,2 @@
+actions/checkout@v2
+check-spelling/check-spelling@v0.0.19

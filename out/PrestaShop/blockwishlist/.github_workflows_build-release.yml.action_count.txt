@@ -1,0 +1,7 @@
+actions/checkout@v2.0.0
+actions/setup-node@v1
+PrestaShopCorp/github-action-clean-before-deploy@v1.0
+actions/upload-artifact@v1
+actions/download-artifact@v1
+toolmantim/release-drafter@v5
+actions/upload-release-asset@v1.0.1

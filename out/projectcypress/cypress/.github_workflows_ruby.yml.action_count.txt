@@ -1,0 +1,14 @@
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe
+actions/checkout@v2
+ruby/setup-ruby@b12138f02d7d0c4d36f463e0885dc47ec25a52fe

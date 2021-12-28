@@ -1,0 +1,4 @@
+actions/checkout@v2
+frabert/replace-string-action@v1.2
+actions/checkout@v2
+frabert/replace-string-action@v1.2

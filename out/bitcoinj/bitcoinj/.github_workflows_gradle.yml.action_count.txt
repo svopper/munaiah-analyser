@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-java@v2
+gradle/gradle-build-action@v1
+actions/upload-artifact@v2

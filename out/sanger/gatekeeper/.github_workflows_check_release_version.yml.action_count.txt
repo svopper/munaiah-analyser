@@ -1,0 +1,2 @@
+actions/checkout@v2
+pozetroninc/github-action-get-latest-release@v0.5.0

@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker://guite/zikula-action:latest
+actions/upload-artifact@master

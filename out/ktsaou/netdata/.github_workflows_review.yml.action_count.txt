@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/checkout@v2
+reviewdog/action-actionlint@v1
+actions/checkout@v2
+reviewdog/action-eslint@v1
+actions/checkout@v2
+reviewdog/action-hadolint@v1
+actions/checkout@v2
+reviewdog/action-shellcheck@v1
+actions/checkout@v2
+reviewdog/action-yamllint@v1

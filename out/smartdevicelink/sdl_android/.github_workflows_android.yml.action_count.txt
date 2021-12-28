@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1
+reactivecircus/android-emulator-runner@v2
+codecov/codecov-action@v1.0.13

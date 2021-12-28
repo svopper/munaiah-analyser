@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/github-script@v5
+actions/checkout@v2
+actions/github-script@v5

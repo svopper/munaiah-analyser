@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+scottbrenner/generate-changelog-action@master
+actions/create-release@latest
+samuelmeuli/action-maven-publish@v1
+actions/upload-release-asset@v1

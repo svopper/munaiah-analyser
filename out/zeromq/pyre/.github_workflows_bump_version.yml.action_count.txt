@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v1
+oleksiyrudenko/gha-git-credentials@v2-latest
+ad-m/github-push-action@master

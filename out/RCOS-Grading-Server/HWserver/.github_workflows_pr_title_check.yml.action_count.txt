@@ -1,0 +1,1 @@
+submitty/action-pr-title@main

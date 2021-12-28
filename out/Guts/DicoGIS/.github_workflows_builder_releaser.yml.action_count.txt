@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2.1.6
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/cache@v2.1.6
+conda-incubator/setup-miniconda@v2.1.1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+actions/download-artifact@v2
+actions/create-release@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

@@ -1,0 +1,3 @@
+actions/checkout@master
+actions/setup-java@v2
+rdarida/simple-github-pages-deploy-action@v1

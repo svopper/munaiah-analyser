@@ -1,0 +1,1 @@
+nils-org/dependabot-cake-action@v1

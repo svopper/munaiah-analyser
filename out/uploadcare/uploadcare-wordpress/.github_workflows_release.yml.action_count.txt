@@ -1,0 +1,4 @@
+actions/checkout@v2
+php-actions/composer@v5
+actions/upload-artifact@v1
+10up/action-wordpress-plugin-deploy@98923950204e68db278a958aa8b71e3b07904140

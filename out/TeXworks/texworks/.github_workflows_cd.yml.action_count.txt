@@ -1,0 +1,16 @@
+actions/checkout@v2
+./.github/actions/package-launchpad
+./.github/actions/deploy-launchpad
+actions/checkout@v2
+Vampire/setup-wsl@v1
+./.github/actions/setup-windows
+./.github/actions/package-windows
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+./.github/actions/deploy-artifactory
+actions/checkout@v2
+jurplel/install-qt-action@v2
+./.github/actions/setup-macos
+./.github/actions/package-macos
+actions/upload-artifact@v2
+./.github/actions/deploy-artifactory

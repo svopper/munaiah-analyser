@@ -1,0 +1,4 @@
+actions/checkout@master
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+ramsey/composer-install@v1

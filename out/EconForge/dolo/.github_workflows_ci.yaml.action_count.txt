@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v1
+Gr1N/setup-poetry@v4
+codecov/codecov-action@v1

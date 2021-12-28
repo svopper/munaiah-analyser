@@ -1,0 +1,15 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+actions/upload-artifact@v1
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+actions/checkout@v2
+actions/download-artifact@v2
+actions/checkout@v2
+actions/cache@v1
+jurplel/install-qt-action@v2
+nttld/setup-ndk@v1
+actions/upload-artifact@v1
+softprops/action-gh-release@v1
+actions/checkout@v2
+actions/download-artifact@v2

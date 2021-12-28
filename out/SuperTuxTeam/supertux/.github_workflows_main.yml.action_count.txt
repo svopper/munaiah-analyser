@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+shallwefootball/s3-upload-action@master
+softprops/action-gh-release@v1
+actions/checkout@v2
+actions/upload-artifact@v2
+shallwefootball/s3-upload-action@master
+softprops/action-gh-release@v1

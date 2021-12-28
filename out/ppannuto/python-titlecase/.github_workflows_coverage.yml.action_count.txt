@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@master
+codecov/codecov-action@v1

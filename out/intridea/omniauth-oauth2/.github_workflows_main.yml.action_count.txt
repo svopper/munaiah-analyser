@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+coverallsapp/github-action@v1.1.2

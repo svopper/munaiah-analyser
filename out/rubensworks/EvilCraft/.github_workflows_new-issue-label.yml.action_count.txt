@@ -1,0 +1,1 @@
+github/issue-labeler@v2.0

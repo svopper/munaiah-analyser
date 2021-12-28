@@ -1,0 +1,4 @@
+actions/checkout@v2
+./.github/actions/publish-to-aur
+./.github/actions/publish-to-aur
+EndBug/add-and-commit@v7.0.0

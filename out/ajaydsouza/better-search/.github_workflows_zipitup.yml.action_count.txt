@@ -1,0 +1,4 @@
+actions/checkout@v2
+montudor/action-zip@v0.1.0
+actions/upload-artifact@v2
+JasonEtco/upload-to-release@master

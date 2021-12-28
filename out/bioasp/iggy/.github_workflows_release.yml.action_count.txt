@@ -1,0 +1,3 @@
+actions/checkout@v2
+softprops/action-gh-release@v0.1.5
+softprops/action-gh-release@v0.1.5

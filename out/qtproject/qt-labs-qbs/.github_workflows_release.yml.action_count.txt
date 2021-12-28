@@ -1,0 +1,15 @@
+actions/checkout@v1
+actions/cache@v2
+actions/upload-artifact@v2
+actions/checkout@v1
+actions/cache@v2
+./.github/actions/download-qt
+./.github/actions/download-qtc
+actions/upload-artifact@v2
+actions/checkout@v1
+actions/cache@v2
+actions/upload-artifact@v2
+actions/checkout@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/upload-artifact@v2

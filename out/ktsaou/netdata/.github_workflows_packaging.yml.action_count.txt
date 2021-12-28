@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+docker/setup-qemu-action@v1
+actions/upload-artifact@v2
+rtCamp/action-slack-notify@v2

@@ -1,0 +1,5 @@
+actions/checkout@v2
+gradle/wrapper-validation-action@v1.0.3
+actions/checkout@v2
+actions/setup-java@v1
+mikepenz/action-junit-report@v1.2.1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1
+metcalfc/changelog-generator@v1.0.0
+actions/create-release@v1

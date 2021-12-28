@@ -1,0 +1,2 @@
+actions/checkout@v1
+wemake-services/wemake-python-styleguide@master

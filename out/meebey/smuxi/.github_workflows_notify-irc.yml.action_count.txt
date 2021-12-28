@@ -1,0 +1,4 @@
+vmiklos/notify-irc@a52a197c9507ad7a81c1a9295c9ed24786e396b3
+rectalogic/notify-irc@v1
+rectalogic/notify-irc@v1
+rectalogic/notify-irc@v1

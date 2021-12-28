@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+isort/isort-action@v0.1.0
+actions/checkout@v2
+actions/setup-python@v2

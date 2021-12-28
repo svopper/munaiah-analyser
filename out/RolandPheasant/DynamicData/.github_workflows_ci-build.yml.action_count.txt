@@ -1,0 +1,8 @@
+actions/checkout@v2.3.5
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+dotnet/nbgv@master
+glennawatson/setup-msbuild@v1.0.3
+glennawatson/coverlet-msbuild@v1
+actions/upload-artifact@master

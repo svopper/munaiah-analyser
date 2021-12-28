@@ -1,0 +1,3 @@
+actions/checkout@v2
+scottbrenner/generate-changelog-action@master
+actions/create-release@latest

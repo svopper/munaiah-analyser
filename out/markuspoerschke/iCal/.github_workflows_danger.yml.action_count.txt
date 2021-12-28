@@ -1,0 +1,2 @@
+actions/checkout@v1
+docker://ghcr.io/danger/danger-js:10.6.6

@@ -1,0 +1,5 @@
+actions/checkout@v2
+php-actions/composer@v5
+php-actions/phpunit@v2
+php-actions/composer@v5
+php-actions/phpunit@v2

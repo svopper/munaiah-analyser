@@ -1,0 +1,6 @@
+actions/checkout@v2
+docker://oskarstark/phpstan-ga
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga
+actions/checkout@v2
+docker://vimeo/psalm-github-actions

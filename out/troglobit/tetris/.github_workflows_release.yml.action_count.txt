@@ -1,0 +1,3 @@
+actions/create-release@v1
+actions/checkout@v2
+skx/github-action-publish-binaries@release-0.15

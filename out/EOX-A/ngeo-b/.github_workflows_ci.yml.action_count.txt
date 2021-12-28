@@ -1,0 +1,3 @@
+actions/checkout@v2
+softprops/action-gh-release@master
+8398a7/action-slack@v3

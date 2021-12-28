@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+peaceiris/actions-gh-pages@v3

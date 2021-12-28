@@ -1,0 +1,4 @@
+actions/checkout@v1.0.0
+peaceiris/actions-hugo@v2
+appleboy/scp-action@master
+appleboy/scp-action@master

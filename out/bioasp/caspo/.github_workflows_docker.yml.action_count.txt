@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions-hub/docker/login@master
+actions-hub/docker@master
+actions-hub/docker@master

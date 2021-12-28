@@ -1,0 +1,2 @@
+actions/checkout@v2
+ahmadnassri/action-dependabot-auto-merge@v2

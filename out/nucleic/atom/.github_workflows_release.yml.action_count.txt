@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/create-release@v1
+actions/download-artifact@v2
+shogo82148/actions-upload-release-asset@v1
+actions/download-artifact@v2
+pypa/gh-action-pypi-publish@master

@@ -1,0 +1,1 @@
+nucleos/auto-merge-action@1.0.0

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-haskell@v1
+actions/cache@v2
+actions/upload-artifact@v2

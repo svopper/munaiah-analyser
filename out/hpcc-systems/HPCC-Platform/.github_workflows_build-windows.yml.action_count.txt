@@ -1,0 +1,3 @@
+hpcc-systems/skip-duplicate-actions@master
+hpcc-systems/msvc-dev-cmd@v1
+actions/checkout@v2

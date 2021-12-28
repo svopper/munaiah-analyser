@@ -1,0 +1,12 @@
+fkirc/skip-duplicate-actions@master
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/cache@v2
+conda-incubator/setup-miniconda@v2
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-python@v1
+pypa/gh-action-pypi-publish@v1.1.0
+actions/checkout@v2
+actions/setup-python@v2

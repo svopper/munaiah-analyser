@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1
+gradle/wrapper-validation-action@v1.0.3
+eskatos/gradle-command-action@v1

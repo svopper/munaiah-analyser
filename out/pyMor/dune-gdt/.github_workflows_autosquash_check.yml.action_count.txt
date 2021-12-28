@@ -1,0 +1,1 @@
+xt0rted/block-autosquash-commits-action@main

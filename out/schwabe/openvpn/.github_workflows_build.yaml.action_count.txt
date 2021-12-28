@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+actions/setup-python@v2
+lukka/run-vcpkg@v7.4
+actions/upload-artifact@v2

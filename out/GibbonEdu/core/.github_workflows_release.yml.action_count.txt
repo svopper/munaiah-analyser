@@ -1,0 +1,6 @@
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/cache@v2
+bruceadams/get-release@v1.2.2
+yookoala/upload-release-asset@asset-label
+yookoala/upload-release-asset@asset-label

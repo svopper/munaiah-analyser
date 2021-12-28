@@ -1,0 +1,4 @@
+rtCamp/action-slack-notify@v2.2.0
+actions/checkout@v2
+rtCamp/action-slack-notify@v2.2.0
+rtCamp/action-slack-notify@v2.2.0

@@ -1,0 +1,13 @@
+actions/checkout@v1
+shivammathur/cache-extensions@v1
+actions/cache@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+php-actions/composer@v5
+ankane/setup-mariadb@v1
+actions/checkout@v1
+shivammathur/cache-extensions@v1
+actions/cache@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+php-actions/composer@v5

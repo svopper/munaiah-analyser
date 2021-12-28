@@ -1,0 +1,3 @@
+actions/checkout@v2
+r-lib/actions/setup-r@master
+actions/upload-artifact@v1.0.0

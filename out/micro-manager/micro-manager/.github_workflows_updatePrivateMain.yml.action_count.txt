@@ -1,0 +1,2 @@
+actions/checkout@v2
+mtanzi/action-automerge@v1

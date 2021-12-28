@@ -1,0 +1,3 @@
+actions/checkout@v2.3.3
+actions/setup-python@v2.2.2
+JamesIves/github-pages-deploy-action@releases/v3

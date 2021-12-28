@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v2
+ankane/setup-elasticsearch@v1
+actions/cache@v2
+ankane/setup-opensearch@v1
+ankane/setup-mongodb@v1

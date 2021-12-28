@@ -1,0 +1,1 @@
+kamatama41/hide-pr-comments-action@v0

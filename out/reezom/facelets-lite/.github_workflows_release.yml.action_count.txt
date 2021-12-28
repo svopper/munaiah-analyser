@@ -1,0 +1,4 @@
+actions/checkout@v2.3.3
+actions/setup-java@v1
+actions/cache@v2.1.1
+samuelmeuli/action-maven-publish@v1.4.0

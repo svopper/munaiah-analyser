@@ -1,0 +1,2 @@
+actions/checkout@v2.0.0
+PrestaShopCorp/github-action-lint-js/14@master

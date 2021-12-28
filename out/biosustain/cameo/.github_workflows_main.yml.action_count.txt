@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@release/v1
+actions/create-release@v1
+actions/checkout@v2
+actions/setup-python@v2
+peaceiris/actions-gh-pages@v3

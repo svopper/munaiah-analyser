@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/upload-artifact@v2
+dev-drprasad/delete-tag-and-release@v0.2.0
+ncipollo/release-action@v1

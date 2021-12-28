@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+./.github/actions/run-benchmarks
+actions/upload-artifact@v2
+actions/checkout@v2.3.1
+actions/download-artifact@v1
+JamesIves/github-pages-deploy-action@4.1.1
+starburst997/github-action-benchmark@v1.8.7

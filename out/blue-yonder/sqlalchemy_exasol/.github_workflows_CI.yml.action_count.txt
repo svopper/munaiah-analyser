@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-python@v2
+dschep/install-pipenv-action@v1
+BSFishy/pip-action@v1
+BSFishy/pip-action@v1
+BSFishy/pip-action@v1
+actions/checkout@v2
+actions/setup-python@v2
+dschep/install-pipenv-action@v1

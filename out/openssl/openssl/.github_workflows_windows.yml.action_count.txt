@@ -1,0 +1,7 @@
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1
+ilammy/setup-nasm@v1
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1

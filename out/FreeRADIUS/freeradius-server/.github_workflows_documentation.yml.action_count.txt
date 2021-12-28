@@ -1,0 +1,2 @@
+actions/checkout@v2
+appleboy/gh-pages-action@v0.0.2

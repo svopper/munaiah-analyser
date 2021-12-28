@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1.1.0
+actions/upload-artifact@v1
+check-run-reporter/action@v2.0.0-rc8

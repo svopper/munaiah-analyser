@@ -1,0 +1,2 @@
+actions/checkout@v1
+CareMessagePlatform/merge-branch@v1.1.0

@@ -1,0 +1,3 @@
+actions/checkout@v2
+fnkr/github-action-git-bash@v1.1
+webfactory/ssh-agent@v0.1.1

@@ -1,0 +1,4 @@
+actions/checkout@master
+docker://jakzal/phpqa:php7.3-alpine
+actions/checkout@master
+docker://jakzal/phpqa:php7.3-alpine

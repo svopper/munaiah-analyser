@@ -1,0 +1,2 @@
+actions/checkout@v2
+php-actions/composer@master

@@ -1,0 +1,16 @@
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
+bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
+bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-centos@actions
+bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
+bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
+bytedeco/javacpp-presets/.github/actions/redeploy@actions

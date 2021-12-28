@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+GabrielBB/xvfb-action@v1
+andstor/file-existence-action@v1
+softprops/action-gh-release@v1
+bcomnes/cleanup-xvfb@v1

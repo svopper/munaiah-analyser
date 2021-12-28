@@ -1,0 +1,2 @@
+actions/checkout@master
+10up/actions-wordpress/dotorg-plugin-deploy@master

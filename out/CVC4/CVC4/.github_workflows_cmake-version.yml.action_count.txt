@@ -1,0 +1,5 @@
+jwlawson/actions-setup-cmake@v1.9
+actions/checkout@v2
+./.github/actions/install-dependencies
+./.github/actions/setup-cache
+./.github/actions/run-tests

@@ -1,0 +1,1 @@
+SonarSource/gh-action_LT_release@v2

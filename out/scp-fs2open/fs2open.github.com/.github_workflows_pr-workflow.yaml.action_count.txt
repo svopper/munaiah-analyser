@@ -1,0 +1,9 @@
+actions/cache@v1
+jurplel/install-qt-action@v2
+actions/checkout@v1
+hendrikmuhs/ccache-action@v1
+asarium/clang-tidy-action@v1
+actions/checkout@v1
+actions/cache@v1
+jurplel/install-qt-action@v2
+jurplel/install-qt-action@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-ruby@v1
+reggionick/s3-deploy@v3
+adamkdean/simple-slack-notify@1.0.4

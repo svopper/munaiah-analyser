@@ -1,0 +1,2 @@
+actions/checkout@v2
+jwlawson/actions-setup-cmake@v1.4

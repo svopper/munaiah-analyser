@@ -1,0 +1,4 @@
+Codeinwp/verify-linked-issue-action@master
+peter-evans/find-comment@v1
+peter-evans/create-or-update-comment@v1
+jungwinter/comment@v1

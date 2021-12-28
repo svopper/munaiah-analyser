@@ -1,0 +1,6 @@
+actions/checkout@v1
+nuget/setup-nuget@v1
+actions/upload-artifact@master
+actions/upload-artifact@master
+actions/upload-artifact@master
+actions/upload-artifact@master

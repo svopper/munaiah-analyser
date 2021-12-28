@@ -1,0 +1,3 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+nuget/setup-nuget@v1

@@ -1,0 +1,2 @@
+actions/checkout@v2
+Zomzog/changelog-checker@564f4aa7a062e7498bd253f616569f02fb024c06

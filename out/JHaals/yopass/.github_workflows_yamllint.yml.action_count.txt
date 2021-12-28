@@ -1,0 +1,2 @@
+actions/checkout@v2
+karancode/yamllint-github-action@v2.0.0

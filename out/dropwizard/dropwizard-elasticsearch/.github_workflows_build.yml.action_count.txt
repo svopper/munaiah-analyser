@@ -1,0 +1,5 @@
+actions/checkout@v2.3.5
+joschi/setup-jdk@v2.4.0
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/cache@v2.1.6

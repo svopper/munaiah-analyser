@@ -1,0 +1,7 @@
+actions/cache@v1
+jurplel/install-qt-action@v2
+actions/checkout@v1
+actions/cache@v1
+jurplel/install-qt-action@v2
+actions/checkout@v1
+codecov/codecov-action@v1.0.6

@@ -1,0 +1,2 @@
+actions/checkout@v2
+wangchucheng/git-repo-sync@v0.1.0

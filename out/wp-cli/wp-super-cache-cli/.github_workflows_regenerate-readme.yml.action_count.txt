@@ -1,0 +1,5 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+andstor/file-existence-action@v1
+ramsey/composer-install@v1
+repo-sync/pull-request@v2

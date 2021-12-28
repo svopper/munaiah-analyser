@@ -1,0 +1,9 @@
+styfle/cancel-workflow-action@0.9.0
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-node@v2
+codecov/codecov-action@v1
+docker/login-action@v1
+docker/build-push-action@v2
+digitalocean/action-doctl@v2
+azure/setup-kubectl@v1

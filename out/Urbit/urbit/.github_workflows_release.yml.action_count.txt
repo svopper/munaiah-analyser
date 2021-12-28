@@ -1,0 +1,4 @@
+actions/checkout@v2
+cachix/install-nix-action@v12
+cachix/cachix-action@v8
+google-github-actions/setup-gcloud@v0.2.0

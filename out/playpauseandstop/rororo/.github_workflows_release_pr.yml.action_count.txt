@@ -1,0 +1,4 @@
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+tibdex/github-app-token@v1.3
+peter-evans/create-pull-request@v3.10.0

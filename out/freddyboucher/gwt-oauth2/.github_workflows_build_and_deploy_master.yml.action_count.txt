@@ -1,0 +1,3 @@
+actions/checkout@master
+actions/setup-java@master
+google-github-actions/setup-gcloud@master

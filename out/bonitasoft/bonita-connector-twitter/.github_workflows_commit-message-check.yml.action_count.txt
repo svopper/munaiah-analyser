@@ -1,0 +1,1 @@
+gsactions/commit-message-checker@v1

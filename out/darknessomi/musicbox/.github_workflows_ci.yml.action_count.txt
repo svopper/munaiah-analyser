@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+abatilo/actions-poetry@v2.0.0
+actions/cache@v2

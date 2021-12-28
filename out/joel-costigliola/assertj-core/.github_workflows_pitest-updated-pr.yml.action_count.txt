@@ -1,0 +1,3 @@
+hmarr/debug-action@v2
+actions/setup-java@v2
+dawidd6/action-download-artifact@v2

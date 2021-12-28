@@ -1,0 +1,6 @@
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+actions/upload-artifact@v2-preview
+actions/download-artifact@v2-preview
+actions/upload-artifact@v2-preview
+pypa/gh-action-pypi-publish@master

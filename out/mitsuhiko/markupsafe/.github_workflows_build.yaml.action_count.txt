@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker/setup-qemu-action@v1
+joerick/cibuildwheel@v2.1.1
+actions/upload-artifact@v2

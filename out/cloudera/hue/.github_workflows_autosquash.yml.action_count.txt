@@ -1,0 +1,1 @@
+tibdex/autosquash@v2

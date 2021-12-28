@@ -1,0 +1,6 @@
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga
+actions/checkout@v2
+docker://ergebnis/composer-normalize-action:latest
+actions/checkout@v2
+github/super-linter@v2.1.0

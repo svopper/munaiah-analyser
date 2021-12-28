@@ -1,0 +1,7 @@
+SonarSource/gh-action_release/main@v3
+Ilshidur/action-slack@2.0.0
+Ilshidur/action-slack@2.0.0
+jfrog/setup-jfrog-cli@v1
+SonarSource/gh-action_release/download-build@v3
+SonarSource/gh-action_release/maven-central-sync@v3
+8398a7/action-slack@v3

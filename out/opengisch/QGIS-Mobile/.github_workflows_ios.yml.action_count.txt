@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+pat-s/always-upload-cache@v2.1.5
+jurplel/install-qt-action@v2
+Apple-Actions/import-codesign-certs@v1
+Apple-Actions/download-provisioning-profiles@v1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+Apple-Actions/upload-testflight-build@v1
+actions/upload-release-asset@v1

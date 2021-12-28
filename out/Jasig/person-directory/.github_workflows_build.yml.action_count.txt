@@ -1,0 +1,5 @@
+styfle/cancel-workflow-action@0.7.0
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1

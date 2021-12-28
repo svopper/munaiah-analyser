@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+actions/setup-dotnet@v1.8.2
+glennawatson/setup-msbuild@v1.0.3
+dotnet/nbgv@master
+glennawatson/signclient@v1
+glennawatson/ChangeLog@v1
+actions/create-release@v1.1.4

@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/setup-java@v1
+actions/cache@v1
+s4u/maven-settings-action@v1
+ridedott/merge-me-action@master

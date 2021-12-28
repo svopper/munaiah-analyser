@@ -1,0 +1,14 @@
+actions/github-script@v4
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+actions/setup-java@v2
+dsaltares/fetch-gh-release-asset@master
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+softprops/action-gh-release@v1
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v2

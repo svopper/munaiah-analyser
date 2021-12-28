@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+ilammy/msvc-dev-cmd@v1
+timheuer/base64-to-file@v1
+actions/upload-artifact@v2
+svenstaro/upload-release-action@v2

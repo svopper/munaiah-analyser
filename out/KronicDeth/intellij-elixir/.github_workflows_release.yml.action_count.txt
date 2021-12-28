@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/setup-elixir@v1
+actions/checkout@v2
+actions/setup-java@v1
+hole19/git-tag-action@master
+actions/create-release@latest
+actions/upload-release-asset@v1

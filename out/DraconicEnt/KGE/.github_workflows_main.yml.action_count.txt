@@ -1,0 +1,3 @@
+actions/checkout@v2
+suyash/actions-bazelisk@v1
+actions/upload-artifact@v2

@@ -1,0 +1,5 @@
+actions/checkout@v2
+r-lib/actions/setup-r@v1
+r-lib/actions/setup-pandoc@v1
+actions/cache@v2
+actions/upload-artifact@main

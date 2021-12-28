@@ -1,0 +1,3 @@
+actions/checkout@v2
+egor-tensin/setup-cygwin@v3
+actions/cache@v1

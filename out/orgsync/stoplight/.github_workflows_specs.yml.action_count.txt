@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-ruby@v1
+coverallsapp/github-action@v1.1.2
+coverallsapp/github-action@master

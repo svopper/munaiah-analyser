@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+dlang-community/setup-dlang@v1
+actions/upload-artifact@v2
+dlang-community/setup-dlang@v1
+actions/checkout@v2
+actions/download-artifact@v2
+vmactions/freebsd-vm@v0.1.3
+actions/upload-artifact@v2
+actions/download-artifact@v2
+ncipollo/release-action@v1.8.6

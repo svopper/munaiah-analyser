@@ -1,0 +1,4 @@
+actions/checkout@v2
+ryankurte/action-apt@v0.2.0
+actions/upload-artifact@v2
+xresloader/upload-to-github-release@v1.2.2

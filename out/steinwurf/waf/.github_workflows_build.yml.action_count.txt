@@ -1,0 +1,4 @@
+actions/checkout@v2
+cclauss/Find-Python-syntax-errors-action@master
+actions/checkout@v2
+actions/checkout@v2

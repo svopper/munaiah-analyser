@@ -1,0 +1,16 @@
+dev-drprasad/delete-tag-and-release@v0.2.0
+actions/checkout@v2
+actions/cache@v2
+actions/upload-artifact@v2.2.1
+ncipollo/release-action@v1
+ncipollo/release-action@v1
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/cache@v2
+pozetroninc/github-action-get-latest-release@master
+actions/setup-python@v2
+actions/setup-python@v2
+actions/upload-artifact@v2.2.1
+actions/upload-artifact@v2.2.1
+ncipollo/release-action@v1
+ncipollo/release-action@v1

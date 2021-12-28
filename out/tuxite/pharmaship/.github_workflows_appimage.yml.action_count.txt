@@ -1,0 +1,3 @@
+actions/checkout@v2
+AppImageCrafters/build-appimage-action@master
+actions/upload-artifact@v2

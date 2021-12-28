@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+reggionick/s3-deploy@v3
+reggionick/s3-deploy@v3

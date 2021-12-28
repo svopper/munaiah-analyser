@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/cache@v2
+actions/setup-node@v2
+actions/cache@v2
+jsmrcaga/action-netlify-deploy@master
+jsmrcaga/action-netlify-deploy@master
+actions/upload-artifact@v2

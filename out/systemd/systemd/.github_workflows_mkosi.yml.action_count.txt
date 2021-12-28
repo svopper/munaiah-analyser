@@ -1,0 +1,2 @@
+actions/checkout@v2
+systemd/mkosi@v10

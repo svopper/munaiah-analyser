@@ -1,0 +1,4 @@
+actions/checkout@v2
+battila7/get-version-action@v2
+docker/login-action@v1
+docker/build-push-action@v2

@@ -1,0 +1,14 @@
+coverallsapp/github-action@master
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1
+pre-commit/action@v2.0.3
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1

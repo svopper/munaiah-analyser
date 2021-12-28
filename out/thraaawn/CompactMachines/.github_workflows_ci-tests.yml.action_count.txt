@@ -1,0 +1,5 @@
+actions/checkout@v2
+christian-draeger/read-properties@1.0.1
+christian-draeger/read-properties@1.0.1
+actions/checkout@v2
+actions/setup-java@v1

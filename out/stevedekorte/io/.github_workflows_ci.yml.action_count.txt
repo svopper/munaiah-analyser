@@ -1,0 +1,5 @@
+actions/checkout@v2
+DoozyX/clang-format-lint-action@v0.12
+actions/checkout@v2
+jwlawson/actions-setup-cmake@v1.9
+actions/checkout@v2

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v2
+s4u/maven-settings-action@v2.3.0
+actions/checkout@v2
+github/codeql-action/init@v1
+github/codeql-action/analyze@v1

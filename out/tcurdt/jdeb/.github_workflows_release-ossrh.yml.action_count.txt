@@ -1,0 +1,3 @@
+actions/checkout@v2
+tcurdt/action-verify-version-maven@main
+actions/setup-java@v2

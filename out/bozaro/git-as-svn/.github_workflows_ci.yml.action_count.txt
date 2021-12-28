@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-java@v2
+eskatos/gradle-command-action@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v2
+eskatos/gradle-command-action@v2
+actions/download-artifact@v2
+peaceiris/actions-gh-pages@v3
+actions/download-artifact@v2
+softprops/action-gh-release@v1
+wanduow/action-bintray-upload-debian-packages@v1

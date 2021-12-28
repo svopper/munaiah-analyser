@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v1
+seanmiddleditch/gha-setup-vsdevenv@v3
+actions/cache@v2
+actions/cache@v2
+actions/cache@v2
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master

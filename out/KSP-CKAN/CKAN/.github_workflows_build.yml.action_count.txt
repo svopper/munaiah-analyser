@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/cache@v1
+actions/cache@v1
+actions/cache@v1
+actions/cache@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/cache@v1
+actions/cache@v1
+actions/cache@v1
+actions/cache@v1

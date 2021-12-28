@@ -1,0 +1,11 @@
+actions/setup-python@v2
+actions/checkout@v2
+actions/checkout@v2
+./support/actions/python-tools
+./support/actions/checkout-spinn-deps
+./support/actions/run-setup
+./support/actions/pytest
+./support/actions/pylint
+./support/actions/check-copyrights
+./support/actions/validate-xml
+./support/actions/sphinx

@@ -1,0 +1,9 @@
+actions/checkout@v2
+crazy-max/ghaction-docker-buildx@v1
+actions/checkout@v2
+crazy-max/ghaction-docker-buildx@v1
+actions/checkout@v2
+crazy-max/ghaction-docker-buildx@v1
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/upload-artifact@v1

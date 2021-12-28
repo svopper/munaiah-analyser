@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-node@v1
+actions/github-script@0.9.0
+actions/checkout@v2
+actions/setup-node@v1
+actions/github-script@0.9.0
+numworks/setup-msys2@v1
+actions/setup-node@v1
+actions/checkout@v2
+actions/github-script@0.9.0

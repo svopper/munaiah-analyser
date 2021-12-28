@@ -1,0 +1,4 @@
+actions/checkout@v2.2.0
+actions/cache@v2.0.0
+actions/setup-python@v2.0.1
+paambaati/codeclimate-action@v2.6.0

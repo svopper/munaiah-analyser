@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/checkout@v1
+linz/linz-software-repository@v4

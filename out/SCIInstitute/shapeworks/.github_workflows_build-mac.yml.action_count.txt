@@ -1,0 +1,8 @@
+actions/cache@v1.1.0
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2.0.1
+actions/cache@v1
+jurplel/install-qt-action@v2.13.0
+actions/cache@v1
+actions/upload-artifact@v1
+marvinpinto/action-automatic-releases@latest

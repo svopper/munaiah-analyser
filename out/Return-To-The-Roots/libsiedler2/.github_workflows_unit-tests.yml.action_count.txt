@@ -1,0 +1,10 @@
+actions/checkout@v2
+DoozyX/clang-format-lint-action@v0.9
+avto-dev/markdown-lint@v1.3.0
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v2
+jwlawson/actions-setup-cmake@v1.8
+hendrikmuhs/ccache-action@v1
+coverallsapp/github-action@master

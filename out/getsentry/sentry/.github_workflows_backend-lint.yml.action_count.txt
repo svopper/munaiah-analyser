@@ -1,0 +1,7 @@
+actions/checkout@v2
+getsentry/action-github-app-token@v1
+getsentry/paths-filter@v2
+./.github/actions/setup-python
+getsentry/paths-filter@v2
+getsentry/action-github-commit@main
+./.github/actions/artifacts

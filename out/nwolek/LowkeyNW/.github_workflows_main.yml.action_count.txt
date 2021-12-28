@@ -1,0 +1,7 @@
+actions/checkout@v2
+benjlevesque/short-sha@v1.2
+actions/upload-artifact@v2
+benjlevesque/short-sha@v1.1
+actions/download-artifact@v2
+actions/upload-artifact@v2
+ncipollo/release-action@v1.7.1

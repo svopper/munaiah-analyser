@@ -1,0 +1,3 @@
+actions/checkout@v2
+frankdejonge/use-ssh-agent@1.0.0
+shivammathur/setup-php@v2

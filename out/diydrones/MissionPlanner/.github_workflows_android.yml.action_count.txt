@@ -1,0 +1,6 @@
+actions/checkout@v2
+r0adkll/sign-android-release@v1
+actions/upload-artifact@v2
+r0adkll/upload-google-play@v1.0.11
+actions/upload-artifact@v2
+marvinpinto/action-automatic-releases@v1.2.1

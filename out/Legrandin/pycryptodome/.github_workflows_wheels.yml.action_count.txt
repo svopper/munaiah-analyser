@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+ilammy/msvc-dev-cmd@f456b805b3f63911738cb71d4f255e4e129c7e7a
+ilammy/msvc-dev-cmd@f456b805b3f63911738cb71d4f255e4e129c7e7a
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/download-artifact@v2

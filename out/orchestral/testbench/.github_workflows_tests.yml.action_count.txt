@@ -1,0 +1,8 @@
+actions/checkout@v1
+textbook/git-checkout-submodule-action@master
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v1
+textbook/git-checkout-submodule-action@master
+shivammathur/setup-php@v2
+ramsey/composer-install@v1

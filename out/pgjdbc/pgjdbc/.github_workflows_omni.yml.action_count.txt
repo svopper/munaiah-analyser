@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/setup-java@v2
+burrunan/gradle-cache-action@v1
+codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27
+actions/checkout@v2
+actions/setup-java@v2
+burrunan/gradle-cache-action@v1
+codecov/codecov-action@a1ed4b322b4b38cb846afb5a0ebfa17086917d27

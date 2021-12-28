@@ -1,0 +1,16 @@
+actions/checkout@master
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1
+aabadie/riot-action@v1

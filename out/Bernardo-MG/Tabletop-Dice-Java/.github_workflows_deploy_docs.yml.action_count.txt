@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v2.1.0
+bernardo-mg/deployment-maven-settings-action@v1.1.2

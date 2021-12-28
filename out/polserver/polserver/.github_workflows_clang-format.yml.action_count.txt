@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v1
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master

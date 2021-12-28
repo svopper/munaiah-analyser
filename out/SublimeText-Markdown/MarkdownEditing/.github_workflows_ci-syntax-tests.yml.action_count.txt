@@ -1,0 +1,2 @@
+actions/checkout@v2
+SublimeText/syntax-test-action@v2

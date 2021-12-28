@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+skitionek/notify-microsoft-teams@master
+actions/checkout@v2
+actions/setup-java@v1
+skitionek/notify-microsoft-teams@master

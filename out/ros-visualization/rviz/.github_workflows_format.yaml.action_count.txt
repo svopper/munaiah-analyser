@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+rhaschke/install-catkin_lint-action@v1.0
+pre-commit/action@v2.0.0

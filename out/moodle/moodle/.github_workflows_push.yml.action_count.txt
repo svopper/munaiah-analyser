@@ -1,0 +1,6 @@
+actions/checkout@v2
+johanmeiring/mysql-action@tmpfs-patch
+m4nu56/postgresql-action@v1
+rlespinasse/github-slug-action@v3.x
+shivammathur/setup-php@v2
+actions/checkout@v2

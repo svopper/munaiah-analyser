@@ -1,0 +1,5 @@
+actions/checkout@v1
+docker/setup-buildx-action@v1
+crazy-max/ghaction-docker-meta@v1
+docker/login-action@v1
+docker/build-push-action@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+al-cheb/configure-pagefile-action@v1.2
+github/codeql-action/analyze@v1

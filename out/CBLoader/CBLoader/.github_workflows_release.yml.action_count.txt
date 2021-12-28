@@ -1,0 +1,6 @@
+actions/create-release@v1
+actions/checkout@v1
+NuGet/setup-nuget@v1
+microsoft/setup-msbuild@v1.0.2
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

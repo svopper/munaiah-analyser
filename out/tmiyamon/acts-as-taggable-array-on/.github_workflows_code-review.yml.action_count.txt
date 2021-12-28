@@ -1,0 +1,3 @@
+actions/checkout@v2
+andrewmcodes/standardrb-action@v0.0.2
+dangoslen/changelog-enforcer@v1.6.0

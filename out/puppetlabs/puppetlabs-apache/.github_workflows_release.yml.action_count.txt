@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/create-release@v1
+actions/checkout@v2
+docker://puppet/pdk:nightly
+docker://puppet/pdk:nightly

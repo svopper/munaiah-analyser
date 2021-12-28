@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v1
+jurplel/install-qt-action@v2
+erlef/setup-beam@v1
+erlef/setup-beam@v1
+actions/upload-artifact@v2

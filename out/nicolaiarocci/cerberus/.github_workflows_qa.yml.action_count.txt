@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+actions/checkout@v2
+github/codeql-action/init@v1
+github/codeql-action/analyze@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2

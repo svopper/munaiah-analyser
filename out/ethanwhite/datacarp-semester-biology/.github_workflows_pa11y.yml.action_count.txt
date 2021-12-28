@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+juliangruber/read-file-action@v1
+thollander/actions-comment-pull-request@main

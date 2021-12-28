@@ -1,0 +1,7 @@
+actions/checkout@v2.3.4
+gradle/wrapper-validation-action@v1.0.4
+actions/setup-java@v2
+actions/checkout@v2.3.4
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/upload-artifact@v2

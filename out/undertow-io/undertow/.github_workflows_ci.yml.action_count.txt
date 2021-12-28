@@ -1,0 +1,16 @@
+n1hility/cancel-previous-runs@v2
+actions/cache@v1
+actions/checkout@v2
+joschi/setup-jdk@v2
+actions/upload-artifact@v1
+actions/upload-artifact@v2
+n1hility/cancel-previous-runs@v2
+actions/checkout@v2
+actions/download-artifact@v1
+joschi/setup-jdk@v2
+actions/upload-artifact@v2
+n1hility/cancel-previous-runs@v2
+actions/checkout@v2
+actions/download-artifact@v1
+joschi/setup-jdk@v2
+actions/upload-artifact@v2

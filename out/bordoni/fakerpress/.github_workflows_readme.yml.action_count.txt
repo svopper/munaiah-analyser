@@ -1,0 +1,4 @@
+actions/checkout@v2
+php-actions/composer@v5
+stefanzweifel/git-auto-commit-action@v4
+stefanzweifel/git-auto-commit-action@v4

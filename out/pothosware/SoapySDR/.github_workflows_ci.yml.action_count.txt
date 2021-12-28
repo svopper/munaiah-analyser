@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1

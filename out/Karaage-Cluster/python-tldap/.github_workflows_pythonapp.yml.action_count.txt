@@ -1,0 +1,7 @@
+actions/checkout@v2.3.5
+actions/setup-python@v2.2.2
+abatilo/actions-poetry@v2.1.4
+actions/checkout@v2.3.5
+actions/setup-python@v2.2.2
+abatilo/actions-poetry@v2.1.4
+pypa/gh-action-pypi-publish@master

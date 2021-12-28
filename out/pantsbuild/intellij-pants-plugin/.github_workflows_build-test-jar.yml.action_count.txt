@@ -1,0 +1,4 @@
+actions/checkout@v1
+olafurpg/setup-scala@v10
+actions/create-release@v1
+actions/upload-release-asset@v1

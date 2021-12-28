@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@v1
+s4u/maven-settings-action@v2.3.0
+actions/setup-java@v1

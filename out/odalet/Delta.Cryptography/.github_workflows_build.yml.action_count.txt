@@ -1,0 +1,10 @@
+actions/setup-java@v1
+actions/checkout@v2
+actions/cache@v1
+actions/cache@v1
+microsoft/setup-msbuild@v1
+gittools/actions/gitversion/setup@v0.9.5
+gittools/actions/gitversion/execute@v0.9.5
+actions/upload-artifact@v2
+actions/create-release@v1
+actions/upload-release-asset@v1

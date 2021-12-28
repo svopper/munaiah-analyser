@@ -1,0 +1,1 @@
+getgauge-contrib/auto_update_pr@master

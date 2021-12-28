@@ -1,0 +1,3 @@
+actions/checkout@v2.3.4
+actions/setup-java@v2
+malinskiy/action-android/install-sdk@release/0.1.1

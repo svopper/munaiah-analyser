@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-java@v1
+skjolber/maven-cache-github-action@v1
+skjolber/maven-cache-github-action@v1
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-java@v1
+skjolber/maven-cache-github-action@v1
+skjolber/maven-cache-github-action@v1
+codecov/codecov-action@v1

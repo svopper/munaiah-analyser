@@ -1,0 +1,3 @@
+szenius/set-timezone@v1.0
+actions/checkout@v2
+actions/setup-java@v1

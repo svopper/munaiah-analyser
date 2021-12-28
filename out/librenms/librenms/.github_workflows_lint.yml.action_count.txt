@@ -1,0 +1,6 @@
+actions/checkout@v2
+docker://ghcr.io/github/super-linter:slim-v4
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+actions/cache@v2

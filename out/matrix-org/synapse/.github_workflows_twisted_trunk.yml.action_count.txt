@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+JasonEtco/create-an-issue@5d9504915f79f9cc6d791934b8ef34f2353dd74d

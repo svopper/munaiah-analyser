@@ -1,0 +1,1 @@
+daneden/enable-automerge-action@v1

@@ -1,0 +1,3 @@
+actions/checkout@v2.3.5
+calibreapp/image-actions@1.1.0
+peter-evans/create-pull-request@v3.10.1

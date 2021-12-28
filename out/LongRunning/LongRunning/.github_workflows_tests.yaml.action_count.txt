@@ -1,0 +1,13 @@
+actions/checkout@v2.3.4
+shivammathur/setup-php@2.15.0
+ramsey/composer-install@1.3.0
+actions/checkout@v2.3.4
+shivammathur/setup-php@2.15.0
+ramsey/composer-install@1.3.0
+ramsey/composer-install@1.3.0
+actions/checkout@v2.3.4
+shivammathur/setup-php@2.15.0
+ramsey/composer-install@1.3.0
+actions/checkout@v2.3.4
+shivammathur/setup-php@2.15.0
+ramsey/composer-install@1.3.0

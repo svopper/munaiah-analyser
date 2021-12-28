@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+kkak10/pr-number-action@v1.3
+actions/upload-artifact@v2

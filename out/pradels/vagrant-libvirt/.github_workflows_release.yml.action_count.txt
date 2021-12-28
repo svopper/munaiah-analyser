@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/github-script@v3.0.0
+actions/cache@v2
+CharMixer/auto-changelog-action@v1.1
+actions/create-release@v1

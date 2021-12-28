@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+Pendect/action-rsyncer@v1.1.0
+actions/checkout@v2
+actions/setup-java@v1
+garygrossgarten/github-action-scp@release

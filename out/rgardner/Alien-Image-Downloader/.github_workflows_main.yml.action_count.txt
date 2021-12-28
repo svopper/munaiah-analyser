@@ -1,0 +1,12 @@
+actions/checkout@v1
+actions/setup-python@v1
+dschep/install-poetry-action@v1.2
+actions/cache@v1
+actions/checkout@v1
+actions/setup-python@v1
+dschep/install-poetry-action@v1.2
+actions/cache@v1
+actions/checkout@v1
+actions/setup-python@v1
+dschep/install-poetry-action@v1.2
+actions/cache@v1

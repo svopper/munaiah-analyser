@@ -1,0 +1,3 @@
+actions/checkout@v1
+maxim-lobanov/setup-xcode@v1
+actions/upload-artifact@v2

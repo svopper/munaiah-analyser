@@ -1,0 +1,2 @@
+atlassian/gajira-login@v2.0.0
+atlassian/gajira-create@v2.0.1

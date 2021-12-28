@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-dotnet@v1.8.1
+microsoft/setup-msbuild@v1
+8398a7/action-slack@v3

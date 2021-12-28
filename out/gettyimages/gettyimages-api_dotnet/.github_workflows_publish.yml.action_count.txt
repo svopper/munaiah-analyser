@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+WyriHaximus/github-action-get-previous-tag@v1
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/download-artifact@v1
+WyriHaximus/github-action-get-previous-tag@v1

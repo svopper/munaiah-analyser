@@ -1,0 +1,2 @@
+actions/checkout@master
+djordon/git-autotag-action@v0.3.0

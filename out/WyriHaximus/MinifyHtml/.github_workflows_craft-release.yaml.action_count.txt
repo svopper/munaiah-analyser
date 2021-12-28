@@ -1,0 +1,5 @@
+actions/checkout@v1
+WyriHaximus/github-action-wait-for-status@master
+WyriHaximus/github-action-jwage-changelog-generator@v1
+actions/checkout@v1
+fleskesvor/create-release@feature/support-target-commitish

@@ -1,0 +1,3 @@
+actions/setup-java@v1
+actions/cache@v2
+kiegroup/github-action-build-chain@v2.2

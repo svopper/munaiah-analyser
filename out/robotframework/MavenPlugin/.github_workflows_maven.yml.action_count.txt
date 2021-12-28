@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+samuelmeuli/action-maven-publish@201a45a3f311b2ee888f252ba9f4194257545709

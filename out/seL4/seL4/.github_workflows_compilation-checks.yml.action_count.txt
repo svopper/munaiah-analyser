@@ -1,0 +1,2 @@
+actions/checkout@v2
+seL4/ci-actions/standalone-kernel@master

@@ -1,0 +1,2 @@
+atlassian/gajira-login@master
+atlassian/gajira-create@master

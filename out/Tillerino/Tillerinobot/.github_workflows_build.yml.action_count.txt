@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+addnab/docker-run-action@v3
+actions/setup-java@v2
+codecov/codecov-action@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+fregante/daily-version-action@v1
+fregante/release-with-changelog@v3
+actions/checkout@v2

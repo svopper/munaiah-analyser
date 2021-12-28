@@ -1,0 +1,4 @@
+actions/checkout@v2
+getsentry/paths-filter@v2
+getsentry/action-github-app-token@v1
+actions/github-script@v3

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v1
+actions/cache@v2
+conda-incubator/setup-miniconda@v2

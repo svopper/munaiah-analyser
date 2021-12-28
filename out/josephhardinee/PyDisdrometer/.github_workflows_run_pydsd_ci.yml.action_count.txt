@@ -1,0 +1,4 @@
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+pypa/gh-action-pypi-publish@release/v1
+peaceiris/actions-gh-pages@v3

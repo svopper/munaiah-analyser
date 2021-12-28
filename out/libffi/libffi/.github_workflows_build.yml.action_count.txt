@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+egor-tensin/setup-cygwin@v3
+actions/checkout@v2
+egor-tensin/setup-cygwin@v3
+ilammy/msvc-dev-cmd@v1.8.1
+microsoft/setup-msbuild@v1.0.2

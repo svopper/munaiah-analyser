@@ -1,0 +1,9 @@
+actions/checkout@v2
+docker/setup-qemu-action@v1
+actions/setup-python@v2
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux1_x86_64
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux1_i686
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2014_x86_64
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2014_aarch64
+pypa/gh-action-pypi-publish@release/v1
+pypa/gh-action-pypi-publish@release/v1

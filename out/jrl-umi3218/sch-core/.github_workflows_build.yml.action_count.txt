@@ -1,0 +1,5 @@
+actions/checkout@v1
+jrl-umi3218/github-actions/install-dependencies@master
+jrl-umi3218/github-actions/build-cmake-project@master
+jrl-umi3218/github-actions/upload-documentation@master
+archive/github-actions-slack@master

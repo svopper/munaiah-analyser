@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v1
+s0/git-publish-subdir-action@develop

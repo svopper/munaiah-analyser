@@ -1,0 +1,6 @@
+actions/checkout@v2
+docker/setup-qemu-action@v1
+actions/setup-python@v2
+pypa/cibuildwheel@v2.1.2
+actions/checkout@v2
+actions/setup-python@v2

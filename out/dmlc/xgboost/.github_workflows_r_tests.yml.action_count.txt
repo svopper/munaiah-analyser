@@ -1,0 +1,11 @@
+actions/checkout@v2
+r-lib/actions/setup-r@master
+actions/cache@v2
+actions/checkout@v2
+r-lib/actions/setup-r@master
+actions/cache@v2
+actions/setup-python@v2
+actions/checkout@v2
+r-lib/actions/setup-r@master
+r-lib/actions/setup-tinytex@master
+actions/cache@v2

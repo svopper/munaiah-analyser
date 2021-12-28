@@ -1,0 +1,4 @@
+actions/checkout@v2
+./.github/actions/build-number
+actions/create-release@v1
+Azure/pipelines@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+dawidd6/action-download-artifact@v2
+Gottox/irc-message-action@v2
+actions/upload-artifact@v2

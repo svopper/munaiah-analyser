@@ -1,0 +1,4 @@
+actions/checkout@v2
+FedericoCarboni/setup-ffmpeg@v1
+actions/setup-python@v2
+conda-incubator/setup-miniconda@v2

@@ -1,0 +1,7 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+niden/actions-memcached@v7
+aktions/codeclimate-test-reporter@v1
+codecov/codecov-action@v1
+actions/checkout@v2
+shivammathur/setup-php@v2

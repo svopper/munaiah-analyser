@@ -1,0 +1,3 @@
+actions/checkout@v2
+olafurpg/setup-scala@v10
+actions/cache@v1

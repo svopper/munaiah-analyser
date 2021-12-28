@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/cache@v2
+kielabokkie/ssh-key-and-known-hosts-action@v1
+actions/checkout@v2
+actions/cache@v2
+GabrielBB/xvfb-action@v1
+GabrielBB/xvfb-action@v1
+kielabokkie/ssh-key-and-known-hosts-action@v1

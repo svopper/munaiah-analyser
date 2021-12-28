@@ -1,0 +1,10 @@
+actions/checkout@v2.3.5
+actions/setup-python@v2.2.2
+actions/checkout@v2.3.5
+actions/setup-python@v2.2.2
+actions/checkout@v2.3.5
+actions/setup-python@v2.2.2
+actions/checkout@v2.3.5
+actions/checkout@v2.3.5
+docker/setup-qemu-action@v1.2.0
+docker://quay.io/pypa/manylinux2014_aarch64

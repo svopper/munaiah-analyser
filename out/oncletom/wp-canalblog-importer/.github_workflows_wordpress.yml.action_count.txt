@@ -1,0 +1,3 @@
+actions/checkout@master
+php-actions/composer@v6
+10up/action-wordpress-plugin-deploy@master

@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/upload-artifact@v2.2.4
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@v2.2.0
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-node@v2.4.0
+actions/checkout@v2
+actions/cache@v2

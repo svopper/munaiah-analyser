@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+mikepenz/action-junit-report@v2.4.3
+actions/upload-artifact@v2
+5monkeys/cobertura-action@v9
+actions/upload-artifact@v2

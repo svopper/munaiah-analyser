@@ -1,0 +1,2 @@
+actions/checkout@v1
+norio-nomura/action-swiftlint@2.2.0

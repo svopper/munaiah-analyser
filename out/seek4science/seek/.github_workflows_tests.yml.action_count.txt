@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v1
+ruby/setup-ruby@v1
+actions/setup-python@v2
+actions/cache@v2

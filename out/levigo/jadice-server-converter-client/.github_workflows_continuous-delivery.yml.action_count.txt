@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+hennejg/github-tag-action@v4.2.4
+github/codeql-action/init@v1
+github/codeql-action/analyze@v1
+actions/create-release@v1
+actions/upload-release-asset@v1

@@ -1,0 +1,3 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+codecov/codecov-action@v1

@@ -1,0 +1,2 @@
+SonarSource/gh-action_release/main@v3
+SonarSource/gh-action_SL_updatep2@main

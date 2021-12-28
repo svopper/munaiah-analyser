@@ -1,0 +1,5 @@
+actions/checkout@v2
+release-drafter/release-drafter@v5.15.0
+micronaut-projects/github-actions/export-gradle-properties@master
+micronaut-projects/github-actions/release-notes@master
+ncipollo/release-action@v1

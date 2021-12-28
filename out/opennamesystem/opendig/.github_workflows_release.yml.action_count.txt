@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-node@v2
+cycjimmy/semantic-release-action@v2

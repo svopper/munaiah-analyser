@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+usds/cloud-gov-cli@master
+actions/checkout@v2
+usds/cloud-gov-cli@master
+actions/checkout@v2
+usds/cloud-gov-cli@master

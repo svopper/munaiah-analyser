@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker/login-action@v1
+ASzc/change-string-case-action@v1
+docker/build-push-action@v2

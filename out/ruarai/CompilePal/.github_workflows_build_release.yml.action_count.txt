@@ -1,0 +1,5 @@
+actions/checkout@v2
+microsoft/setup-msbuild@v1
+NuGet/setup-nuget@v1.0.5
+actions/upload-release-asset@v1.0.2
+test-room-7/action-update-file@v1.4.0

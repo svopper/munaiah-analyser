@@ -1,0 +1,2 @@
+actions/checkout@master
+selul/action-wordpress-plugin-asset-update@develop

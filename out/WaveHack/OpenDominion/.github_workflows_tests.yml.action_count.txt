@@ -1,0 +1,2 @@
+actions/checkout@v1
+getong/mariadb-action@v1.1

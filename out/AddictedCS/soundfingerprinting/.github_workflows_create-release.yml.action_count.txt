@@ -1,0 +1,7 @@
+actions/checkout@v2
+rtCamp/action-slack-notify@v2
+actions/create-release@v1
+rtCamp/action-slack-notify@v2
+actions/checkout@master
+rohith/publish-nuget@v2
+rtCamp/action-slack-notify@v2

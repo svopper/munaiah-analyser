@@ -1,0 +1,3 @@
+actions/checkout@master
+actions/setup-python@v2
+suo/flake8-github-action@releases/v1

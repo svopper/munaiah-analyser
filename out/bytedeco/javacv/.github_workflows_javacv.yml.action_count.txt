@@ -1,0 +1,6 @@
+bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
+mxschmitt/action-tmate@v3.5
+bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+mxschmitt/action-tmate@v3.5
+bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
+mxschmitt/action-tmate@v3.5

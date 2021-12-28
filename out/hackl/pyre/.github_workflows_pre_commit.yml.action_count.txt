@@ -1,0 +1,4 @@
+actions/checkout@v2
+rickstaa/action-black@v1
+reviewdog/action-suggester@v1
+wemake-services/wemake-python-styleguide@0.15.3

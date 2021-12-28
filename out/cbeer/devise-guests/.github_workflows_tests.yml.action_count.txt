@@ -1,0 +1,6 @@
+actions/checkout@v2
+dangoslen/changelog-enforcer@v2.3.1
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@473e4d8fe5dd94ee328fdfca9f8c9c7afc9dae5e

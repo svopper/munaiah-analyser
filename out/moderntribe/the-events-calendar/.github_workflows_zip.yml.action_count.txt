@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+the-events-calendar/action-s3-utility@main
+actions/cache@v2
+the-events-calendar/action-s3-utility@main

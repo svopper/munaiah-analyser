@@ -1,0 +1,3 @@
+actions/checkout@v2
+codespell-project/codespell-problem-matcher@v1
+codespell-project/actions-codespell@master

@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/cache@v2.1.6
+jurplel/install-qt-action@v2
+actions/cache@v2.1.6
+lukka/get-cmake@v3.20.1
+lukka/run-vcpkg@v7
+lukka/run-cmake@v3
+ZedThree/clang-tidy-review@v0.7.0

@@ -1,0 +1,2 @@
+actions/checkout@v2
+thooams/rubocop-action@v1

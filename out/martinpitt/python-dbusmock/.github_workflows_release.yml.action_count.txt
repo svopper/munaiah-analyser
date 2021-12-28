@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker://antonyurchenko/git-release:latest
+pypa/gh-action-pypi-publish@master

@@ -1,0 +1,9 @@
+actions/checkout@master
+shivammathur/setup-php@master
+actions/cache@v1.0.0
+actions/checkout@master
+shivammathur/setup-php@master
+actions/cache@v1
+actions/checkout@master
+shivammathur/setup-php@master
+actions/cache@v1

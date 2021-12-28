@@ -1,0 +1,7 @@
+actions/checkout@v1
+actions/setup-python@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+johnwbyrd/update-release@v1.0.0
+pypa/gh-action-pypi-publish@master
+pypa/gh-action-pypi-publish@master

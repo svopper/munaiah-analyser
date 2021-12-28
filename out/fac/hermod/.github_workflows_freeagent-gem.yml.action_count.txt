@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+fac/ruby-gem-setup-credentials-action@v2
+actions/checkout@v2
+ruby/setup-ruby@v1
+fac/ruby-gem-push-action@v2
+fac/ruby-gem-push-action@v2

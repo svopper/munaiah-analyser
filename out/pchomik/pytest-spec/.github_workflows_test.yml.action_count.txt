@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+abatilo/actions-poetry@v2.0.0
+actions/checkout@v2
+actions/setup-python@v2
+abatilo/actions-poetry@v2.0.0
+actions/checkout@v2
+actions/setup-python@v2
+BSFishy/pip-action@v1
+abatilo/actions-poetry@v2.0.0

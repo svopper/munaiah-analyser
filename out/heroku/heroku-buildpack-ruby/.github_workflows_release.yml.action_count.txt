@@ -1,0 +1,6 @@
+actions/checkout@v2
+buildpacks/github-actions/setup-pack@v4.0.0
+docker/login-action@v1
+docker://ghcr.io/buildpacks/actions/registry/request-add-entry:4.0.0
+actions/create-release@v1
+peter-evans/create-pull-request@v3

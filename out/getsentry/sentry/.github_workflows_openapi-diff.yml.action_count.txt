@@ -1,0 +1,4 @@
+actions/checkout@v2
+getsentry/action-github-app-token@v1
+actions/checkout@v2
+volta-cli/action@v1

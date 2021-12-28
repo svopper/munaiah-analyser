@@ -1,0 +1,4 @@
+actions/checkout@v2
+nick-invision/retry@v1
+docker://php:7.3-cli
+JamesIves/github-pages-deploy-action@releases/v3

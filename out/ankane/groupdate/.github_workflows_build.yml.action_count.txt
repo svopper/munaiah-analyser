@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+ankane/setup-postgres@v1
+ankane/setup-mysql@v1

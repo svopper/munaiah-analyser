@@ -1,0 +1,2 @@
+hmarr/auto-approve-action@v2.0.0
+ahmadnassri/action-dependabot-auto-merge@v2

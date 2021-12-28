@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/create-release@v1
+actions/checkout@v2
+dawidd6/action-debian-package@v1
+skx/github-action-publish-binaries@master

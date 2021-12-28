@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v2
+googleapis/code-suggester@v1

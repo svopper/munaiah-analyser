@@ -1,0 +1,3 @@
+actions/checkout@v2
+redhat-actions/buildah-build@v2
+redhat-actions/push-to-registry@v2

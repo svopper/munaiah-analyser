@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v1
+aktions/codeclimate-test-reporter@v1
+aktions/codeclimate-test-reporter@v1
+lazy-actions/slatify@master
+lazy-actions/slatify@master

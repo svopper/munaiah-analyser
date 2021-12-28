@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+docker://antonyurchenko/git-release:v4

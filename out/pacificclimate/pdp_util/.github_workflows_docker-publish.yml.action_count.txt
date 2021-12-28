@@ -1,0 +1,2 @@
+actions/checkout@master
+docker/build-push-action@v1

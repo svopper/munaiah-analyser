@@ -1,0 +1,9 @@
+styfle/cancel-workflow-action@0.9.0
+actions/checkout@v2
+shivammathur/setup-php@v2
+mirromutth/mysql-action@v1.1
+actions/setup-node@v2
+actions/cache@v2
+actions/cache@v2
+actions/cache@v2
+actions/upload-artifact@v2

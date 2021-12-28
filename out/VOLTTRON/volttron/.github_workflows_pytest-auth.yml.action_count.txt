@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+volttron/volttron-build-action@v2
+actions/upload-artifact@v2

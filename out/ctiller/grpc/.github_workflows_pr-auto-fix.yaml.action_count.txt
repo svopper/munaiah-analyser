@@ -1,0 +1,6 @@
+actions/cache@v2
+styfle/cancel-workflow-action@0.9.1
+actions/github-script@v4
+actions/setup-python@v2
+actions/checkout@v2
+peter-evans/create-pull-request@v3

@@ -1,0 +1,3 @@
+actions/checkout@v2
+Pendect/action-rsyncer@v1.1.0
+actions/checkout@v2

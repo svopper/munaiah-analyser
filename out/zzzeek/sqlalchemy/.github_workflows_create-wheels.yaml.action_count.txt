@@ -1,0 +1,16 @@
+actions/checkout@v2
+actions/setup-python@v2
+sqlalchemyorg/upload-release-assets@sa
+actions/setup-python@v2
+actions/checkout@v2
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2014_x86_64
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux1_x86_64
+actions/setup-python@v2
+sqlalchemyorg/upload-release-assets@sa
+actions/setup-python@v2
+actions/checkout@v2
+RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2014_aarch64
+docker://quay.io/pypa/manylinux2014_aarch64
+sqlalchemyorg/upload-release-assets@sa
+actions/setup-python@v2

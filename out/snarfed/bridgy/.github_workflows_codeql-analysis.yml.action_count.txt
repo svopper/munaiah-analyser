@@ -1,0 +1,5 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1
+defensecode/thunderscan-action@v1.0

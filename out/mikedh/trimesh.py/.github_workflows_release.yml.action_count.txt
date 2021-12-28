@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+peaceiris/actions-gh-pages@v3
+aws-actions/configure-aws-credentials@v1
+aws-actions/amazon-ecr-login@v1
+actions/checkout@v2
+actions/checkout@master
+actions/create-release@latest

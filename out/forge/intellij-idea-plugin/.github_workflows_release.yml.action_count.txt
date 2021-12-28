@@ -1,0 +1,5 @@
+actions/setup-java@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+ad-m/github-push-action@master

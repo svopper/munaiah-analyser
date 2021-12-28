@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1
+actions/checkout@v2
+reactivecircus/android-emulator-runner@v2
+actions/checkout@v2
+gradle/wrapper-validation-action@v1
+actions/upload-artifact@v2

@@ -1,0 +1,16 @@
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+actions/upload-artifact@v2
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+actions/download-artifact@v2
+actions/download-artifact@v2
+JamesIves/github-pages-deploy-action@4.1.5

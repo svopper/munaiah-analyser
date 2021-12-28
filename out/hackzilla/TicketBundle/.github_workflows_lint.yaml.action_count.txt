@@ -1,0 +1,7 @@
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga:2.16.1
+actions/checkout@v2
+docker://localheinz/composer-normalize-action:0.5.2
+actions/checkout@v2
+actions/setup-ruby@v1
+actions/checkout@v2

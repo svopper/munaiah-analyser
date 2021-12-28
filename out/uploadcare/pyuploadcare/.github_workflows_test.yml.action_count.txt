@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1

@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v1
+jurplel/install-qt-action@v2
+ilammy/msvc-dev-cmd@v1
+actions/upload-artifact@v2
+actions/create-release@v1
+actions/upload-artifact@v2
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/upload-release-asset@v1

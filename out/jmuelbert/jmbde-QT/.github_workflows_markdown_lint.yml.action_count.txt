@@ -1,0 +1,3 @@
+actions/checkout@v2
+tomwhross/write-good-action@v1.5
+mshick/add-pr-comment@v1

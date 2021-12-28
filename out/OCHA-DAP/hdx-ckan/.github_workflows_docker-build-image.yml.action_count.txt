@@ -1,0 +1,4 @@
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+docker/login-action@v1
+docker/build-push-action@v2

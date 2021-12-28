@@ -1,0 +1,10 @@
+actions/checkout@v1
+actions/checkout@v2
+containerbuildsystem/actions/flake8@master
+actions/checkout@v2
+containerbuildsystem/actions/markdownlint@master
+actions/checkout@v2
+actions/checkout@v2
+containerbuildsystem/actions/shellcheck@master
+actions/checkout@v2
+containerbuildsystem/actions/tekton-lint@master

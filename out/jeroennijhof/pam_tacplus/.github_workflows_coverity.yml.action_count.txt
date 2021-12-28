@@ -1,0 +1,4 @@
+actions/checkout@v2
+mstksg/get-package@v1
+actions/cache@v2.1.6
+vapier/coverity-scan-action@v0

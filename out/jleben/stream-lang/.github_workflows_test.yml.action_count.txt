@@ -1,0 +1,6 @@
+actions/checkout@v1
+actions/upload-artifact@master
+actions/download-artifact@v2
+actions/checkout@v1
+actions/upload-artifact@master
+actions/download-artifact@v2

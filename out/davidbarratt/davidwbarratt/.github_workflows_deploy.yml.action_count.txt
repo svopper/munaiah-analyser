@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker/login-action@v1
+azure/setup-kubectl@v1
+azure/k8s-set-context@v1

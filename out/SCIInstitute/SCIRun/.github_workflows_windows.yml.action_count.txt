@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2.14.0
+actions/upload-artifact@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2.14.0
+actions/upload-artifact@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2.14.0
+actions/upload-artifact@v2

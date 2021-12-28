@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-node@v1
+goto-bus-stop/standard-action@v1
+actions/checkout@v2
+actions/cache@v1
+carlosperate/download-file-action@v1.0.3
+actions/upload-artifact@v2
+actions/download-artifact@v2
+actions/create-release@v1
+actions/upload-release-asset@v1

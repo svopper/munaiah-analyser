@@ -1,0 +1,2 @@
+actions/checkout@v1
+enriikke/gatsby-gh-pages-action@v2

@@ -1,0 +1,3 @@
+actions/checkout@master
+github/codeql-action/init@v1
+github/codeql-action/analyze@v1

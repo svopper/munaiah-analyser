@@ -1,0 +1,4 @@
+actions/checkout@master
+docker://oskarstark/php-cs-fixer-ga
+actions/checkout@master
+docker://odolbeau/swarrot-phpqa:latest

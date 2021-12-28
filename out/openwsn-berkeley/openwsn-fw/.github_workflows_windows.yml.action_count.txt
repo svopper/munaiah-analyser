@@ -1,0 +1,4 @@
+actions/checkout@v2
+egor-tensin/setup-mingw@v2
+actions/setup-python@v2
+fiam/arm-none-eabi-gcc@v1

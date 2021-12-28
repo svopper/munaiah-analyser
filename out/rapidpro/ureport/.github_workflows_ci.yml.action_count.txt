@@ -1,0 +1,5 @@
+actions/checkout@v1
+harmon758/postgresql-action@v1
+zhulik/redis-action@v1.0.0
+actions/setup-python@v1
+codecov/codecov-action@v1

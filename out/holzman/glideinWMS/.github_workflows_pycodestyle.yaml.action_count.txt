@@ -1,0 +1,5 @@
+actions/download-artifact@v2
+actions/checkout@v2
+./.github/actions/pycodestyle-in-sl7-docker
+actions/upload-artifact@v2
+actions/upload-artifact@v2

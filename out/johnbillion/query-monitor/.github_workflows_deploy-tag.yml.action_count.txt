@@ -1,0 +1,10 @@
+octokit/request-action@v2.x
+octokit/request-action@v2.x
+actions/checkout@v1
+10up/action-wordpress-plugin-deploy@1.4.1
+octokit/request-action@v2.x
+octokit/request-action@v2.x
+WyriHaximus/github-action-next-semvers@v1.0
+octokit/request-action@v2.x
+octokit/request-action@v2.x
+octokit/request-action@v2.x

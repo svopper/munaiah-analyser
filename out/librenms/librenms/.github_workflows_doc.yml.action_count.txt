@@ -1,0 +1,3 @@
+actions/checkout@v2
+crazy-max/ghaction-github-status@v2
+crazy-max/ghaction-github-pages@v2

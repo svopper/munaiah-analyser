@@ -1,0 +1,3 @@
+actions/checkout@v2
+peaceiris/actions-hugo@v2
+peaceiris/actions-gh-pages@v3

@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/cache@v2
+samuelmeuli/action-snapcraft@v1.2.0
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/cache@v2
+turtlebrowser/get-conan@main
+egor-tensin/setup-cygwin@v3
+actions/upload-artifact@v2

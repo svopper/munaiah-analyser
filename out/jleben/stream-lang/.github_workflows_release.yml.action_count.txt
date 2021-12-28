@@ -1,0 +1,11 @@
+actions/checkout@v1
+srt32/git-actions@v0.0.3
+actions/upload-artifact@v2
+actions/checkout@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+AButler/upload-release-assets@v1.0
+actions/checkout@v2
+actions/download-artifact@v2
+AButler/upload-release-assets@v1.0

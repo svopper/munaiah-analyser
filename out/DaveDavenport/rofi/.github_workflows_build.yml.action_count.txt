@@ -1,0 +1,12 @@
+actions/checkout@v2
+./.github/actions/setup
+./.github/actions/meson
+actions/checkout@v2
+./.github/actions/setup
+./.github/actions/meson
+actions/checkout@v2
+./.github/actions/setup
+./.github/actions/autotools
+actions/checkout@v2
+./.github/actions/setup
+./.github/actions/autotools

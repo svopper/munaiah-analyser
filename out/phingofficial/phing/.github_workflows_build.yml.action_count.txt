@@ -1,0 +1,13 @@
+fkirc/skip-duplicate-actions@master
+actions/checkout@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+8398a7/action-slack@v3.8.0

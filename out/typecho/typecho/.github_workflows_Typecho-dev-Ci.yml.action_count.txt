@@ -1,0 +1,4 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+WebFreak001/deploy-nightly@v1.1.0

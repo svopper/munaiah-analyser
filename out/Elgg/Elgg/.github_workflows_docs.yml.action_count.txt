@@ -1,0 +1,4 @@
+actions/checkout@v2
+ammaraskar/sphinx-action@master
+ammaraskar/sphinx-action@master
+ammaraskar/sphinx-action@master

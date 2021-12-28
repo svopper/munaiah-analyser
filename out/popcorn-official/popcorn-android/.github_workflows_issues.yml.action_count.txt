@@ -1,0 +1,2 @@
+actions/checkout@v1
+ergo720/auto-close-issues@v1.0.4

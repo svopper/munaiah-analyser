@@ -1,0 +1,5 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+nick-invision/retry@v2
+nick-invision/retry@v2

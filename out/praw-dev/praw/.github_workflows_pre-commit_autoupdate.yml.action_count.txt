@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v1
+browniebroke/pre-commit-autoupdate-action@main
+peter-evans/create-pull-request@v3

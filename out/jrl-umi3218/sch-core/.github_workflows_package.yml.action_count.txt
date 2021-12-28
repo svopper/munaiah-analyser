@@ -1,0 +1,10 @@
+actions/checkout@v2
+archive/github-actions-slack@master
+jrl-umi3218/github-actions/create-release@master
+actions/checkout@v2
+jrl-umi3218/github-actions/build-package-native@master
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/download-artifact@v1
+jrl-umi3218/github-actions/upload-package@master
+actions/checkout@v2

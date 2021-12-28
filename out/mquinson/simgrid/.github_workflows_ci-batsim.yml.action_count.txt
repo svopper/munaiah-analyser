@@ -1,0 +1,2 @@
+actions/checkout@v2
+mattermost/action-mattermost-notify@master

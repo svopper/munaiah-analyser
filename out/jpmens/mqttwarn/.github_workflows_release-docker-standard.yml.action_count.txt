@@ -1,0 +1,7 @@
+actions/checkout@v2
+docker/metadata-action@v3
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1
+actions/cache@v2
+docker/login-action@v1
+docker/build-push-action@v2

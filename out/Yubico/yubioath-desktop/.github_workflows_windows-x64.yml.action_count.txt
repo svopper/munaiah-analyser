@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-python@v1
+jurplel/install-qt-action@v2.10.0
+actions/upload-artifact@v1

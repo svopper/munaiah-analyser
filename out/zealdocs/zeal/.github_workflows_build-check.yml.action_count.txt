@@ -1,0 +1,11 @@
+actions/checkout@v2
+lukka/run-cmake@v3
+actions/checkout@v2
+lukka/run-vcpkg@v6
+actions/cache@v2
+jurplel/install-qt-action@v2
+lukka/run-cmake@v3
+actions/checkout@v2
+./.github/workflows/appimage/
+actions/upload-artifact@v2
+actions/upload-artifact@v2

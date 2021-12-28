@@ -1,0 +1,7 @@
+actions/checkout@v1
+dpryan79/github-actions/@master
+actions/upload-artifact@master
+actions/checkout@v1
+dpryan79/github-actions/@master
+actions/checkout@v1
+dpryan79/github-actions/@master

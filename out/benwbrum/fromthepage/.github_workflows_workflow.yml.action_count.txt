@@ -1,0 +1,1 @@
+jenschelkopf/issue-label-notification-action@1.2

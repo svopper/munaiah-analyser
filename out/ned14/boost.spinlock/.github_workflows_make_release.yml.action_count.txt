@@ -1,0 +1,5 @@
+actions/checkout@v2
+WyriHaximus/github-action-wait-for-status@v1.2
+actions/create-release@v1
+actions/upload-release-asset@v1
+actions/cache@v2

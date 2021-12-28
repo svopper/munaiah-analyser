@@ -1,0 +1,2 @@
+softprops/action-gh-release@v1
+benc-uk/workflow-dispatch@v1

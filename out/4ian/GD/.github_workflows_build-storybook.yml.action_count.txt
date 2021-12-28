@@ -1,0 +1,4 @@
+aws-actions/configure-aws-credentials@v1
+actions/checkout@v2
+actions/cache@v2
+chromaui/action@v1

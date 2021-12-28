@@ -1,0 +1,2 @@
+actions/checkout@v1
+returntocorp/semgrep-action@v1
