@@ -2,3 +2,4 @@ dataset.csv
 .ipynb_checkpoints/
 *.secret
 __pycache__/
+.gh_tokens
