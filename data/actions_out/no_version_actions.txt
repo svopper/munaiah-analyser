@@ -7184,7 +7184,7 @@ actions/download-artifact
 actions/download-artifact
 softprops/action-gh-release
 actions/checkout
-Azure/docker-login
+azure/docker-login
 actions/checkout
 ncipollo/release-action
 actions/checkout
@@ -74596,14 +74596,12 @@ actions/setup-python
 actions/checkout
 RalfG/python-wheels-manylinux-build
 docker://quay.io/pypa/manylinux2014_aarch64
-
 sqlalchemyorg/upload-release-assets
 actions/setup-python
 actions/checkout
 actions/setup-python
 actions/checkout
 docker://quay.io/pypa/manylinux2014_aarch64
-
 actions/checkout
 actions/setup-python
 actions/checkout
@@ -74764,7 +74762,6 @@ actions/setup-dotnet
 actions/setup-dotnet
 actions/setup-dotnet
 ./.github/actions/run-benchmarks
-
 actions/upload-artifact
 carlosperate/download-file-action
 actions/download-artifact
@@ -74776,7 +74773,6 @@ actions/setup-dotnet
 actions/setup-dotnet
 actions/setup-dotnet
 ./.github/actions/run-benchmarks
-
 actions/upload-artifact
 actions/checkout
 actions/download-artifact
@@ -74842,7 +74838,6 @@ actions/checkout
 GitGuardian/gg-shield-action
 actions/checkout
 docker://github/super-linter:v3.17.2
-
 actions/checkout
 YetiForceCompany/YetiForceCRM-Tests/7.3
 actions/checkout
@@ -75258,12 +75253,10 @@ shivammathur/setup-php
 actions/checkout
 actions/checkout
 docker://oskarstark/phpstan-ga:0.12.25
-
 actions/checkout
 shivammathur/setup-php
 actions/checkout
 docker://vimeo/psalm-github-actions
-
 shivammathur/setup-php
 actions/checkout
 shivammathur/setup-php
@@ -75274,7 +75267,6 @@ shivammathur/setup-php
 actions/checkout
 actions/checkout
 docker://ergebnis/composer-normalize-action
-
 shivammathur/setup-php
 actions/checkout
 actions/checkout
@@ -75294,10 +75286,8 @@ actions/setup-node
 actions/checkout
 actions/checkout
 docker://ergebnis/composer-normalize-action
-
 actions/checkout
 docker://nyholm/roave-bc-check-ga
-
 shivammathur/setup-php
 actions/checkout
 peter-evans/create-pull-request
@@ -75426,7 +75416,6 @@ actions/upload-artifact
 actions/checkout
 actions/download-artifact
 docker://antonyurchenko/git-release:v4
-
 actions/checkout
 actions/setup-python
 actions/checkout
