@@ -37,7 +37,24 @@ for key, b in set.items():
     if b == False:
         missing.append(key)
 
-print(d["Publishing"])
+# print(sorted(d["Chat"].items(), key=lambda x: x[1], reverse=True))
+
+# Output most used actions in a file for each
+
+
+for kk in d:
+    i = 0
+    print("\n")
+    print(kk)
+    for vv in sorted(d[kk].items(), key=lambda x: x[1], reverse=True):
+        if i <= 5:
+            print(vv[0] + "," + str(vv[1]))
+            i+= 1
+        else:
+            continue
+
+# print(sorted(d["Chat"].items(), key=lambda x: x[1], reverse=True))
+
 actions.close()
 f.close()
 
