@@ -51,7 +51,7 @@ def main(filePath: str):
             result[action] = categories
 
     print(result)
-    with open("cat_result.json", "w") as outfile:
+    with open("categories", "w") as outfile:
         json.dump(result, outfile)
 
 if __name__ == '__main__':
