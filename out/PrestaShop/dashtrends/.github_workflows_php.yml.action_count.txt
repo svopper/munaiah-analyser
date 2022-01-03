@@ -1,0 +1,9 @@
+actions/checkout@v2.0.0
+prestashop/github-action-php-lint/5.6@master
+prestashop/github-action-php-lint/7.2@master
+prestashop/github-action-php-lint/7.3@master
+actions/checkout@v2.0.0
+prestashopcorp/github-action-php-cs-fixer@master
+actions/checkout@v2.0.0
+actions/cache@v1
+actions/cache@v1

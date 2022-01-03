@@ -1,0 +1,17 @@
+actions/checkout@v2
+docker://composer
+docker://phpga/composer-require-checker-ga
+actions/checkout@v2
+docker://composer
+docker://phpdoc/phpunit-ga:latest
+actions/checkout@v2
+shivammathur/cache-extensions@v1
+actions/cache@v2.1.6
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+actions/cache@v2.1.6
+phpDocumentor/coding-standard@latest
+actions/checkout@v2
+docker://composer
+phpDocumentor/phpstan-ga@0.12.9

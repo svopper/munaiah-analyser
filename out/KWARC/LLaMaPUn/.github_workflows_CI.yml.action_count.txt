@@ -1,0 +1,4 @@
+ryankurte/action-apt@v0.2.0
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions-rs/cargo@v1

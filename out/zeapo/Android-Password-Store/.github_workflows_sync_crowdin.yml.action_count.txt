@@ -1,0 +1,3 @@
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+actions/setup-java@d202f5dbf7256730fb690ec59f6381650114feb2
+peter-evans/create-pull-request@01f7dd1d28f5131231ba3ede0f1c8cb413584a1d

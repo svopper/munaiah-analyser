@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v1
+codecov/codecov-action@v1
+paambaati/codeclimate-action@v2.6.0

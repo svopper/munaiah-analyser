@@ -1,0 +1,3 @@
+actions/checkout@v2
+cachix/install-nix-action@v13
+svenstaro/upload-release-action@v2

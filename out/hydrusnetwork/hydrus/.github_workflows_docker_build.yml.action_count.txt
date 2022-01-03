@@ -1,0 +1,12 @@
+actions/checkout@v2.3.4
+crazy-max/ghaction-docker-meta@v2
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1
+docker/login-action@v1
+docker/build-push-action@v2
+actions/checkout@v2.3.4
+crazy-max/ghaction-docker-meta@v2
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1
+docker/login-action@v1
+docker/build-push-action@v2

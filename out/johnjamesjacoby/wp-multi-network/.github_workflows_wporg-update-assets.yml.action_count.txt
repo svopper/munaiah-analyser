@@ -1,0 +1,2 @@
+actions/checkout@main
+10up/action-wordpress-plugin-asset-update@stable

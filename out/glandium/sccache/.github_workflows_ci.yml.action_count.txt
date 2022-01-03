@@ -1,0 +1,2 @@
+actions/checkout@v1
+hecrj/setup-rust-action@v1

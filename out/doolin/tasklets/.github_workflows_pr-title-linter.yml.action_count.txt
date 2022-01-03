@@ -1,0 +1,1 @@
+seferov/pr-lint-action@master

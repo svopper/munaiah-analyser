@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+AndreMiras/coveralls-python-action@v20201129
+AndreMiras/coveralls-python-action@v20201129
+actions/checkout@v2
+actions/setup-python@v2

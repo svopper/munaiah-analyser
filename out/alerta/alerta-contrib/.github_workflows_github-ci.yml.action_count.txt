@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+act10ns/slack@v1
+actions/checkout@v2
+actions/setup-python@v2
+act10ns/slack@v1
+actions/checkout@v2
+actions/setup-python@v2
+act10ns/slack@v1

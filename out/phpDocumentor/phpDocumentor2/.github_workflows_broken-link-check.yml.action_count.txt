@@ -1,0 +1,1 @@
+technote-space/broken-link-checker-action@v2.2

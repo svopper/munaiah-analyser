@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+actions/setup-java@v1
+nelonoel/branch-name@v1.0.1
+shallwefootball/upload-s3-action@v1.1.3

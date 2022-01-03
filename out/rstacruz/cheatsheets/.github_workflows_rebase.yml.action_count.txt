@@ -1,0 +1,2 @@
+actions/checkout@master
+cirrus-actions/rebase@v1.2.0

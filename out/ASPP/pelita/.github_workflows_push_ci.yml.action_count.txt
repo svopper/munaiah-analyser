@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+codecov/codecov-action@v1
+AndreMiras/coveralls-python-action@develop
+AndreMiras/coveralls-python-action@develop
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+peaceiris/actions-gh-pages@v3

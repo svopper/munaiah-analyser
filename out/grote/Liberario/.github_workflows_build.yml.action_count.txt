@@ -1,0 +1,4 @@
+actions/checkout@v2
+gradle/wrapper-validation-action@v1
+actions/setup-java@v2
+reactivecircus/android-emulator-runner@v2

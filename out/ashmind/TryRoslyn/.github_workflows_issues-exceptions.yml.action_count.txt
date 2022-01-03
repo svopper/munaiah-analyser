@@ -1,0 +1,2 @@
+actions/checkout@v1
+azure/login@v1

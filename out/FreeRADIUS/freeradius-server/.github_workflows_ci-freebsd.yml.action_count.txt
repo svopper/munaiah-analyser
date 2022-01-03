@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v2
+vmactions/freebsd-vm@v0.1.5
+mxschmitt/action-tmate@v3

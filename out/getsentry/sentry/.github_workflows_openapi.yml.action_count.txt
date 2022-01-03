@@ -1,0 +1,5 @@
+getsentry/action-github-app-token@v1
+actions/checkout@v2
+actions/checkout@v2
+volta-cli/action@v1
+stefanzweifel/git-auto-commit-action@v4

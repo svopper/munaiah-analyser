@@ -1,0 +1,2 @@
+actions/checkout@v2
+codespell-project/actions-codespell@master

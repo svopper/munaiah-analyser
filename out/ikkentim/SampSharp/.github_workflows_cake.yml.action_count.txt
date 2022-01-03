@@ -1,0 +1,3 @@
+actions/checkout@v2
+cake-build/cake-action@v1
+actions/upload-artifact@v2

@@ -1,0 +1,9 @@
+actions/checkout@v2
+actionshub/chef-install@main
+actions/checkout@v2
+nosborn/github-action-markdown-cli@v2.0.0
+actions/checkout@v2
+actionshub/yamllint@main
+actions/checkout@v2
+actionshub/chef-install@main
+actionshub/test-kitchen@main

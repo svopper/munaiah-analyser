@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+szenius/set-timezone@v1.0

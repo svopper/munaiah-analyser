@@ -1,0 +1,5 @@
+actions/checkout@v2
+lukka/get-cmake@latest
+seanmiddleditch/gha-setup-ninja@master
+github/codeql-action/init@v1
+github/codeql-action/analyze@v1

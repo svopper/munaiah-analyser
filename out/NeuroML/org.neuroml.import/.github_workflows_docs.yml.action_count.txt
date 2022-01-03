@@ -1,0 +1,9 @@
+actions/checkout@v2
+nelonoel/branch-name@v1.0.1
+actions/setup-java@v1
+actions/setup-python@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2

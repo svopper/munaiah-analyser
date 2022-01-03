@@ -1,0 +1,2 @@
+actions/checkout@v2
+symfonycorp/security-checker-action@v2

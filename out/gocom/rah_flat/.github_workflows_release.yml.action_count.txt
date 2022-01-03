@@ -1,0 +1,5 @@
+actions/checkout@v1
+gocom/action-textpattern-package-plugin@master
+actions/create-release@v1.0.0
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1

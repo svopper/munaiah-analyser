@@ -1,0 +1,5 @@
+actions/checkout@v2
+addnab/docker-run-action@v3
+addnab/docker-run-action@v3
+softprops/action-gh-release@v1
+softprops/action-gh-release@v1

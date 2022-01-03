@@ -1,0 +1,2 @@
+actions/checkout@v2
+bilelmoussaoui/flatpak-github-actions/flatpak-builder@v3

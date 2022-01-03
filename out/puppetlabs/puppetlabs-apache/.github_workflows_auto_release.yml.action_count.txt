@@ -1,0 +1,4 @@
+puppetlabs/kvrhdn-gha-buildevents@pdk-templates-v1
+actions/checkout@v2
+docker://puppet/iac_release:ci
+puppetlabs/peter-evans-create-pull-request@v3

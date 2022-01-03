@@ -1,0 +1,1 @@
+larsoner/circleci-artifacts-redirector-action@master

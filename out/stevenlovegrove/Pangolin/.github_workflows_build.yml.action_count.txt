@@ -1,0 +1,5 @@
+actions/checkout@v2
+lukka/run-vcpkg@v6
+actions/checkout@v2
+actions/checkout@v2
+crazy-max/ghaction-github-pages@v2.2.0

@@ -1,0 +1,12 @@
+actions/checkout@v2
+frabert/replace-string-action@v1.1
+camptocamp/initialise-gopass-summon-action@v2
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/create-release@v1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1

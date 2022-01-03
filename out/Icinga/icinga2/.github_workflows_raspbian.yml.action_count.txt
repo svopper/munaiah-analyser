@@ -1,0 +1,3 @@
+styfle/cancel-workflow-action@89f242ee29e10c53a841bfe71cc0ce7b2f065abc
+actions/checkout@v1
+actions/cache@v1

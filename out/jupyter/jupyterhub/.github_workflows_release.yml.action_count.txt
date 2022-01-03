@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-node@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+docker/setup-qemu-action@25f0500ff22e406f7191a2a8ba8cda16901ca018
+docker/setup-buildx-action@2a4b53665e15ce7d7049afb11ff1f70ff1610609
+jupyterhub/action-major-minor-tag-calculator@v1
+docker/build-push-action@e1b7f96249f2e4c8e4ac1519b9608c0d48944a1f
+jupyterhub/action-major-minor-tag-calculator@v1
+docker/build-push-action@e1b7f96249f2e4c8e4ac1519b9608c0d48944a1f
+jupyterhub/action-major-minor-tag-calculator@v1
+docker/build-push-action@e1b7f96249f2e4c8e4ac1519b9608c0d48944a1f

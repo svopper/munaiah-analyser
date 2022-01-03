@@ -1,0 +1,3 @@
+actions/checkout@v2
+imciner2/run-lcov@v1
+coverallsapp/github-action@master

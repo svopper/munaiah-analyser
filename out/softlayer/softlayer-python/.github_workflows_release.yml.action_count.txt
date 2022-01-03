@@ -1,0 +1,4 @@
+samuelmeuli/action-snapcraft@v1.2.0
+actions/checkout@master
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@master

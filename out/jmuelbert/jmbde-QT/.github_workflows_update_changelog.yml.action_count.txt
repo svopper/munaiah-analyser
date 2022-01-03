@@ -1,0 +1,3 @@
+actions/checkout@v2
+heinrichreimer/github-changelog-generator-action@v2.2
+stefanzweifel/git-auto-commit-action@v4

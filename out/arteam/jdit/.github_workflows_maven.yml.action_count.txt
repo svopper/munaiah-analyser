@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v2
+Harmon758/postgresql-action@v1.0.0

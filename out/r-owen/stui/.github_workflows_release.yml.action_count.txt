@@ -1,0 +1,6 @@
+actions/create-release@v1
+actions/checkout@v2
+little-core-labs/get-git-tag@v3.0.1
+conda-incubator/setup-miniconda@v2
+bruceadams/get-release@v1.2.2
+actions/upload-release-asset@v1

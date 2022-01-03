@@ -1,0 +1,2 @@
+tim-actions/get-pr-commits@master
+tim-actions/dco@master

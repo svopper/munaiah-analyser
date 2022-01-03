@@ -1,0 +1,6 @@
+actions/checkout@v2
+rlespinasse/github-slug-action@3.1.0
+bobheadxi/deployments@v0.4.2
+kciter/aws-ecr-action@v1
+gagoar/invoke-aws-lambda@v3.3.0
+bobheadxi/deployments@v0.4.2

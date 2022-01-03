@@ -1,0 +1,3 @@
+actions/checkout@v2
+./.github/workflows/actions/test_trogdord
+actions/upload-artifact@v2

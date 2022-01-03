@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/setup-java@v1
+asadmansr/Firebase-Test-Lab-Action@v1.0

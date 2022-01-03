@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-python@v2
+technote-space/create-pr-action@bfd4392c80dbeb54e0bacbcf4750540aecae6ed4

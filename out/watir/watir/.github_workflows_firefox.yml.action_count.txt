@@ -1,0 +1,4 @@
+actions/checkout@v2
+./.github/actions/setup-linux
+browser-actions/setup-firefox@latest
+ruby/setup-ruby@v1

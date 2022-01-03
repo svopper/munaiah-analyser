@@ -1,0 +1,2 @@
+docker://takanabe/github-actions-automate-projects:v0.0.1
+docker://takanabe/github-actions-automate-projects:v0.0.1

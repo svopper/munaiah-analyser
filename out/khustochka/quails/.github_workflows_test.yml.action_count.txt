@@ -1,0 +1,10 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/setup-node@v1
+actions/cache@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/setup-node@v1
+actions/cache@v1
+actions/upload-artifact@v2

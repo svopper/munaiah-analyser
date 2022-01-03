@@ -1,0 +1,8 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+microsoft/setup-msbuild@v1.0.2
+actions/checkout@v2
+ruby/setup-ruby@v1
+egor-tensin/setup-mingw@v2

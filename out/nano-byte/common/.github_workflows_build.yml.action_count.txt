@@ -1,0 +1,12 @@
+actions/checkout@v2
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+actions/cache@v2
+scacap/action-surefire-report@v1
+actions/create-release@v1
+peaceiris/actions-gh-pages@v3
+actions/checkout@v2
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+actions/setup-dotnet@v1
+scacap/action-surefire-report@v1

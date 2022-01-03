@@ -1,0 +1,10 @@
+actions/checkout@v2
+gradle/wrapper-validation-action@v1
+actions/cache@v2
+actions/setup-java@v2
+./.github/actions/pre-release
+micronaut-projects/github-actions/export-gradle-properties@master
+./.github/actions/post-release
+Roang-zero1/github-upload-release-artifacts-action@master
+benc-uk/workflow-dispatch@v1.1
+benc-uk/workflow-dispatch@v1.1

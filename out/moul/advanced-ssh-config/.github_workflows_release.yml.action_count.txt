@@ -1,0 +1,2 @@
+actions/checkout@master
+codfish/semantic-release-action@v1.9.0

@@ -1,0 +1,17 @@
+actions/checkout@v2.3.4
+actions/setup-node@v2.1.5
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1
+actions/checkout@v2.3.4
+actions/setup-node@v2.1.5
+voxmedia/github-action-slack-notify-build@v1
+dokku/github-action@v1.0.1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1
+actions/checkout@v2.3.4
+actions/setup-node@v2.1.5
+voxmedia/github-action-slack-notify-build@v1
+dokku/github-action@v1.0.1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1

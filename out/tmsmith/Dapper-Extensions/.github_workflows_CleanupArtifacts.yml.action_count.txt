@@ -1,0 +1,1 @@
+glassechidna/artifact-cleaner@v2

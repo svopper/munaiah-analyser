@@ -1,0 +1,4 @@
+actions/checkout@v1
+r-lib/actions/setup-r@master
+actions/setup-java@v1
+actions/upload-artifact@master

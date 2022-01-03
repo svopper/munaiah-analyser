@@ -1,0 +1,5 @@
+actions/checkout@v2
+arduino/arduino-lint-action@v1.0.0
+actions/checkout@master
+arduino/setup-arduino-cli@v1.1.1
+actions/setup-python@v2

@@ -1,0 +1,7 @@
+actions/checkout@v2
+marvinpinto/action-automatic-releases@latest
+actions/checkout@v2
+actions-rs/toolchain@v1
+./.github/actions/setup-postgres
+actions-rs/cargo@v1
+actions/upload-release-asset@v1

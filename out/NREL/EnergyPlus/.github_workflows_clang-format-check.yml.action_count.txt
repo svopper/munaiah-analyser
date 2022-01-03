@@ -1,0 +1,2 @@
+actions/checkout@v2
+jidicula/clang-format-action@v3.2.0

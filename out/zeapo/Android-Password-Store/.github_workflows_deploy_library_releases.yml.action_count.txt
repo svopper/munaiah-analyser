@@ -1,0 +1,4 @@
+actions/setup-java@d202f5dbf7256730fb690ec59f6381650114feb2
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+gradle/gradle-build-action@cba1833ddecbbee649950c284416981928631008
+gradle/gradle-build-action@cba1833ddecbbee649950c284416981928631008

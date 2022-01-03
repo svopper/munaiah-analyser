@@ -1,0 +1,7 @@
+actions/checkout@v2
+./.github/actions/tool-setup
+actions/upload-artifact@v2
+actions/checkout@v2
+./.github/actions/tool-setup
+actions/checkout@v2
+./.github/actions/test-report-dispatch

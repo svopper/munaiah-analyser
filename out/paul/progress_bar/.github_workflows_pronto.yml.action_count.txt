@@ -1,0 +1,2 @@
+actions/checkout@v1.0.0
+actions/setup-ruby@v1

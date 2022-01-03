@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v1
+crazy-max/ghaction-import-gpg@v3

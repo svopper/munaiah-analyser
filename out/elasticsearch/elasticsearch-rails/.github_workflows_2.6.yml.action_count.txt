@@ -1,0 +1,3 @@
+actions/checkout@v2
+elastic/elastic-github-actions/elasticsearch@master
+ruby/setup-ruby@v1

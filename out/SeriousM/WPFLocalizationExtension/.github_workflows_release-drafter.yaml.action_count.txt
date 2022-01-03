@@ -1,0 +1,4 @@
+actions/checkout@v2
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+release-drafter/release-drafter@v5

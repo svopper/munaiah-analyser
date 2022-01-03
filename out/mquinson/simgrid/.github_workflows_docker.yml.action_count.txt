@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker/login-action@v1
+mattermost/action-mattermost-notify@master

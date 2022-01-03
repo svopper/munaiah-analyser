@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/cache@v1
+conda-incubator/setup-miniconda@v2.0.1
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2.0.1
+actions/checkout@v2
+docker/setup-buildx-action@v1
+docker/login-action@v1
+docker/build-push-action@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2
+KeisukeYamashita/memcached-actions@v1
+shivammathur/setup-php@v2
+actions/cache@v2

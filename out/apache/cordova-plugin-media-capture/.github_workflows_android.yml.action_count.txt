@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/setup-java@v2
+reactivecircus/android-emulator-runner@5de26e4bd23bf523e8a4b7f077df8bfb8e52b50e
+reactivecircus/android-emulator-runner@5de26e4bd23bf523e8a4b7f077df8bfb8e52b50e

@@ -1,0 +1,9 @@
+actions/checkout@v2
+docker/setup-qemu-action@v1
+pypa/cibuildwheel@v2.0.1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+pypa/gh-action-pypi-publish@master

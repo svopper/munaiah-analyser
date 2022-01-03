@@ -1,0 +1,2 @@
+actions/checkout@master
+errata-ai/vale-action@v1.4.0

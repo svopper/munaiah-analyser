@@ -1,0 +1,4 @@
+actions/checkout@v2
+google-github-actions/setup-gcloud@master
+actions/setup-java@v2
+actions/cache@v1

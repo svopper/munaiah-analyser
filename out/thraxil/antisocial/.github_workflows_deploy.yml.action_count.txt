@@ -1,0 +1,3 @@
+actions/checkout@master
+digitalocean/action-doctl@v2
+juankaram/sentry-release@master

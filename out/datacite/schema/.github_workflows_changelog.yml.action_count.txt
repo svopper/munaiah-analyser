@@ -1,0 +1,3 @@
+actions/checkout@v1
+charmixer/auto-changelog-action@v1.1
+ad-m/github-push-action@v0.6.0

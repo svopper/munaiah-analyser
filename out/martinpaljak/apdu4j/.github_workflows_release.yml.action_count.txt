@@ -1,0 +1,6 @@
+actions/checkout@master
+actions/setup-java@v1
+webfactory/ssh-agent@v0.5.0
+actions/create-release@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

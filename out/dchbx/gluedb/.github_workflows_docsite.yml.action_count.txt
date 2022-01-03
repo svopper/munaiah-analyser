@@ -1,0 +1,7 @@
+actions/setup-node@v2.1.2
+actions/setup-java@v1
+ts-graphviz/setup-graphviz@v1
+actions/checkout@v2
+actions/cache@v1
+nelonoel/branch-name@v1.0.1
+jakejarvis/s3-sync-action@master

@@ -1,0 +1,4 @@
+actions/checkout@v1
+rumblefrog/setup-sp@master
+actions/create-release@v1
+actions/upload-release-asset@v1

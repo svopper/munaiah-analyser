@@ -1,0 +1,4 @@
+actions/checkout@master
+ibexa/version-logic-action@master
+ibexa/changelog-generator-action@v2
+zendesk/action-create-release@v1

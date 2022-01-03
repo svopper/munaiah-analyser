@@ -1,0 +1,4 @@
+actions/checkout@v2
+mamba-org/provision-with-micromamba@main
+ammaraskar/sphinx-problem-matcher@master
+peaceiris/actions-gh-pages@v3

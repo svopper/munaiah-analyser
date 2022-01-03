@@ -1,0 +1,2 @@
+actions/checkout@v2
+github/super-linter/slim@v4.8.1

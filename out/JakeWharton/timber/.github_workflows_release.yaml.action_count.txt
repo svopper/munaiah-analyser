@@ -1,0 +1,5 @@
+actions/checkout@v2.3.5
+actions/setup-java@v2
+ffurrer2/extract-release-notes@v1
+softprops/action-gh-release@v1
+JamesIves/github-pages-deploy-action@releases/v3

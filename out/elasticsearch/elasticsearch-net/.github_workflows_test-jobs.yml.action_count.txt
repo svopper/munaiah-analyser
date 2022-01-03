@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/cache@v2
+mikepenz/action-junit-report@v2
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/cache@v2
+mikepenz/action-junit-report@v2

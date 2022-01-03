@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@master
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@master
+actions/checkout@master
+elgohr/Publish-Docker-Github-Action@master

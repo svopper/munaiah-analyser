@@ -1,0 +1,2 @@
+actions/checkout@v2
+ad-m/github-push-action@v0.6.0

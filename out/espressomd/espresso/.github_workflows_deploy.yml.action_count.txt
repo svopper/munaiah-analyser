@@ -1,0 +1,4 @@
+r-lib/actions/setup-pandoc@v1
+webfactory/ssh-agent@v0.5.2
+actions/checkout@main
+./.github/actions/deploy_docs

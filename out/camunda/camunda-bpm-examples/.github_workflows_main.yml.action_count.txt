@@ -1,0 +1,2 @@
+actions/checkout@v2
+camunda/bump-versions-action@v1.7

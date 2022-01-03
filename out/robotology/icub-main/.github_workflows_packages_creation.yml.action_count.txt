@@ -1,0 +1,8 @@
+actions/checkout@main
+WyriHaximus/github-action-get-previous-tag@0.2.0
+actions/upload-artifact@v2
+actions/checkout@main
+actions/download-artifact@v2
+actions/upload-release-asset@main
+actions/upload-release-asset@main
+geekyeggo/delete-artifact@v1

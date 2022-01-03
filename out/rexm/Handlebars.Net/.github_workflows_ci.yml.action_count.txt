@@ -1,0 +1,16 @@
+actions/checkout@master
+actions/setup-dotnet@v1
+actions/checkout@master
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+actions/setup-java@v1
+actions/cache@v1
+actions/cache@v1
+actions/checkout@v2
+actions/setup-dotnet@v1
+Happypig375/github-action-benchmark@v1.8.2
+actions/upload-artifact@v2
+release-drafter/release-drafter@v5

@@ -1,0 +1,2 @@
+actions/checkout@v1
+Zomzog/changelog-checker@v1.2.0

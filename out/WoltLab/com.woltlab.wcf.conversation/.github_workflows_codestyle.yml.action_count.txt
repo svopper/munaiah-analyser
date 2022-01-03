@@ -1,0 +1,7 @@
+actions/checkout@v2
+chekalsky/phpcs-action@e269c2f264f400adcda7c6b24c8550302350d495
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+actions/setup-node@v2

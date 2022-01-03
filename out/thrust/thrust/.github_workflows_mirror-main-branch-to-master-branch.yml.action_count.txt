@@ -1,0 +1,1 @@
+google/mirror-branch-action@v1.0

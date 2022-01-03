@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+WyriHaximus/github-action-get-previous-tag@0.2.0
+actions/upload-artifact@v2
+codecov/codecov-action@v1

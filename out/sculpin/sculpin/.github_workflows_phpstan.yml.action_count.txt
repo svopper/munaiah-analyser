@@ -1,0 +1,2 @@
+actions/checkout@v2
+OskarStark/phpstan-ga@0.12.75

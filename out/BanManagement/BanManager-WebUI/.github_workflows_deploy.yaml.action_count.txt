@@ -1,0 +1,5 @@
+styfle/cancel-workflow-action@0.9.1
+actions/checkout@v2
+actions/setup-node@v2
+actions/cache@v2
+webfactory/ssh-agent@v0.5.3

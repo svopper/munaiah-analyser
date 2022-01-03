@@ -1,0 +1,4 @@
+actions/checkout@v2.3.4
+actions/setup-python@v2.2.2
+actions/cache@v2.1.6
+archive/github-actions-slack@master

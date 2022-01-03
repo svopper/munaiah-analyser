@@ -1,0 +1,6 @@
+khan/pull-request-comment-trigger@master
+actions/checkout@v2
+actions/cache@v2
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+checkstyle/contribution/comment-action@master

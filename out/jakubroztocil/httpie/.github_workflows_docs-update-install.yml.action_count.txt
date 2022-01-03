@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v2
+Automattic/action-commit-to-branch@master

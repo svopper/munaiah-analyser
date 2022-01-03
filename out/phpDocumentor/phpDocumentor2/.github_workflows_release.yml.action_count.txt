@@ -1,0 +1,10 @@
+actions/checkout@master
+docker://composer
+phpDocumentor/phar-ga@latest
+phpDocumentor/phar-ga@latest
+phpDocumentor/phar-ga@latest
+fnkr/github-action-ghr@v1
+benc-uk/workflow-dispatch@v1
+actions/checkout@master
+elgohr/Publish-Docker-Github-Action@master
+benc-uk/workflow-dispatch@v1

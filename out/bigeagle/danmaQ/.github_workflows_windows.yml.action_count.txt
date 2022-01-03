@@ -1,0 +1,4 @@
+jurplel/install-qt-action@v2.13.0
+actions/checkout@v2
+actions/upload-artifact@v2
+svenstaro/upload-release-action@v2

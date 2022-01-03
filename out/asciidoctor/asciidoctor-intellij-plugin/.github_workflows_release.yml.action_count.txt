@@ -1,0 +1,5 @@
+actions/setup-java@v2.3.1
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+getsentry/action-release@v1

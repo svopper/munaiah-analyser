@@ -1,0 +1,4 @@
+actions/checkout@1e204e9a9253d643386038d443f96446fa156a97
+actions/setup-java@8db439b6b47e5e12312bf036760bbaa6893481ac
+actions/setup-python@dc73133d4da04e56a135ae2246682783cc7c7cb6
+gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b

@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v2
+EndBug/add-and-commit@2d7c2e89fcb436f8e139cc80813bd030bdd40c4b

@@ -1,0 +1,6 @@
+mstksg/get-package@v1
+actions/checkout@v2
+mstksg/get-package@v1
+actions/checkout@v2
+egor-tensin/setup-cygwin@v3
+actions/checkout@v2

@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/setup-node@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+actions/setup-node@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+google-github-actions/setup-gcloud@master

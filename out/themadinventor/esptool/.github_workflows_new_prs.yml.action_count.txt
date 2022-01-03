@@ -1,0 +1,2 @@
+actions/checkout@master
+espressif/github-actions/sync_issues_to_jira@master

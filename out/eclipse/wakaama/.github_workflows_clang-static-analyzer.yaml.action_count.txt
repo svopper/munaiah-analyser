@@ -1,0 +1,4 @@
+actions/checkout@v2
+lukka/get-cmake@latest
+seanmiddleditch/gha-setup-ninja@master
+actions/upload-artifact@v1

@@ -1,0 +1,6 @@
+actions/checkout@master
+actions/setup-java@master
+actions/cache@master
+github/codeql-action/init@v1
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1

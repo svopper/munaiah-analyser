@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+supercharge/mongodb-github-action@1.6.0
+elastic/elastic-github-actions/elasticsearch@master
+./.github/actions/install

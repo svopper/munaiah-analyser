@@ -1,0 +1,15 @@
+actions/checkout@v2.3.5
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/setup-java@v2
+pnpm/action-setup@v2.0.1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+codacy/codacy-coverage-reporter-action@master
+actions/cache@v2.1.6
+actions/cache@v2.1.6
+actions/checkout@v2.3.5
+actions/download-artifact@v2

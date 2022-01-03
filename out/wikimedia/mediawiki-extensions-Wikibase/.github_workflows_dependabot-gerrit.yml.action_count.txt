@@ -1,0 +1,1 @@
+wmde/dependabot-gerrit-action@main

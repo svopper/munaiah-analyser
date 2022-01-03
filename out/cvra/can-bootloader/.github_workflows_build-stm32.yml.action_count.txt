@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://antoinealb/cvra-ci:latest
+docker://antoinealb/cvra-ci:latest
+docker://antoinealb/cvra-ci:latest

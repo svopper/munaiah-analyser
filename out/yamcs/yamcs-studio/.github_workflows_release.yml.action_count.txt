@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/create-release@latest
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1

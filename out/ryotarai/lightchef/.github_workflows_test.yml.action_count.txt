@@ -1,0 +1,10 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+lazy-actions/slatify@master
+actions/checkout@v2
+ruby/setup-ruby@v1
+lazy-actions/slatify@master
+actions/checkout@v2
+ruby/setup-ruby@v1
+lazy-actions/slatify@master
+lazy-actions/slatify@master

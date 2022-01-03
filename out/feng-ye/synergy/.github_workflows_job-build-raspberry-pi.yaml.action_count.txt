@@ -1,0 +1,2 @@
+actions/checkout@v2
+horochx/deploy-via-scp@master

@@ -1,0 +1,5 @@
+actions/checkout@v2
+getong/redis-action@v1
+vishnudxb/redis-cluster@1.0.5
+shivammathur/setup-php@v2
+ramsey/composer-install@v1

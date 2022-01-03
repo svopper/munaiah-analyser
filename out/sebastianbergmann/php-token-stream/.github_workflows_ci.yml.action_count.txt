@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/checkout@v2
+docker://ergebnis/composer-root-version-action:0.1.3
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+shivammathur/setup-php@v1
+actions/cache@v1
+docker://ergebnis/composer-root-version-action:0.1.3

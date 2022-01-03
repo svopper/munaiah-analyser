@@ -1,0 +1,3 @@
+actions/checkout@v1
+macmade/action-msbuild@v1.0.0
+macmade/action-slack@v1.0.0

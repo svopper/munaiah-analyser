@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@master
+actions/cache@v2
+WebFreak001/deploy-nightly@master
+SamKirkland/FTP-Deploy-Action@master
+peter-evans/repository-dispatch@master

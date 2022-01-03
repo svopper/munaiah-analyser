@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+johnwbyrd/update-release@v1.0.0

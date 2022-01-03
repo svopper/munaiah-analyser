@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v1
+actions/cache@v2
+octokit/graphql-action@v2.x
+octokit/graphql-action@v2.x

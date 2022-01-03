@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+shyim/junit-report-annotations-action@3d2e5374f2b13e70f6f3209a21adfdbc42c466ae

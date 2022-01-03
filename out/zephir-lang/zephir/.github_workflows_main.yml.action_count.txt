@@ -1,0 +1,10 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+./.github/workflows/build-linux-ext
+./.github/workflows/build-macos-ext
+./.github/workflows/build-win-ext
+codecov/codecov-action@v2
+actions/upload-artifact@v2

@@ -1,0 +1,3 @@
+actions/checkout@v2
+naveenrajm7/rpmbuild@v1.0.0
+actions/upload-artifact@v2.2.4

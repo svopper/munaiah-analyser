@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+codecov/codecov-action@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+cadwallion/publish-rubygems-action@1
+softprops/action-gh-release@v1

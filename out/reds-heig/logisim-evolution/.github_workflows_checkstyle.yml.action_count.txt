@@ -1,0 +1,3 @@
+actions/checkout@v2
+dorny/paths-filter@v2
+actions/checkout@v2

@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/download-artifact@v1
+azure/docker-login@v1
+./sources/nuttx/.github/actions/ci-container
+actions/upload-artifact@v2
+actions/download-artifact@v1
+actions/cache@v2
+actions/upload-artifact@v2

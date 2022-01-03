@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+lukka/get-cmake@v3.18.3
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/checkout@v2
+lukka/get-cmake@v3.18.3
+actions/upload-artifact@v1
+lukka/get-cmake@v3.18.3
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/download-artifact@v2
+pypa/gh-action-pypi-publish@master

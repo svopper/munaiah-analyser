@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/setup-python@v2
+actions/cache@v2
+c-hive/gha-npm-cache@v1
+actions/upload-artifact@v2

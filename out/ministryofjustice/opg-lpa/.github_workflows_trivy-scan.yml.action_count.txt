@@ -1,0 +1,5 @@
+actions/checkout@v2
+dorny/paths-filter@v2
+aquasecurity/trivy-action@master
+aquasecurity/trivy-action@master
+github/codeql-action/upload-sarif@v1

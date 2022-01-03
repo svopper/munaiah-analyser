@@ -1,0 +1,2 @@
+actions/checkout@v1
+pixta-dev/repository-mirroring-action@v1

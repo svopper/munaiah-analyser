@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/setup-python@v1
+RalfG/python-wheels-manylinux-build@v0.2.2-manylinux2010_x86_64
+pypa/gh-action-pypi-publish@master
+pypa/gh-action-pypi-publish@master

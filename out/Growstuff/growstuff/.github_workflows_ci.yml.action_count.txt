@@ -1,0 +1,7 @@
+actions/checkout@v2.3.4
+ruby/setup-ruby@v1
+actions/checkout@v2.3.4
+elastic/elastic-github-actions/elasticsearch@master
+actions/cache@v2.1.6
+actions/setup-node@v2.4.1
+ruby/setup-ruby@v1

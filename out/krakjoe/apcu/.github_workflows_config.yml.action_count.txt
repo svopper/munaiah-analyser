@@ -1,0 +1,3 @@
+actions/checkout@v2
+cmb69/setup-php-sdk@v0.1
+ilammy/msvc-dev-cmd@v1

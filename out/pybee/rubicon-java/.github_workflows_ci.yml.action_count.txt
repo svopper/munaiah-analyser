@@ -1,0 +1,10 @@
+actions/checkout@v1
+actions/setup-python@v1
+actions/checkout@master
+actions/setup-python@v1
+actions/setup-java@v1
+actions/checkout@master
+actions/setup-python@v1
+actions/setup-java@v1
+actions/checkout@master
+docker://i386/ubuntu:18.04

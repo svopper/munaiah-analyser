@@ -1,0 +1,9 @@
+actions/checkout@v2
+paulhatch/semantic-version@v4.0.1
+actions/setup-python@v2
+actions/cache@v2
+actions/setup-java@v2
+actions/cache@v2
+softprops/action-gh-release@v0.1.7
+schneegans/dynamic-badges-action@v1.0.0
+actions/upload-artifact@v2

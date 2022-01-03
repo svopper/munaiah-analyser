@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-node@v1
+actions/cache@v1
+snok/install-poetry@v1.1.2

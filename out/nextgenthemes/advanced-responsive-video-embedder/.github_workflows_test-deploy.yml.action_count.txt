@@ -1,0 +1,8 @@
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+shivammathur/setup-php@abfbe6a46b637e038be212af3c5d3475b3e3213c
+actions/cache@v1
+actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+./actions/wp-plugin-deploy

@@ -1,0 +1,2 @@
+srggrs/assign-one-project-github-action@1.2.0
+srggrs/assign-one-project-github-action@1.2.0

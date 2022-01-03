@@ -1,0 +1,1 @@
+getgauge-contrib/artifact_as_comment@master

@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v1
+whelk-io/maven-settings-xml-action@v4
+GabrielBB/xvfb-action@v1.0
+kappmeier/github-actions-maven-release@master

@@ -1,0 +1,6 @@
+actions/checkout@master
+actions/setup-python@v2
+TrueBrain/actions-flake8@main
+actions/checkout@master
+actions/setup-python@v2
+TrueBrain/actions-flake8@main

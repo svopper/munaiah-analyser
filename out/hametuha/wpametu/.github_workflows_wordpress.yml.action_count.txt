@@ -1,0 +1,7 @@
+actions/checkout@master
+nanasess/setup-php@master
+actions/setup-node@v1
+actions/checkout@master
+nanasess/setup-php@master
+actions/create-release@v1
+actions/upload-release-asset@v1.0.1

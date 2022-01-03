@@ -1,0 +1,6 @@
+actions/setup-ruby@v1
+actions/checkout@v2
+actions/cache@v2
+actions/upload-artifact@v2
+actions/github-script@0.4.0
+actions/upload-release-asset@v1.0.1

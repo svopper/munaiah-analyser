@@ -1,0 +1,2 @@
+actions/checkout@v2
+rlespinasse/github-slug-action@v3.x

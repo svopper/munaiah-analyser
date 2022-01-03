@@ -1,0 +1,5 @@
+actions/checkout@v2
+ncipollo/release-action@v1
+actions/checkout@master
+microsoft/setup-msbuild@v1
+ncipollo/release-action@v1

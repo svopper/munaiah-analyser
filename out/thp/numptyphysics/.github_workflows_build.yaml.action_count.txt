@@ -1,0 +1,3 @@
+actions/checkout@v2
+mymindstorm/setup-emsdk@v9
+actions/upload-artifact@v2

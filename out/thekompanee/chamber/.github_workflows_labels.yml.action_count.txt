@@ -1,0 +1,2 @@
+actions/checkout@v2
+micnncim/action-label-syncer@v1

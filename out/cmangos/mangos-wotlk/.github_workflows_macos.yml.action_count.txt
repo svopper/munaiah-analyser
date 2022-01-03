@@ -1,0 +1,2 @@
+actions/checkout@v2
+rjstone/discord-webhook-notify@v1.0.4

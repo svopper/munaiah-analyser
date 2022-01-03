@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+enthought/setup-edm-action@v1
+GabrielBB/xvfb-action@v1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1

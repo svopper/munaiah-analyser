@@ -1,0 +1,2 @@
+actions/checkout@v1
+Li357/jekyll-deploy-gh-pages@master

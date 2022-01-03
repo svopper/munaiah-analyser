@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2.1.2
+Gr1N/setup-poetry@v3
+actions/checkout@v2
+actions/setup-python@v2.1.2
+Gr1N/setup-poetry@v3

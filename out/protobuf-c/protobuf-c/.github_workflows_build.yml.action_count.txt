@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+uraimo/run-on-arch-action@v2.0.9
+actions/checkout@v2
+actions/checkout@v2
+coverallsapp/github-action@master
+actions/checkout@v2
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1
+actions/cache@v2

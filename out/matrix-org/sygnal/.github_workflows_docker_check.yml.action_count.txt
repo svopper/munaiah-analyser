@@ -1,0 +1,4 @@
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1
+actions/checkout@v2
+docker/build-push-action@v2

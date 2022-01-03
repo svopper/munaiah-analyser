@@ -1,0 +1,7 @@
+actions/checkout@v1
+actions/cache@v2
+actions/cache@v2
+actions/setup-java@v2
+gradle/wrapper-validation-action@v1
+scacap/action-surefire-report@v1
+actions/upload-artifact@v2

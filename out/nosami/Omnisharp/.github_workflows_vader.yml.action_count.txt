@@ -1,0 +1,3 @@
+actions/checkout@main
+actions/setup-dotnet@main
+rhysd/action-setup-vim@v1

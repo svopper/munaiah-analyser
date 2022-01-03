@@ -1,0 +1,8 @@
+actions/checkout@v2
+ilammy/setup-nasm@v1
+lukka/run-vcpkg@v7
+microsoft/setup-msbuild@v1.0.2
+actions/checkout@v2
+mikehardy/buildcache-action@v1
+actions/checkout@v2
+hendrikmuhs/ccache-action@v1

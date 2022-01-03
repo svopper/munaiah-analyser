@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+codecov/codecov-action@v1
+coverallsapp/github-action@master
+actions/checkout@master
+actions/setup-python@v1
+pypa/gh-action-pypi-publish@master
+pypa/gh-action-pypi-publish@master

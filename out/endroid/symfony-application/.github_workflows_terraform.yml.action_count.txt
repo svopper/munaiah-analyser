@@ -1,0 +1,3 @@
+actions/checkout@v2
+hashicorp/setup-terraform@v1
+actions/github-script@0.9.0

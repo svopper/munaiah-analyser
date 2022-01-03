@@ -1,0 +1,4 @@
+actions/checkout@v2
+aws-actions/configure-aws-credentials@v1
+aws-actions/amazon-ecr-login@v1
+jaroldwong/ecr-push-and-ecs-deploy@v1

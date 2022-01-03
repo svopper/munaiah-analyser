@@ -1,0 +1,3 @@
+actions/checkout@v2.3.5
+actions/setup-java@v2.3.1
+ChrisCarini/intellij-platform-plugin-verifier-action@v1.1.0

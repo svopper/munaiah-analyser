@@ -1,0 +1,2 @@
+styfle/cancel-workflow-action@0.9.0
+Morishiri/block-merge-commits-action@v1.0.1

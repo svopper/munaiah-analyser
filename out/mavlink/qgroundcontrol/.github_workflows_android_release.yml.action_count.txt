@@ -1,0 +1,4 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+actions/cache@v2
+EthanSK/git-branch-name-action@v1

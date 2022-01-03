@@ -1,0 +1,7 @@
+GoogleCloudPlatform/release-please-action@v2
+actions/checkout@v2
+actions/setup-python@v2
+docker/login-action@v1
+docker/metadata-action@v3
+docker/build-push-action@v2
+google-github-actions/setup-gcloud@master

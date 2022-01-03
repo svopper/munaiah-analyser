@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1.4.1
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+actions/setup-python@v2

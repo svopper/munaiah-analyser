@@ -1,0 +1,5 @@
+actions/checkout@master
+actions/setup-java@v1
+jakejarvis/s3-sync-action@master
+actions/checkout@master
+actions/setup-java@v1

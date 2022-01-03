@@ -1,0 +1,2 @@
+actions/checkout@v2
+svenstaro/upload-release-action@v2

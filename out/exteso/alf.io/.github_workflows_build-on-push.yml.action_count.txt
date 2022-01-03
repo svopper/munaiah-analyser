@@ -1,0 +1,10 @@
+actions/checkout@v1
+actions/cache@v1
+actions/cache@v1
+actions/setup-java@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+docker/setup-buildx-action@v1
+docker/login-action@v1
+rlespinasse/github-slug-action@v3.x
+docker/build-push-action@v2

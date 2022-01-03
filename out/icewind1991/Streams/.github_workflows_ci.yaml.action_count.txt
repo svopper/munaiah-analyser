@@ -1,0 +1,10 @@
+actions/checkout@master
+shivammathur/setup-php@v2
+OskarStark/php-cs-fixer-ga@2.16.7
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+codecov/codecov-action@v1
+actions/checkout@v2
+shivammathur/setup-php@v2

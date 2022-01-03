@@ -1,0 +1,3 @@
+actions/checkout@v2
+openwrt/gh-action-sdk@v1
+peaceiris/actions-gh-pages@v3

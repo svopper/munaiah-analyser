@@ -1,0 +1,9 @@
+actions/checkout@v2
+xarray-contrib/ci-trigger@v1.1
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/download-artifact@v2
+actions/github-script@v4.1

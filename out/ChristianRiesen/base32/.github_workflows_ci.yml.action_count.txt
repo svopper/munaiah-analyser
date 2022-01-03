@@ -1,0 +1,8 @@
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga
+actions/checkout@v2
+php-actions/composer@v5
+php-actions/phpstan@v2
+actions/checkout@v2
+php-actions/composer@v5
+php-actions/phpunit@v2

@@ -1,0 +1,3 @@
+actions/checkout@v1
+softprops/turnstyle@v1
+vitalyliber/dokku-github-action@master

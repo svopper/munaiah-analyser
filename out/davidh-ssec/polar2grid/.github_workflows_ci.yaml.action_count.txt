@@ -1,0 +1,6 @@
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+AndreMiras/coveralls-python-action@develop
+AndreMiras/coveralls-python-action@develop

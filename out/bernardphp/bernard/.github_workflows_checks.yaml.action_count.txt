@@ -1,0 +1,2 @@
+actions/checkout@v2
+docker://ergebnis/composer-normalize-action

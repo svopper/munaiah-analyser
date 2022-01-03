@@ -1,0 +1,2 @@
+actions/checkout@v2
+FriendsOfREDAXO/installer-action@1.0.0

@@ -1,0 +1,3 @@
+actions/checkout@v2
+addnab/docker-run-action@v3
+stefanzweifel/git-auto-commit-action@v4

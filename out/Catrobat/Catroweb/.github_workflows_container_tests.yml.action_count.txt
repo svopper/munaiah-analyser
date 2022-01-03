@@ -1,0 +1,4 @@
+actions/checkout@v2.3.5
+actions/upload-artifact@v2.2.4
+actions/upload-artifact@v2.2.4
+actions/upload-artifact@v2.2.4

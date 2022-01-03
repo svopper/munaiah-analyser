@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v1
+mikepenz/action-junit-report@v2
+actions/checkout@v2
+actions/setup-python@v1
+actions/checkout@v2
+actions/setup-python@v1
+cycjimmy/semantic-release-action@v2

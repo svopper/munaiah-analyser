@@ -1,0 +1,2 @@
+actions/checkout@v2
+limitusus/json-syntax-check@v1

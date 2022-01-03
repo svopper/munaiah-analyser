@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-python@v2
+coverallsapp/github-action@1.1.3

@@ -1,0 +1,2 @@
+actions/checkout@v2
+getnikola/nikola-action@v3

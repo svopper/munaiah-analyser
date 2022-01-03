@@ -1,0 +1,7 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+POV-Ray/povray/.github/actions/unix_getlibs@gh-actions-v1
+POV-Ray/povray/.github/actions/unix_prebuild@gh-actions-v1
+POV-Ray/povray/.github/actions/unix_configure@gh-actions-v1
+POV-Ray/povray/.github/actions/unix_make@gh-actions-v1
+github/codeql-action/analyze@v1

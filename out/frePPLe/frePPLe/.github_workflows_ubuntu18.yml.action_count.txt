@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-node@v2
+stefanzweifel/git-auto-commit-action@v4
+docker/login-action@v1
+softprops/action-gh-release@v1

@@ -1,0 +1,1 @@
+actions-ecosystem/action-remove-labels@v1

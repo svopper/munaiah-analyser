@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v1
+qcastel/github-actions-maven-release@v1.12.26

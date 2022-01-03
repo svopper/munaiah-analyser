@@ -1,0 +1,4 @@
+actions/checkout@v2
+anothrNick/github-tag-action@1.35.0
+scarhand/actions-ruby@master
+scarhand/actions-ruby@master

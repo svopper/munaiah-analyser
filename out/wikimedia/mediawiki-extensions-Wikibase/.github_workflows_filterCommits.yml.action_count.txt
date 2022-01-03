@@ -1,0 +1,10 @@
+actions/checkout@v2
+wmde/git-filter-repo-docker-action@v1
+actions/checkout@v2
+wmde/git-monorepo-splice-docker-action@v1
+actions/checkout@v2
+wmde/git-monorepo-splice-docker-action@v1
+actions/checkout@v2
+wmde/git-monorepo-splice-docker-action@v1
+actions/checkout@v2
+wmde/git-monorepo-splice-docker-action@v1

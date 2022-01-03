@@ -1,0 +1,2 @@
+actions/checkout@v1
+eregon/use-ruby-action@v1

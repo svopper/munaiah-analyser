@@ -1,0 +1,2 @@
+actions/checkout@master
+docker://oskarstark/phpstan-ga

@@ -1,0 +1,2 @@
+actions/checkout@v2
+stefanzweifel/git-auto-commit-action@v4

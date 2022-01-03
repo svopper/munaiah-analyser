@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+microsoft/setup-msbuild@v1.0.2
+actions/upload-artifact@v2

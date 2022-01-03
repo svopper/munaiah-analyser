@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-python@v1
+jurplel/install-qt-action@v2
+actions/checkout@v2
+actions/setup-python@v1
+jurplel/install-qt-action@v2
+actions/checkout@v2
+egor-tensin/vs-shell@v2
+jurplel/install-qt-action@v2

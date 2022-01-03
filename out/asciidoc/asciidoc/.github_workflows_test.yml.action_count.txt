@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v1
+actions/checkout@v2
+actions/setup-python@v2
+deadsnakes/action@v2.1.1
+codecov/codecov-action@v2
+actions/checkout@v2
+actions/setup-python@v1

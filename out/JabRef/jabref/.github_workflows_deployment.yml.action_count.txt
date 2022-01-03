@@ -1,0 +1,15 @@
+styfle/cancel-workflow-action@0.9.1
+actions/checkout@v2
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+actions/setup-java@v2
+apple-actions/import-codesign-certs@v1
+apple-actions/import-codesign-certs@v1
+actions/upload-artifact@master
+actions/checkout@v2
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+actions/download-artifact@master
+actions/download-artifact@master
+actions/download-artifact@master
+Pendect/action-rsyncer@v1.1.0

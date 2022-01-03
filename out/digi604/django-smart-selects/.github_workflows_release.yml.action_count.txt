@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+svenstaro/upload-release-action@483c1e56f95e88835747b1c7c60581215016cbf2
+pypa/gh-action-pypi-publish@master

@@ -1,0 +1,2 @@
+actions/checkout@v2
+StevenDufresne/wp-theme-validation-action-experiment@main

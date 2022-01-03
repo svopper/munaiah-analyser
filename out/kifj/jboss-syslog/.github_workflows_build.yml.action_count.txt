@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v1
+EnricoMi/publish-unit-test-result-action@v1.6

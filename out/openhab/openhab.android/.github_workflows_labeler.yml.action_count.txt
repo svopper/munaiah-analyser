@@ -1,0 +1,1 @@
+paulfantom/periodic-labeler@v0.0.1

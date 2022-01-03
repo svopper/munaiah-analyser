@@ -1,0 +1,11 @@
+actions/checkout@v2
+carlosperate/download-file-action@v1.0.3
+gr2m/create-or-update-pull-request-action@v1.x
+actions/checkout@v2
+gr2m/create-or-update-pull-request-action@v1.x
+actions/checkout@v2
+gr2m/create-or-update-pull-request-action@v1.x
+actions/checkout@v2
+gr2m/create-or-update-pull-request-action@v1.x
+actions/checkout@v2
+gr2m/create-or-update-pull-request-action@v1.x

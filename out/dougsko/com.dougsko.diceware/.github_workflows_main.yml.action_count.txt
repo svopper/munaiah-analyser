@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-java@v1
+subosito/flutter-action@v1
+maierj/fastlane-action@v1.4.0

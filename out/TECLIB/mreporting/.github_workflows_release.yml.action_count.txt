@@ -1,0 +1,4 @@
+actions/checkout@v2
+glpi-project/tools/github-actions/build-package@0.1.15
+actions/create-release@v1
+actions/upload-release-asset@v1

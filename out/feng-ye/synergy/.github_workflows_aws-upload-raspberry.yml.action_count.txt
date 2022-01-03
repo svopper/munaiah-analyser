@@ -1,0 +1,2 @@
+actions/checkout@v2
+shallwefootball/s3-upload-action@master

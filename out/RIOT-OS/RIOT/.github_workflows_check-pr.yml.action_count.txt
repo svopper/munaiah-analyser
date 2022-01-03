@@ -1,0 +1,2 @@
+RIOT-OS/check-labels-action@v1.0.0
+actions/checkout@master

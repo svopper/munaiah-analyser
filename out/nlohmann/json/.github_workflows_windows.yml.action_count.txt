@@ -1,0 +1,8 @@
+actions/checkout@v2
+egor-tensin/setup-mingw@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2

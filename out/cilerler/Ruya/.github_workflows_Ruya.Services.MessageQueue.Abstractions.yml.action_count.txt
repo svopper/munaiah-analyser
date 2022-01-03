@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/create-release@v1
+actions/upload-release-asset@v1

@@ -1,0 +1,2 @@
+actions/checkout@master
+devmasx/merge-branch@v1.3.1

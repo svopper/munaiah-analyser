@@ -1,0 +1,6 @@
+actions/checkout@v2
+hendrikmuhs/ccache-action@v1
+ASzc/change-string-case-action@v1
+addnab/docker-run-action@v3
+addnab/docker-run-action@v3
+actions/upload-artifact@v2

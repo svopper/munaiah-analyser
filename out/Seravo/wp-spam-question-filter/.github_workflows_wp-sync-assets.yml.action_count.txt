@@ -1,0 +1,2 @@
+actions/checkout@master
+seravo/action-wordpress-plugin-asset-update@master

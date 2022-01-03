@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/upload-artifact@v1.0.0
+actions/checkout@v1
+docker/setup-qemu-action@v1
+actions/upload-artifact@v1.0.0

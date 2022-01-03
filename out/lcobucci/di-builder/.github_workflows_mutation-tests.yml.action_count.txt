@@ -1,0 +1,4 @@
+actions/checkout@v2.3.5
+shivammathur/setup-php@2.15.0
+actions/cache@v2.1.6
+codecov/codecov-action@v2.1.0

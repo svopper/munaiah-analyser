@@ -1,0 +1,5 @@
+actions/checkout@v2
+uraimo/run-on-arch-action@v1.0.9
+actions/checkout@v2
+actions/checkout@v2
+vmactions/freebsd-vm@v0.0.9

@@ -1,0 +1,5 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v2
+bruceadams/get-release@v1.2.2
+actions/upload-release-asset@v1

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+actions/setup-ruby@v1
+actions/setup-node@v1
+percy/storybook-action@v0.1.6

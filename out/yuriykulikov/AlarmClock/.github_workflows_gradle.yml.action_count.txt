@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-java@v2
+reactivecircus/android-emulator-runner@v2
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-java@v2
+r0adkll/sign-android-release@v1
+r0adkll/upload-google-play@v1
+actions/checkout@v2
+actions/setup-java@v2
+r0adkll/sign-android-release@v1
+r0adkll/upload-google-play@v1

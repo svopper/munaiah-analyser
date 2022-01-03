@@ -1,0 +1,10 @@
+shivammathur/setup-php@v2
+actions/checkout@v2
+Eun/http-server-action@v1
+actions/upload-artifact@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+Eun/http-server-action@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2

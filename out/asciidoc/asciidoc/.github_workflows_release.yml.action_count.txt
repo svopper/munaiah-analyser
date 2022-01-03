@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+pypa/gh-action-pypi-publish@release/v1
+dawidd6/action-homebrew-bump-formula@v3

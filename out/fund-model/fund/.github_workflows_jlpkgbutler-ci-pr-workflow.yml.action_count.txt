@@ -1,0 +1,6 @@
+actions/checkout@v2
+julia-actions/setup-julia@latest
+julia-actions/julia-buildpkg@latest
+julia-actions/julia-runtest@latest
+julia-actions/julia-processcoverage@v1
+codecov/codecov-action@v1

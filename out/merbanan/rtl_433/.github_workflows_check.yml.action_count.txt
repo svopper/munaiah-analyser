@@ -1,0 +1,7 @@
+actions/checkout@v2
+lukka/run-cmake@v3
+lukka/run-cmake@v3
+actions/checkout@v2
+./.github/actions/style-check
+actions/checkout@v2
+actions/checkout@v2

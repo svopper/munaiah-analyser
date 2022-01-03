@@ -1,0 +1,1 @@
+mislav/bump-homebrew-formula-action@v1.4

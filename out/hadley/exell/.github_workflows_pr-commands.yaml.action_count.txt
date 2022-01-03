@@ -1,0 +1,8 @@
+actions/checkout@v2
+r-lib/actions/pr-fetch@v1
+r-lib/actions/setup-r@v1
+r-lib/actions/pr-push@v1
+actions/checkout@v2
+r-lib/actions/pr-fetch@v1
+r-lib/actions/setup-r@v1
+r-lib/actions/pr-push@v1

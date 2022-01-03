@@ -1,0 +1,4 @@
+docker/login-action@v1
+actions/checkout@v2
+docker/login-action@v1
+actions/checkout@v2

@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-python@v1
+actions/cache@v1.1.0
+actions/upload-artifact@v1
+actions/upload-artifact@v2-preview
+technote-space/workflow-conclusion-action@v2.0.1
+8398a7/action-slack@v3.8.1

@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v1
+stCarolas/setup-maven@v4
+mxschmitt/action-tmate@v3
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v1
+stCarolas/setup-maven@v4
+s4u/maven-settings-action@v2
+codecov/codecov-action@v1

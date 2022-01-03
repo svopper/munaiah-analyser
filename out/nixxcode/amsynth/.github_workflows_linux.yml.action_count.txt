@@ -1,0 +1,3 @@
+actions/checkout@v1
+codecov/codecov-action@v1.0.4
+actions/upload-artifact@v2

@@ -1,0 +1,4 @@
+actions/checkout@v2.3.5
+ruby/setup-ruby@v1
+battila7/get-version-action@v2
+ad-m/github-push-action@master

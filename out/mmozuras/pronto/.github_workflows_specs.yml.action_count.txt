@@ -1,0 +1,3 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+paambaati/codeclimate-action@7bcf9e73c0ee77d178e72c0ec69f1a99c1afc1f3

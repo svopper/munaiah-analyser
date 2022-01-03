@@ -1,0 +1,2 @@
+actions/checkout@v2
+docker://decathlon/wiki-page-creator-action:latest

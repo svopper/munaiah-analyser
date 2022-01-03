@@ -1,0 +1,5 @@
+laminas/laminas-ci-matrix-action@1.11.4
+laminas/laminas-continuous-integration-action@1.13.2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2

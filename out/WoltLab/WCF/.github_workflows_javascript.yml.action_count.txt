@@ -1,0 +1,2 @@
+actions/setup-node@v2
+actions/checkout@v2

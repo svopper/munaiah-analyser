@@ -1,0 +1,13 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/create-release@v1
+actions/checkout@v2
+actions/setup-python@v2
+Homebrew/actions/setup-homebrew@master
+actions/upload-release-asset@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/download-artifact@v1
+actions/checkout@v2
+actions/setup-python@v2

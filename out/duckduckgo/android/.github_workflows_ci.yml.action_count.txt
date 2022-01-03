@@ -1,0 +1,5 @@
+styfle/cancel-workflow-action@0.7.0
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+actions/setup-java@v2
+actions/upload-artifact@v2

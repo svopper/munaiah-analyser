@@ -1,0 +1,12 @@
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+docker/build-push-action@v1
+docker/build-push-action@v1
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+docker/build-push-action@v1
+docker/build-push-action@v1
+actions/checkout@v2
+textbook/git-checkout-submodule-action@master
+docker/build-push-action@v1
+docker/build-push-action@v1

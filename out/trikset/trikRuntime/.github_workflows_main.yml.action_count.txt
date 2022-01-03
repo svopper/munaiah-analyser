@@ -1,0 +1,4 @@
+n1hility/cancel-previous-runs@v2.0
+actions/checkout@v2
+jurplel/install-qt-action@v2
+actions/setup-python@v2

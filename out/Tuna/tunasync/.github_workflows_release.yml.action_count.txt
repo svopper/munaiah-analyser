@@ -1,0 +1,3 @@
+actions/setup-go@v1
+actions/checkout@v2
+actions/create-release@v1

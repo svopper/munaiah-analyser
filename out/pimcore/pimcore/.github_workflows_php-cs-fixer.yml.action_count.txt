@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga:latest
+stefanzweifel/git-auto-commit-action@v4

@@ -1,0 +1,7 @@
+actions/checkout@v2
+nanasess/setup-chromedriver@master
+ruby/setup-ruby@v1
+actions/setup-node@v2
+actions/cache@v1
+actions/checkout@v2
+hashicorp/setup-terraform@v1

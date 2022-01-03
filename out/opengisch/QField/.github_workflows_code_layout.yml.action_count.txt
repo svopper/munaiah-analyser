@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+pre-commit/action@v2.0.3

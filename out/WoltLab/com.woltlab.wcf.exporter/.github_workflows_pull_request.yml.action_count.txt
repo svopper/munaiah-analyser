@@ -1,0 +1,2 @@
+gsactions/commit-message-checker@c61c81192182bbc0d5e41b4796e3b71684228c77
+gsactions/commit-message-checker@c61c81192182bbc0d5e41b4796e3b71684228c77

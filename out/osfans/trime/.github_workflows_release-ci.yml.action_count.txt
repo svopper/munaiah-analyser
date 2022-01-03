@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v2
+android-actions/setup-android@v2
+ncipollo/release-action@v1

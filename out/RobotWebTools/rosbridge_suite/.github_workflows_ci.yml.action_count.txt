@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+pre-commit/action@v2.0.3
+actions/checkout@v2
+ros-tooling/setup-ros@v0.2
+ros-tooling/action-ros-ci@v0.2

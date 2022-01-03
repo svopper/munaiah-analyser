@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+stCarolas/setup-maven@v4.2
+actions/setup-java@v2
+actions/cache@v2

@@ -1,0 +1,5 @@
+seL4/ci-actions/gitlint@master
+seL4/ci-actions/git-diff-check@master
+seL4/ci-actions/bashisms@master
+seL4/ci-actions/style@master
+seL4/ci-actions/preprocess@master

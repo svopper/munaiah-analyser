@@ -1,0 +1,1 @@
+styfle/cancel-workflow-action@0.6.0

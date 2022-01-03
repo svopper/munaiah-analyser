@@ -1,0 +1,5 @@
+dev-drprasad/delete-tag-and-release@v0.1.2
+msys2/setup-msys2@v2
+actions/checkout@v2
+johnwbyrd/update-release@v1.0.0
+johnwbyrd/update-release@v1.0.0

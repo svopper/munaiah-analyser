@@ -1,0 +1,4 @@
+actions/setup-python@v2
+webfactory/ssh-agent@v0.4.1
+actions/checkout@v2
+actions/upload-artifact@v2

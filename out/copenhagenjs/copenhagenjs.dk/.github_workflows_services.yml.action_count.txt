@@ -1,0 +1,3 @@
+actions/checkout@master
+docker://gcr.io/cloud-builders/bazel
+docker://gcr.io/cloud-builders/bazel

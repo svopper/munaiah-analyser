@@ -1,0 +1,9 @@
+actions/checkout@v2
+ammaraskar/gcc-problem-matcher@master
+actions/checkout@v2
+actions/cache@v2
+ammaraskar/gcc-problem-matcher@master
+actions/checkout@v2
+actions/cache@v2
+ammaraskar/msvc-problem-matcher@master
+ilammy/msvc-dev-cmd@v1

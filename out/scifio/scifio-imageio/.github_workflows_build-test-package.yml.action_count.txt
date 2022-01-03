@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/setup-python@v1
+lukka/get-cmake@v3.18.3

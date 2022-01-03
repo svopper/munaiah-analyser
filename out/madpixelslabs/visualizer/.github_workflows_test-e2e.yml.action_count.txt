@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-node@v2
+actions/cache@v2
+cypress-io/github-action@v2

@@ -1,0 +1,8 @@
+actions/checkout@v2
+jakejarvis/s3-sync-action@master
+jakejarvis/s3-sync-action@master
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1
+actions/upload-release-asset@v1.0.1

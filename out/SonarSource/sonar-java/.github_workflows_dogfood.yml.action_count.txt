@@ -1,0 +1,3 @@
+SonarSource/gh-action_dogfood_merge@master
+Ilshidur/action-slack@1.6.2
+Ilshidur/action-slack@1.6.2

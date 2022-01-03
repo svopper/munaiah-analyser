@@ -1,0 +1,4 @@
+actions/checkout@master
+actions/setup-python@v1
+seanmiddleditch/gha-setup-vsdevenv@master
+BSFishy/meson-build@v1.0.1

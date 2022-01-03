@@ -1,0 +1,15 @@
+actions/checkout@v2.0.0
+prestashop/github-action-php-lint/5.6@master
+prestashop/github-action-php-lint/7.2@master
+prestashop/github-action-php-lint/7.3@master
+shivammathur/setup-php@v2
+actions/checkout@v2.0.0
+actions/cache@v2
+shivammathur/setup-php@v2
+actions/checkout@v2.0.0
+actions/cache@v1
+actions/cache@v1
+shivammathur/setup-php@v2
+actions/checkout@v2.0.0
+actions/cache@v1
+actions/cache@v1

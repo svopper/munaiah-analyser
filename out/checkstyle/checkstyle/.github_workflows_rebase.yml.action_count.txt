@@ -1,0 +1,3 @@
+khan/pull-request-comment-trigger@master
+actions/checkout@v2
+cirrus-actions/rebase@1.3.1

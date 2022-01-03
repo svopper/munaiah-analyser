@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/setup-java@v2
+bruceadams/get-release@v1.2.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2
+actions/upload-release-asset@v1.0.2

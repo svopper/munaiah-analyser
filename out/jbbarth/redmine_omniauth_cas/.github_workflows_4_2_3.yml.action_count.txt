@@ -1,0 +1,7 @@
+actions/checkout@v2
+nanasess/setup-chromedriver@master
+actions/setup-ruby@v1
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2

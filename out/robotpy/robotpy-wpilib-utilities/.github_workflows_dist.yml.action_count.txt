@@ -1,0 +1,12 @@
+actions/checkout@v2
+psf/black@stable
+actions/checkout@v2
+actions/setup-python@v2
+robotpy/build-actions/install-pure-build-deps@v2021
+robotpy/build-actions/build-wheel@v2021
+robotpy/build-actions/test-native-wheel@v2021
+robotpy/build-actions/validate-sphinx@v2021
+actions/checkout@v2
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@master
+robotpy/build-actions/ping-meta@v2021

@@ -1,0 +1,3 @@
+actions/checkout@v2
+conda-incubator/setup-miniconda@v2
+ilammy/msvc-dev-cmd@v1

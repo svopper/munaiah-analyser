@@ -1,0 +1,7 @@
+hmanzur/actions-set-secret@v2.0.0
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2

@@ -1,0 +1,3 @@
+actions/checkout@v2
+repo-sync/github-sync@v2
+repo-sync/pull-request@v2

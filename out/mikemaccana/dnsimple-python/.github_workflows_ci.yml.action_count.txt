@@ -1,0 +1,7 @@
+actions/checkout@v2
+nosborn/github-action-markdown-cli@v2.0.0
+actions/checkout@v2
+actionshub/yamllint@main
+actions/checkout@v2
+actions/setup-python@v2
+Gamesight/slack-workflow-status@master

@@ -1,0 +1,2 @@
+actions/checkout@master
+arduino/setup-arduino-cli@v1.1.1

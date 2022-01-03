@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+JamesIves/github-pages-deploy-action@4.1.4
+actions/first-interaction@v1

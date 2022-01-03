@@ -1,0 +1,3 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+pat-s/always-upload-cache@v1.1.4

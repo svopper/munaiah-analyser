@@ -1,0 +1,4 @@
+actions/checkout@v2
+thomaseizinger/keep-a-changelog-new-release@1.2.1
+stefanzweifel/git-auto-commit-action@v4.12.0
+thomaseizinger/create-pull-request@1.2.1

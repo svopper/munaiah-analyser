@@ -1,0 +1,6 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+fiam/arm-none-eabi-gcc@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+eine/tip@master

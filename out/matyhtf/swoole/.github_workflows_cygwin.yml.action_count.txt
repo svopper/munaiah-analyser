@@ -1,0 +1,2 @@
+egor-tensin/setup-cygwin@v3
+actions/upload-release-asset@v1

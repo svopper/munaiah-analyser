@@ -1,0 +1,5 @@
+actions/checkout@v2
+docker/login-action@v1
+yuya-takeyama/docker-tag-from-github-ref-action@v1
+docker/build-push-action@v2
+docker/build-push-action@v2

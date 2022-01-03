@@ -1,0 +1,11 @@
+actions/checkout@v1
+jakejarvis/s3-sync-action@master
+actions/checkout@v1
+actions/checkout@v1
+jakejarvis/s3-sync-action@master
+actions/checkout@v1
+jakejarvis/s3-sync-action@master
+actions/checkout@v1
+actions/checkout@v1
+actions/checkout@v1
+actions/checkout@v1

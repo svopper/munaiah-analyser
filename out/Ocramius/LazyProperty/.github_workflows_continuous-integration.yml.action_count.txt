@@ -1,0 +1,2 @@
+laminas/laminas-ci-matrix-action@1.10.1
+laminas/laminas-continuous-integration-action@1.12.0

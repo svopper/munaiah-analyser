@@ -1,0 +1,7 @@
+actions/setup-java@v1
+actions/setup-java@v1
+actions/setup-java@v1
+actions/setup-java@v1
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2

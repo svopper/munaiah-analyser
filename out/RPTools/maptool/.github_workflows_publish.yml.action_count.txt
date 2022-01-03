@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/cache@v1
+2m/arch-pkgbuild-builder@v1.16
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

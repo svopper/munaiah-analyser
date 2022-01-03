@@ -1,0 +1,8 @@
+actions/checkout@v2
+./.github/actions/setup-ci
+actions/checkout@v2
+./.github/actions/copr-build
+actions/checkout@v2
+./.github/actions/integration-tests
+actions/checkout@v2
+./.github/actions/ansible-tests

@@ -1,0 +1,12 @@
+actions/checkout@v2
+docker://pyscf/pyscf-pypa-env:latest
+pypa/gh-action-pypi-publish@release/v1
+actions/checkout@v2
+pypa/gh-action-pypi-publish@release/v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+docker://pyscf/pyscf-conda-env:latest
+docker/login-action@v1
+battila7/get-version-action@v2
+docker/build-push-action@v2

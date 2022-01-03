@@ -1,0 +1,4 @@
+actions/checkout@v2
+puppets-epic-show-theatre/action-pdk-validate@v1
+actions/checkout@v2
+puppets-epic-show-theatre/action-pdk-test-unit@v1

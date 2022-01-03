@@ -1,0 +1,12 @@
+actions/checkout@v2
+FranzDiebold/github-env-vars-action@v2
+actions/cache@v2
+MarkusJx/install-boost@v1.0.1
+actions/upload-artifact@v2
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+marvinpinto/action-automatic-releases@latest
+rjstone/discord-webhook-notify@v1.0.4

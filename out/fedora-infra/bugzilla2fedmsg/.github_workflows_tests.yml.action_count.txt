@@ -1,0 +1,5 @@
+actions/checkout@v2
+fedora-python/tox-github-action@master
+actions/checkout@v2
+fedora-python/tox-github-action@master
+codecov/codecov-action@v1

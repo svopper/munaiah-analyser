@@ -1,0 +1,5 @@
+actions/checkout@v2
+heinrichreimer/github-changelog-generator-action@v2.2
+stefanzweifel/git-auto-commit-action@v4.11.0
+ffurrer2/extract-release-notes@v1
+actions/create-release@v1

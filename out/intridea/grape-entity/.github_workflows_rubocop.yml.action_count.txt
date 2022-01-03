@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-ruby@v1
+duderman/rubocop-annotate-action@v0.1.0

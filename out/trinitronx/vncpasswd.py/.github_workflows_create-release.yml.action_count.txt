@@ -1,0 +1,3 @@
+actions/checkout@v2
+nuuday/github-changelog-action@v1.0.1
+actions/create-release@v1

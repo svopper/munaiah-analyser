@@ -1,0 +1,2 @@
+actions/checkout@v2
+rickstaa/action-black@v1

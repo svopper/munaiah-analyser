@@ -1,0 +1,10 @@
+actions/checkout@master
+whoan/docker-build-with-cache-action@v5.10.0
+actions/upload-artifact@master
+actions/checkout@master
+actions/download-artifact@master
+actions/download-artifact@master
+actions/download-artifact@master
+actions/download-artifact@master
+actions/upload-release-asset@v1
+actions/upload-release-asset@v1

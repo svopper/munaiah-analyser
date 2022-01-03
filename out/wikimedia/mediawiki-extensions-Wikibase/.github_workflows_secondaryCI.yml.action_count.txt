@@ -1,0 +1,5 @@
+actions/checkout@v2
+mirromutth/mysql-action@v1.1
+shivammathur/setup-php@v2
+actions/cache@v2
+dawidd6/action-send-mail@v3.5.0

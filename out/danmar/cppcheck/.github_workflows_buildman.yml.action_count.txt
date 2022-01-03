@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://pandoc/latex:2.9
+docker://pandoc/latex:2.9
+actions/upload-artifact@v2

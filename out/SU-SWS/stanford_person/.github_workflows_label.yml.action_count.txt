@@ -1,0 +1,3 @@
+actions/checkout@v2
+codelytv/pr-size-labeler@v1
+banyan/auto-label@1.2

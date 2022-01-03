@@ -1,0 +1,2 @@
+actions/checkout@v2
+banyan/auto-label@1.2

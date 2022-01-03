@@ -1,0 +1,7 @@
+peter-evans/create-or-update-comment@v1
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/setup-node@v2
+stefanzweifel/git-auto-commit-action@v4

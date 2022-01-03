@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+./.github/actions/run-benchmarks
+actions/upload-artifact@v2
+carlosperate/download-file-action@v1.0.3
+actions/download-artifact@v1
+actions/checkout@v2
+actions/setup-dotnet@v1
+actions/upload-artifact@v2

@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions-rs/cargo@v1
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+svenstaro/upload-release-action@v1-release

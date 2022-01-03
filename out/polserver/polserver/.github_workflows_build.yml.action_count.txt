@@ -1,0 +1,15 @@
+actions/checkout@v2
+actions/setup-python@v2
+seanmiddleditch/gha-setup-vsdevenv@v3
+actions/cache@v2
+actions/cache@v2
+actions/cache@v2
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+actions/download-artifact@v1
+turleypol/release_action_dist@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master

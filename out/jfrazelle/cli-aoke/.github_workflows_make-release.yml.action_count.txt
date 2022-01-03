@@ -1,0 +1,4 @@
+actions/checkout@master
+docker://golang:latest
+docker://r.j3ss.co/github-dev
+docker://r.j3ss.co/pepper

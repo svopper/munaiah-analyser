@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/checkout@v2
+./support/actions/apt-get-install
+actions/setup-python@v2
+./support/actions/python-tools
+./support/actions/checkout-spinn-deps
+./support/actions/install-matplotlib
+./support/actions/run-setup
+./support/actions/configure-spynnaker
+./support/actions/pytest
+./support/actions/pylint
+./support/actions/check-copyrights
+./support/actions/validate-xml
+./support/actions/sphinx

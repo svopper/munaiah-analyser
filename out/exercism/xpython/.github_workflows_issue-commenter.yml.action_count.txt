@@ -1,0 +1,3 @@
+actions/checkout@v2.3.4
+juliangruber/read-file-action@v1
+jd-0001/gh-action-comment-on-new-issue@v2.0.3

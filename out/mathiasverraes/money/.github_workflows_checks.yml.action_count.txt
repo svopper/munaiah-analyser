@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://composer
+docker://composer
+docker://composer

@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-node@v2
+actions/setup-python@v2
+smartsquaregmbh/delete-old-packages@v0.3.1

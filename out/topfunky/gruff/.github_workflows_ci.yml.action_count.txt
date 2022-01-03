@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@master
+r7kamura/rubocop-problem-matchers-action@v1.1.0
+actions/checkout@v2
+ruby/setup-ruby@master
+actions/checkout@v2
+ruby/setup-ruby@master

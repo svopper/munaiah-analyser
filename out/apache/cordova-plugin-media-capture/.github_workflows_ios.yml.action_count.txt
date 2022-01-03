@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-node@v2
+maxim-lobanov/setup-xcode@881be567d30efed8fb3f12b5099d68c3fb72aa3d

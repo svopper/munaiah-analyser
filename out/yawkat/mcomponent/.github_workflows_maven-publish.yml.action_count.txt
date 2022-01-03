@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/setup-java@v1
+samuelmeuli/action-maven-publish@v1.0.0

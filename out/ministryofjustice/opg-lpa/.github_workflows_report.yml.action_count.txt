@@ -1,0 +1,2 @@
+actions/checkout@v2
+ministryofjustice/opg-repository-scanner@latest

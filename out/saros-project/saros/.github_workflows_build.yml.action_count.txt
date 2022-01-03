@@ -1,0 +1,9 @@
+actions/checkout@v2
+m273d15/java-format-action@v1.1
+actions/checkout@v2
+actions/setup-java@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1

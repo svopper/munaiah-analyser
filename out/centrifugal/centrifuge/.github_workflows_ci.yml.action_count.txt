@@ -1,0 +1,6 @@
+actions/checkout@v2
+golangci/golangci-lint-action@v2
+actions/setup-go@v2
+actions/checkout@v2
+supercharge/redis-github-action@1.1.0
+codecov/codecov-action@v1

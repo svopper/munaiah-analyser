@@ -1,0 +1,7 @@
+fkirc/skip-duplicate-actions@master
+actions/checkout@v2
+ramsey/composer-install@v1
+nvuillam/mega-linter/flavors/php@v4
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1

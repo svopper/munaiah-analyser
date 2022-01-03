@@ -1,0 +1,6 @@
+actions/checkout@v1
+actions/setup-java@v1
+actions/checkout@v1
+digipost/action-maven-publish@1.1.0
+actions/checkout@v1
+digipost/action-maven-publish@1.1.0

@@ -1,0 +1,5 @@
+actions/checkout@v2
+msys2/setup-msys2@v2
+msys2/setup-msys2@v2
+softprops/action-gh-release@v1
+softprops/action-gh-release@v1

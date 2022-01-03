@@ -1,0 +1,1 @@
+apexskier/github-release-commenter@v1.2

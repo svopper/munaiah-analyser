@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+codecov/codecov-action@v1
+actions/upload-artifact@v1
+NyanKiyoshi/pytest-django-queries-ci-tools@v1
+NyanKiyoshi/pytest-django-queries-ci-tools@v1

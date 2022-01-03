@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+codespell-project/actions-codespell@master
+actions/checkout@v2
+actions/setup-python@v2

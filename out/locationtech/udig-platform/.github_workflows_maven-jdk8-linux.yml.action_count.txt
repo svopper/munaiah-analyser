@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/cache@v2
+actions/setup-python@v1
+BSFishy/pip-action@v1
+GabrielBB/xvfb-action@v1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2

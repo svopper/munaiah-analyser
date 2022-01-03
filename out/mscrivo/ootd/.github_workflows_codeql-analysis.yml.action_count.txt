@@ -1,0 +1,5 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+actions/setup-dotnet@v1.8.1
+github/codeql-action/analyze@v1
+github/codeql-action/upload-sarif@v1

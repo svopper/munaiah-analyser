@@ -1,0 +1,2 @@
+actions/checkout@1.0.0
+lannonbr/issue-label-manager-action@2.0.0

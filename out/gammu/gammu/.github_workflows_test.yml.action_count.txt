@@ -1,0 +1,7 @@
+actions/checkout@v2.3.5
+codecov/codecov-action@v2.1.0
+actions/checkout@v2.3.5
+ilammy/msvc-dev-cmd@v1
+codecov/codecov-action@v2.1.0
+actions/checkout@v2.3.5
+codecov/codecov-action@v2.1.0

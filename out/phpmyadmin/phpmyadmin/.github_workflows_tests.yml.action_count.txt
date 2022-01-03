@@ -1,0 +1,16 @@
+actions/checkout@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+codecov/codecov-action@v1
+sudo-bot/action-scrutinizer@latest
+codacy/codacy-coverage-reporter-action@master
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+codecov/codecov-action@v1
+sudo-bot/action-scrutinizer@latest
+codacy/codacy-coverage-reporter-action@master
+actions/checkout@v2
+actions/setup-node@v1
+actions/cache@v2

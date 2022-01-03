@@ -1,0 +1,8 @@
+actions/checkout@v2
+docker://oskarstark/phpstan-ga
+actions/checkout@v2
+docker://oskarstark/php-cs-fixer-ga
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@v2
+codecov/codecov-action@v1

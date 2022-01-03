@@ -1,0 +1,8 @@
+actions/checkout@v2
+php-actions/composer@v6
+php-actions/phpunit@v3
+php-actions/phpunit@v3
+php-actions/phpunit@v3
+php-actions/phpunit@v3
+php-actions/phpunit@v3
+php-actions/phpunit@v3

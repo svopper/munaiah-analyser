@@ -1,0 +1,1 @@
+docker://docker.io/ilyam8/periodic-pr-labeler:v0.1.0

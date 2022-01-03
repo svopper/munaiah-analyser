@@ -1,0 +1,4 @@
+actions/checkout@v2
+EthanSK/git-branch-name-action@v1
+actions/upload-artifact@v2
+act10ns/slack@v1

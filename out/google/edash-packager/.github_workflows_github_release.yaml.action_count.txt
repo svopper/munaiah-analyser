@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/create-release@v1
+actions/checkout@v2
+./src/.github/workflows/custom-actions/lint-packager
+actions/checkout@v2
+./src/.github/workflows/custom-actions/build-docs
+./src/.github/workflows/custom-actions/build-packager
+./src/.github/workflows/custom-actions/test-packager
+dwenegar/upload-release-assets@v1
+actions/checkout@v2
+eregon/publish-release@v1

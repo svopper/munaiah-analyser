@@ -1,0 +1,3 @@
+docker/login-action@v1
+actions/checkout@v2
+actions/setup-node@v2

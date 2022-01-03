@@ -1,0 +1,13 @@
+actions/checkout@v2
+symfonycorp/security-checker-action@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+ktomk/run-travis-yml@v1
+actions/checkout@v2
+actions/cache@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+actions/cache@v2
+codecov/codecov-action@v1

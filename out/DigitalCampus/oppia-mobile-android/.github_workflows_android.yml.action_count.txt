@@ -1,0 +1,5 @@
+actions/checkout@v1
+actions/setup-java@v1
+actions/checkout@v1
+actions/checkout@v1
+reactivecircus/android-emulator-runner@v1

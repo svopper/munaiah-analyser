@@ -1,0 +1,4 @@
+actions/checkout@master
+ilammy/msvc-dev-cmd@v1
+jurplel/install-qt-action@v2.8.0
+actions/upload-release-asset@v1

@@ -1,0 +1,8 @@
+FranzDiebold/github-env-vars-action@v1.2.1
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+andstor/file-existence-action@v1
+scherermichael-oss/action-has-permission@master
+actions/github-script@v3

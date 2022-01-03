@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker://decathlon/release-notes-generator-action:2.0.1
+actions/create-release@v1

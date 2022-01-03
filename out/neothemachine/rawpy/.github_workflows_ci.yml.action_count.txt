@@ -1,0 +1,10 @@
+actions/checkout@v1
+actions/upload-artifact@v1
+actions/checkout@v1
+actions/setup-python@v1
+actions/download-artifact@v1
+actions/upload-artifact@v1
+actions/download-artifact@v1
+actions/setup-python@v1
+actions/download-artifact@v1
+peaceiris/actions-gh-pages@47a6d63ea8b47b19328e258563aa1fbe224c0a23

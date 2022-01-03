@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v1
+whelk-io/maven-settings-xml-action@4637f7c31534ec06928b10da807735657a921266

@@ -1,0 +1,8 @@
+actions/checkout@v2
+ravsamhq/notify-slack-action@v1.1
+actions/checkout@v2
+ravsamhq/notify-slack-action@v1.1
+actions/checkout@v2
+ravsamhq/notify-slack-action@v1.1
+actions/checkout@v2
+ravsamhq/notify-slack-action@v1.1

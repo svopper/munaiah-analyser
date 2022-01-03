@@ -1,0 +1,5 @@
+actions/checkout@v2
+r-lib/actions/pr-fetch@master
+actions/cache@v2
+actions/setup-python@v2
+r-lib/actions/pr-push@master

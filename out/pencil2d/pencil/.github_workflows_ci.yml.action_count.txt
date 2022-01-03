@@ -1,0 +1,6 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+./.github/actions/install-dependencies
+./.github/actions/setup-environment
+./.github/actions/create-package
+./.github/actions/upload-package

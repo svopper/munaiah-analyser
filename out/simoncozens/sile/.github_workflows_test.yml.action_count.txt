@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+leafo/gh-actions-lua@v8
+leafo/gh-actions-luarocks@v4
+actions/upload-artifact@v2

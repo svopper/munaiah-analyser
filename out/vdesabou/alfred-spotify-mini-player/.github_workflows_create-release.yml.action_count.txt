@@ -1,0 +1,8 @@
+actions/checkout@v2
+lee-dohm/close-matching-issues@v2
+docker://decathlon/release-notes-generator-action:2.0.1
+juliangruber/read-file-action@v1
+github-actions-x/commit@v2.6
+actions/create-release@latest
+actions/upload-release-asset@v1
+ethomson/send-tweet-action@v1

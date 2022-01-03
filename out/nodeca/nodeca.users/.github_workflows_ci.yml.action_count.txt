@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-node@v1
+supercharge/mongodb-github-action@1.3.0
+supercharge/redis-github-action@1.2.0
+GabrielBB/xvfb-action@v1

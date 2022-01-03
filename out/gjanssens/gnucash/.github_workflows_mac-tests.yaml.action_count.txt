@@ -1,0 +1,4 @@
+actions/checkout@v2
+carlosperate/download-file-action@v1.0.3
+carlosperate/download-file-action@v1.0.3
+actions/upload-artifact@v2

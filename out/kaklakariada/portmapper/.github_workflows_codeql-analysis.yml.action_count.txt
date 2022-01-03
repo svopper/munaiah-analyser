@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-java@v2
+gradle/wrapper-validation-action@v1
+actions/cache@v2
+github/codeql-action/init@v1
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1

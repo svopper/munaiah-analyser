@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v2.3.1
+android-actions/setup-android@v2
+actions/cache@v2.1.6
+Doist/android-emulator-runner@8bb10a5eafb6726dff58df91c0c9b74798cc44ec

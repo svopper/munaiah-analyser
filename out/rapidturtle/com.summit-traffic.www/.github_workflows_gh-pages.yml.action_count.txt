@@ -1,0 +1,3 @@
+actions/checkout@v1
+actions/setup-node@v1
+peaceiris/actions-gh-pages@v3

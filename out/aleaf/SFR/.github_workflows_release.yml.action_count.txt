@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/create-release@v1
+actions/checkout@v2
+battila7/get-version-action@v2
+actions/cache@v2.1.0
+conda-incubator/setup-miniconda@v2
+JamesIves/github-pages-deploy-action@3.7.1
+actions/checkout@v2
+actions/setup-python@v1

@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+microsoft/setup-msbuild@v1.0.2
+darenm/Setup-VSTest@v1

@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-python@v2
+trilom/file-changes-action@v1.2.4
+peter-evans/create-pull-request@v3.10.0

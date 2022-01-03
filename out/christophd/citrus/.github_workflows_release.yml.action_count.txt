@@ -1,0 +1,3 @@
+actions/checkout@v2
+radcortez/project-metadata-action@main
+actions/create-release@latest

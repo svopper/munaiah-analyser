@@ -1,0 +1,10 @@
+actions/checkout@v2
+ruby/setup-ruby@v1.52.0
+limjh16/jekyll-action-ts@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+ruby/setup-ruby@v1.52.0
+actions/download-artifact@v2
+limjh16/jekyll-action-ts@v2
+actions/download-artifact@v2
+SamKirkland/FTP-Deploy-Action@2.0.0

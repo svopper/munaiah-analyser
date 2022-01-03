@@ -1,0 +1,6 @@
+actions/checkout@v2
+psf/black@stable
+actions/checkout@v2
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@master
+robotpy/build-actions/ping-meta@v2021

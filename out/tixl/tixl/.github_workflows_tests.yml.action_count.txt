@@ -1,0 +1,6 @@
+actions/checkout@v2
+getong/mariadb-action@v1.1
+harmon758/postgresql-action@v1
+actions/setup-python@v1
+actions/cache@v1
+codecov/codecov-action@v1

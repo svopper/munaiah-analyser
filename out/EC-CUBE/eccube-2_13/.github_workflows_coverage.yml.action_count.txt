@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v1
+nanasess/setup-php@master
+nanasess/setup-chromedriver@master
+codecov/codecov-action@v1
+actions/upload-artifact@v2

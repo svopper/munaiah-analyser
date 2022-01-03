@@ -1,0 +1,7 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+ankane/setup-postgres@v1
+ankane/setup-mariadb@v1
+ankane/setup-mysql@v1
+ankane/setup-mongodb@v1
+ankane/setup-sqlserver@v1

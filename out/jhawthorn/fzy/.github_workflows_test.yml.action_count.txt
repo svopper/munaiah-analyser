@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+uraimo/run-on-arch-action@v2.0.5
+actions/checkout@v2
+actions/setup-ruby@v1

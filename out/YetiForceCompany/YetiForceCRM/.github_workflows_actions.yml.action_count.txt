@@ -1,0 +1,16 @@
+actions/checkout@v2
+actions/cache@v2
+actions/checkout@v2
+umutphp/php-var-dump-check-action@v1
+overtrue/phplint@7.4
+microsoft/DevSkim-Action@v1
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+char0n/swagger-editor-validate@v1.2.1
+char0n/swagger-editor-validate@v1.2.1
+char0n/swagger-editor-validate@v1.2.1
+actions/checkout@v2
+GitGuardian/gg-shield-action@master
+actions/checkout@v2
+docker://github/super-linter:v3.17.2

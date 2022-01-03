@@ -1,0 +1,11 @@
+actions/checkout@v2
+nuget/setup-nuget@v1
+actions/setup-python@v2
+joerick/cibuildwheel@f3dae81e82da2a2a36338269e32f3adb7b42dc8c
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/download-artifact@v2

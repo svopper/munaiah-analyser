@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+rbialon/flake8-annotations@f8c29dc2e054df26e0171b0005e99454f7db57a0
+actions/upload-artifact@v2

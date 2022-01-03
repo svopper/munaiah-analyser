@@ -1,0 +1,15 @@
+actions/checkout@v2
+docker://lpenz/omnilint:v0.2
+actions/checkout@v2
+piotrpawlaczek/python-blacken@release/stable
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+lpenz/ghaction-pytest-cov@v1
+AndreMiras/coveralls-python-action@v20201129
+AndreMiras/coveralls-python-action@v20201129
+actions/checkout@v2
+docker://lpenz/ghaction-version-gen:0.3
+docker://lpenz/ghaction-python-stdeb:0.3
+docker://lpenz/ghaction-packagecloud:v0.3

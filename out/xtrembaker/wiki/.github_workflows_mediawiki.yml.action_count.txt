@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-ruby@v1
+actions/cache@v1
+miloserdow/capistrano-deploy@v2.1

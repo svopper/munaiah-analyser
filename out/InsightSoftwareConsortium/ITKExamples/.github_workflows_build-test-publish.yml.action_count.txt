@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-python@v1
+lukka/get-cmake@v3.18.3
+actions/checkout@v2
+actions/setup-python@v1
+lukka/get-cmake@v3.18.3
+actions/checkout@v1
+actions/setup-python@v1
+treebeardtech/nbmake-action@v0.2.1
+actions/checkout@v1
+actions/setup-python@v1
+lukka/get-cmake@v3.18.3
+actions/upload-artifact@v2
+nwtgck/actions-netlify@v1.1.13

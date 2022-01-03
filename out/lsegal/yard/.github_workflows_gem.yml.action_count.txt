@@ -1,0 +1,3 @@
+actions/checkout@v2
+lsegal/github-release-from-changelog-action@latest
+dawidd6/action-publish-gem@v1

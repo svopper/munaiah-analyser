@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v1
+actions/cache@v2
+actions/cache@v2
+actions/cache@v2
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+coverallsapp/github-action@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master
+turleypol/actions-status-discord@master

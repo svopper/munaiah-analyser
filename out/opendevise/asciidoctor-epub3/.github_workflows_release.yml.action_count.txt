@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+dawidd6/action-publish-gem@v1
+zulip/github-actions-zulip/send-message@v1

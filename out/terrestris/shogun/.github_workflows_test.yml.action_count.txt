@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-java@v1.4.3
+actions/cache@v2
+apache/skywalking-eyes@v0.1.0

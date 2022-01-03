@@ -1,0 +1,3 @@
+actions/checkout@v2
+docker/build-push-action@v2.2.1
+google-github-actions/setup-gcloud@v0.2.0

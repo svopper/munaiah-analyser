@@ -1,0 +1,2 @@
+actions/checkout@v2
+splunk/pink-panther@main

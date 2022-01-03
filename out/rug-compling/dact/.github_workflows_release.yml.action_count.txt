@@ -1,0 +1,4 @@
+actions/checkout@v2
+cachix/install-nix-action@v10
+actions/create-release@v1.0.0
+actions/upload-release-asset@v1.0.1

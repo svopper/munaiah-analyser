@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+ad-m/github-push-action@master
+actions/checkout@v2
+actions/upload-artifact@v2

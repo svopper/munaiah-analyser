@@ -1,0 +1,5 @@
+actions/checkout@v2
+google-github-actions/setup-gcloud@master
+WyriHaximus/github-action-helm3@v2
+WyriHaximus/github-action-helm3@v2
+WyriHaximus/github-action-helm3@v2

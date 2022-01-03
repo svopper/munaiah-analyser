@@ -1,0 +1,3 @@
+actions/checkout@v2
+coditory/changelog-parser@v1
+thomaseizinger/create-release@1.0.0

@@ -1,0 +1,2 @@
+actions/checkout@v2.1.0
+uraimo/run-on-arch-action@v2.0.9

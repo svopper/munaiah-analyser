@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-java@v1
+wzieba/Firebase-Distribution-Github-Action@v1
+rtCamp/action-slack-notify@v2
+actions/checkout@v2
+actions/setup-java@v1
+wzieba/Firebase-Distribution-Github-Action@v1

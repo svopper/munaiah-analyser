@@ -1,0 +1,2 @@
+actions/checkout@master
+jenkey2011/vuepress-deploy@master

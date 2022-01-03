@@ -1,0 +1,3 @@
+seL4/ci-actions/repo-checkout@master
+seL4/ci-actions/preprocess@master
+seL4/ci-actions/l4v-deploy@master

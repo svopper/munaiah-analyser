@@ -1,0 +1,3 @@
+trilom/file-changes-action@master
+actions/checkout@v2
+./.github/scripts/ci/readme_metadata_style_check

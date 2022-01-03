@@ -1,0 +1,3 @@
+actions/checkout@v2
+ruby/setup-ruby@473e4d8fe5dd94ee328fdfca9f8c9c7afc9dae5e
+supercharge/mongodb-github-action@1.3.0

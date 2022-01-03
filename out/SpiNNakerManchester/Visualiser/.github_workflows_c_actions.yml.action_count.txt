@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+./support/actions/vera
+./support/actions/vera
+./support/actions/check-copyrights

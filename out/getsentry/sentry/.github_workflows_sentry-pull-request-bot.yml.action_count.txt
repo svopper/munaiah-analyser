@@ -1,0 +1,3 @@
+actions/github-script@v3
+getsentry/action-github-app-token@v1
+actions/github-script@v3

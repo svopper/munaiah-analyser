@@ -1,0 +1,3 @@
+actions/checkout@v2
+r-lib/actions/setup-r@v1
+r-lib/actions/setup-r-dependencies@v1

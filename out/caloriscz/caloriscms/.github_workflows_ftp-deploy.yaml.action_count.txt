@@ -1,0 +1,3 @@
+actions/checkout@v2.3.2
+SamKirkland/FTP-Deploy-Action@4.0.0
+php-actions/composer@v5

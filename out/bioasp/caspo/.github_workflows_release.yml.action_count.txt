@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://colomoto/conda-builder:latest
+actions/setup-python@v1
+peter-evans/repository-dispatch@v1

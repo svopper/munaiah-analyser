@@ -1,0 +1,8 @@
+actions/checkout@v1
+gradle/wrapper-validation-action@v1
+actions/setup-java@v1
+christian-draeger/read-properties@1.0.1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2

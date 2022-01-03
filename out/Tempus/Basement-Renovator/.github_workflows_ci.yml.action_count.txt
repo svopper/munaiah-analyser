@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/setup-python@v2
+lgeiger/black-action@master
+lgeiger/black-action@master
+technote-space/workflow-conclusion-action@v2
+sarisia/actions-status-discord@v1
+actions/checkout@v2
+actions/setup-python@v2
+MCKanpolat/auto-semver-action@1.0.5
+ncipollo/release-action@v1

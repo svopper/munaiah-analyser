@@ -1,0 +1,6 @@
+actions/setup-python@v2
+GabrielBB/xvfb-action@v1
+actions/setup-python@v2
+GabrielBB/xvfb-action@v1
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1

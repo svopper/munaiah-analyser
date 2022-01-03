@@ -1,0 +1,4 @@
+actions/checkout@v2
+egor-tensin/setup-cygwin@v3
+egor-tensin/cleanup-path@v1
+actions/upload-artifact@v2

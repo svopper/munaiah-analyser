@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+reactivecircus/android-emulator-runner@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/create-release@master
+actions/upload-release-asset@v1

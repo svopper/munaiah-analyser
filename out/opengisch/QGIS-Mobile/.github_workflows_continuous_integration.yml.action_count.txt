@@ -1,0 +1,9 @@
+actions/checkout@v2
+AButler/upload-release-assets@v2.0
+actions/checkout@v2
+actions/checkout@v2
+kanga333/comment-hider@master
+kanga333/comment-hider@master
+thollander/actions-comment-pull-request@main
+actions/checkout@v2
+peter-evans/commit-comment@v1

@@ -1,0 +1,3 @@
+xt0rted/block-autosquash-commits-action@v2
+actions/checkout@v2
+olivernybroe/action-conflict-finder@v2.0

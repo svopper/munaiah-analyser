@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+actions/cache@v2
+actions/setup-java@v2
+snyk/actions/maven-3-jdk-11@master

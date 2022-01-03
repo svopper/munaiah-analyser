@@ -1,0 +1,5 @@
+actions/checkout@v2
+shivammathur/setup-php@master
+danielr1996/envsubst-action@1.1.0
+elgohr/Publish-Docker-Github-Action@master
+jaapio/keelsh-deploy@1.0.0

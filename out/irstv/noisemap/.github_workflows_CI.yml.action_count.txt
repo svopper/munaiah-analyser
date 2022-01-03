@@ -1,0 +1,4 @@
+SPalominos/PostGIS-Installer-Action@v1.0.1
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2

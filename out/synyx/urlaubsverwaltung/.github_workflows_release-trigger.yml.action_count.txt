@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/cache@v2
+actions/cache@v2
+docker://decathlon/release-notes-generator-action:3.1.5
+fregante/setup-git-user@v1
+ad-m/github-push-action@v0.6.0
+ad-m/github-push-action@v0.6.0
+ad-m/github-push-action@v0.6.0

@@ -1,0 +1,4 @@
+actions/checkout@v2
+erclu/check-crlf@v1
+./.github/actions/install-dependencies
+jidicula/clang-format-action@v3.3.0

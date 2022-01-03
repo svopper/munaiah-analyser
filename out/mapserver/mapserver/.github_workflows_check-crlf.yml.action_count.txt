@@ -1,0 +1,2 @@
+actions/checkout@v1
+erclu/check-crlf@v1.2.0

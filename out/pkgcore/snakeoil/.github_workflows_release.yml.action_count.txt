@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+joerick/cibuildwheel@v2.0.1
+softprops/action-gh-release@v1

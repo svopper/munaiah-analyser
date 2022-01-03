@@ -1,0 +1,4 @@
+actions/cache@v1
+actions/checkout@v2
+cygwin/cygwin-install-action@master
+actions/upload-artifact@v2

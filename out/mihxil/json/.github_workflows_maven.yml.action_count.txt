@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/setup-java@v1
+scacap/action-surefire-report@v1

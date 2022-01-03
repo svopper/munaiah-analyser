@@ -1,0 +1,2 @@
+actions/checkout@master
+actions/upload-artifact@master

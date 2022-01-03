@@ -1,0 +1,3 @@
+actions/checkout@v2
+getong/mariadb-action@v1.1
+shivammathur/setup-php@v2

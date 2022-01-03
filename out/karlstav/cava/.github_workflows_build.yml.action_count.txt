@@ -1,0 +1,4 @@
+actions/checkout@v1
+DoozyX/clang-format-lint-action@v0.5
+actions/checkout@v1
+actions/checkout@v1

@@ -1,0 +1,4 @@
+actions/setup-ruby@v1
+actions/setup-node@v1
+actions/checkout@v2
+JamesIves/github-pages-deploy-action@releases/v3

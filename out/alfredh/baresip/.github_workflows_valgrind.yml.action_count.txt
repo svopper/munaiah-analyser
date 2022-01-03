@@ -1,0 +1,3 @@
+actions/checkout@v2
+sreimers/pr-dependency-action@v0.3
+sreimers/pr-dependency-action@v0.3

@@ -1,0 +1,6 @@
+actions/checkout@v2
+getsentry/paths-filter@v2
+actions/checkout@v1
+./.github/actions/setup-sentry
+actions/checkout@v1
+getsentry/action-migrations@main

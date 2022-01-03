@@ -1,0 +1,6 @@
+actions/checkout@main
+varunsridharan/action-repository-meta@main
+varunsridharan/action-vs-utility@main
+g-actions/composer-action@main
+varunsridharan/action-wp-org-deploy@main
+Roang-zero1/github-upload-release-artifacts-action@master

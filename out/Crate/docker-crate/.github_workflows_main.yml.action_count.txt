@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v1
+docker/setup-qemu-action@v1
+docker/setup-buildx-action@v1

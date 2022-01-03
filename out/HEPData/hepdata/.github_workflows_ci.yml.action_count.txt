@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/setup-node@v1
+actions/cache@v2
+actions/cache@v2
+saucelabs/sauce-connect-action@main
+actions/upload-artifact@v2
+actions/checkout@v2

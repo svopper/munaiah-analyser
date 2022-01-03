@@ -1,0 +1,3 @@
+actions/checkout@v2
+faberNovel/github-changelog-generator-action@master
+faberNovel/github-changelog-generator-action@master

@@ -1,0 +1,2 @@
+actions/checkout@v1
+dawidd6/action-publish-gem@v1

@@ -1,0 +1,9 @@
+actions/checkout@v2
+gleam-lang/setup-erlang@v1.1.0
+actions/checkout@v2
+actions/checkout@v2
+gleam-lang/setup-erlang@v1.1.0
+actions/checkout@v2
+gleam-lang/setup-erlang@v1.1.0
+actions/checkout@v2
+actions/checkout@v2

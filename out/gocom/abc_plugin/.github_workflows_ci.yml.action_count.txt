@@ -1,0 +1,4 @@
+actions/checkout@v1
+gocom/action-textpattern-package-plugin@master
+actions/upload-artifact@master
+actions/upload-artifact@master

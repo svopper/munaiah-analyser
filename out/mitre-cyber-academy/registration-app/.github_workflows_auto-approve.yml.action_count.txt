@@ -1,0 +1,1 @@
+hmarr/auto-approve-action@v2

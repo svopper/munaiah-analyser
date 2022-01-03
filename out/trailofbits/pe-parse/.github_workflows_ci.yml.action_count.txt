@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-python@v1
+actions/checkout@v2
+ilammy/msvc-dev-cmd@v1.8.0
+actions/checkout@v2
+actions/setup-python@v1

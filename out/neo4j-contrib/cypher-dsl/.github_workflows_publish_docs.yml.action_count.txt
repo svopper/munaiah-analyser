@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-java@v1
+ad-m/github-push-action@v0.5.0

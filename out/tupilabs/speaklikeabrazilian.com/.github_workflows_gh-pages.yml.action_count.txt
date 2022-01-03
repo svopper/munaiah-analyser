@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v1
+helaili/jekyll-action@2.0.1
+actions/setup-ruby@v1

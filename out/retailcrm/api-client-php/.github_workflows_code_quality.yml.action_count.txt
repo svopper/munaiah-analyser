@@ -1,0 +1,6 @@
+actions/checkout@v2
+chekalsky/phpcs-action@v1
+actions/checkout@v2
+GeneaLabs/action-reviewdog-phpmd@1.0.0
+actions/checkout@v2
+docker://oskarstark/phpstan-ga:0.12.88

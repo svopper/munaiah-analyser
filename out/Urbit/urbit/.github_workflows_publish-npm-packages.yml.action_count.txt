@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-node@v2
+JS-DevTools/npm-publish@v1
+actions/checkout@v2
+actions/setup-node@v2
+JS-DevTools/npm-publish@v1
+actions/checkout@v2
+actions/setup-node@v2
+JS-DevTools/npm-publish@v1

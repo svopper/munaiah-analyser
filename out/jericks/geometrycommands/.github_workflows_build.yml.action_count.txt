@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+ammaraskar/sphinx-action@0.4
+JamesIves/github-pages-deploy-action@3.7.1

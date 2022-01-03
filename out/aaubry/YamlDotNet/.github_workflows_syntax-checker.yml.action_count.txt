@@ -1,0 +1,1 @@
+docker://aaubry/yamldotnet-syntax-checker:latest

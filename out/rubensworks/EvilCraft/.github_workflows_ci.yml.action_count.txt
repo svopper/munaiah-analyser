@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v1
+timheuer/base64-to-file@v1
+actions/create-release@v1
+JamesIves/github-pages-deploy-action@3.6.2

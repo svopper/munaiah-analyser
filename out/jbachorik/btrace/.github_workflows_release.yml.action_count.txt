@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/setup-java@v1
+actions/setup-java@v1
+actions/setup-java@v1
+softprops/action-gh-release@v1

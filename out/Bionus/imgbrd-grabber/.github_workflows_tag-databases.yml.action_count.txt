@@ -1,0 +1,4 @@
+actions/checkout@v2
+dsaltares/fetch-gh-release-asset@master
+GabrielBB/xvfb-action@v1
+ncipollo/release-action@v1

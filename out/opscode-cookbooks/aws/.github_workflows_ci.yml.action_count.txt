@@ -1,0 +1,6 @@
+actions/checkout@v2
+actionshub/chef-delivery@main
+actions/checkout@v2
+actionshub/yamllint@main
+actions/checkout@v2
+actionshub/markdownlint@main

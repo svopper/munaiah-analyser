@@ -1,0 +1,4 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+johanvanhelden/gha-clover-test-coverage-check@v1
+paambaati/codeclimate-action@v2.7.4

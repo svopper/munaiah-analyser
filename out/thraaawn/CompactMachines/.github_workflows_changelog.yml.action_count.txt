@@ -1,0 +1,6 @@
+actions/checkout@v2
+jimschubert/query-tag-action@v1
+jimschubert/query-tag-action@v1
+jimschubert/beast-changelog-action@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2

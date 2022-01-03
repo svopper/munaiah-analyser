@@ -1,0 +1,1 @@
+dependabot/fetch-metadata@v1.1.0

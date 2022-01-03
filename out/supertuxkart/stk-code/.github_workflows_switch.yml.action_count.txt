@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/cache@v2
+ncipollo/release-action@v1.8.8

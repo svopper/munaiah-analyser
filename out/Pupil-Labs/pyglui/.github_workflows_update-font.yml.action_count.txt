@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-node@v2
+peter-evans/create-pull-request@v3

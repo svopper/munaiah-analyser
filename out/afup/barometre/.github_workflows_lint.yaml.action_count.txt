@@ -1,0 +1,2 @@
+actions/checkout@master
+docker://oskarstark/php-cs-fixer-ga

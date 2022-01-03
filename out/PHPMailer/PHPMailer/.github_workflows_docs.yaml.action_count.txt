@@ -1,0 +1,3 @@
+actions/checkout@v1
+./.github/actions/build-docs
+maxheld83/ghpages@v0.2.1

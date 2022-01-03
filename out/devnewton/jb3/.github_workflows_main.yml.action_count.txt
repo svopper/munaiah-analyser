@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/setup-java@v1
+actions/cache@v1
+elgohr/Publish-Docker-Github-Action@master

@@ -1,0 +1,3 @@
+actions/checkout@v2
+benjlevesque/short-sha@v1.2
+actions/setup-ruby@v1

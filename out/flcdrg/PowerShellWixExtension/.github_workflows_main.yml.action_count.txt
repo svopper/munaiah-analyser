@@ -1,0 +1,10 @@
+actions/checkout@v2
+dotnet/nbgv@v0.4.0
+release-drafter/release-drafter@v5
+actions/checkout@v2
+microsoft/setup-msbuild@v1.0.2
+zyborg/pester-tests-report@v1
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+flcdrg/remove-release-asset-action@v1
+actions/upload-release-asset@v1

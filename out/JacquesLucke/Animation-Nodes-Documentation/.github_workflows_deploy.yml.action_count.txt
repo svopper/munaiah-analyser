@@ -1,0 +1,4 @@
+technote-space/auto-cancel-redundant-job@v1
+actions/checkout@v2
+peaceiris/actions-hugo@v2
+kevinpainchaud/simple-ftp-deploy-action@v1

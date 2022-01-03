@@ -1,0 +1,3 @@
+WyriHaximus/github-action-wait-for-status@v1.4
+hmarr/auto-approve-action@v2.1.0
+pascalgn/automerge-action@v0.14.3

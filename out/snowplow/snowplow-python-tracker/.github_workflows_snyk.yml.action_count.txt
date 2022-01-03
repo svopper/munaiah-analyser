@@ -1,0 +1,3 @@
+actions/checkout@v2
+snyk/actions/setup@master
+actions/setup-python@v2

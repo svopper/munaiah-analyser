@@ -1,0 +1,17 @@
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions-rs/cargo@v1
+actions/checkout@v2
+actions-rs/toolchain@v1
+actions-rs/cargo@v1
+actions/checkout@v2
+actions-rs/toolchain@v1
+./.github/actions/setup-postgres
+actions-rs/cargo@v1
+actions/checkout@v1
+actions-rs/toolchain@v1
+actions-rs/cargo@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions-rs/toolchain@v1
+./.github/actions/setup-postgres

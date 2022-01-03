@@ -1,0 +1,2 @@
+actions/checkout@master
+codacy/codacy-coverage-reporter-action@v1

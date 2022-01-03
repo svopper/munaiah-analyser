@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/checkout@v2
+jurplel/install-qt-action@v2
+actions/checkout@v2
+./.github/actions/package-macos
+actions/checkout@v2

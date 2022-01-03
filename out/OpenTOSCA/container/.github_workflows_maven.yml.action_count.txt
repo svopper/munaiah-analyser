@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/checkout@v2
+whatnick/wait-action@master
+codacy/codacy-coverage-reporter-action@master

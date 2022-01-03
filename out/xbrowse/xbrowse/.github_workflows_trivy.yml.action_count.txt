@@ -1,0 +1,3 @@
+actions/checkout@v2
+broadinstitute/dsp-appsec-trivy-action@v1
+github/codeql-action/upload-sarif@v1

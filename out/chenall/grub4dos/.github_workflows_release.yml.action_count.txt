@@ -1,0 +1,7 @@
+actions/checkout@v2
+chenall/grub4dos-build@main
+actions/checkout@v2
+actions/checkout@v2
+chenall/grub4dos-build@main
+marvinpinto/action-automatic-releases@latest
+actions/checkout@v2

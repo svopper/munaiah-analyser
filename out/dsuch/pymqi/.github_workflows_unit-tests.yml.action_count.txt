@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+SeyfSV/setup-mqclient@v0.2
+actions/setup-python@v2.2.2
+actions/upload-artifact@v1
+actions/upload-artifact@v1

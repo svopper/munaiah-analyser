@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-node@v2-beta
+actions/create-release@v1
+actions/upload-release-asset@v1

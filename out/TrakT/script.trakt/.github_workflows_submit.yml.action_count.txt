@@ -1,0 +1,4 @@
+actions/checkout@v2
+xbmc/action-kodi-addon-submitter@v1.2
+actions/create-release@v1.0.0
+actions/upload-release-asset@v1.0.1

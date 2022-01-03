@@ -1,0 +1,4 @@
+actions/checkout@v2
+s-weigand/setup-conda@v1
+actions/checkout@v2
+s-weigand/setup-conda@v1

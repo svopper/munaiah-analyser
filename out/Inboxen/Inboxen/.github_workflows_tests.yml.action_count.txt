@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-node@v2
+codecov/codecov-action@v1

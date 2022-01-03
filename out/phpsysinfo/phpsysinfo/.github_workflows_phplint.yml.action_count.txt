@@ -1,0 +1,7 @@
+actions/checkout@v2
+dbfx/github-phplint/5.5@master
+dbfx/github-phplint/5.6@master
+dbfx/github-phplint/7.2@master
+dbfx/github-phplint/7.3@master
+dbfx/github-phplint/7.4@master
+dbfx/github-phplint/8.0@master

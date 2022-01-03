@@ -1,0 +1,2 @@
+actions/checkout@v1
+the-coding-owl/action-typo3-extension-repository-upload@0.0.1

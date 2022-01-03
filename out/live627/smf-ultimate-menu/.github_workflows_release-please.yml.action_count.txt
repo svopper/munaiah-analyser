@@ -1,0 +1,5 @@
+GoogleCloudPlatform/release-please-action@v2
+actions/github-script@v3
+actions/checkout@v2
+actions/checkout@v2
+actions/github-script@v2

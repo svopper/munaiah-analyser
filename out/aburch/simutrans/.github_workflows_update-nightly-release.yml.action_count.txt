@@ -1,0 +1,3 @@
+actions/checkout@v1
+richardsimko/update-tag@v1
+meeDamian/github-release@2.0

@@ -1,0 +1,12 @@
+actions/checkout@v2.3.4
+gittools/actions/gitversion/setup@v0.9.10
+gittools/actions/gitversion/execute@v0.9.10
+actions/setup-dotnet@v1.8.2
+actions/cache@v2.1.6
+actions/upload-artifact@v2
+actions/download-artifact@v2
+actions/setup-dotnet@v1.8.2
+actions/download-artifact@v2
+actions/setup-dotnet@v1.8.2
+actions/download-artifact@v1
+svenstaro/upload-release-action@v1-release

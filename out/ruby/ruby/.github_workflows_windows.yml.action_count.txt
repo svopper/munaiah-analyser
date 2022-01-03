@@ -1,0 +1,5 @@
+msys2/setup-msys2@v2
+actions/cache@v2
+actions/cache@v2
+actions/checkout@v2
+k0kubun/action-slack@v2.0.0

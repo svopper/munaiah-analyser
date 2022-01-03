@@ -1,0 +1,3 @@
+actions/checkout@master
+actions/cache@v1
+sonots/slack-notice-action@v3

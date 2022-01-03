@@ -1,0 +1,3 @@
+actions/checkout@v2
+getsentry/paths-filter@master
+actions/github-script@v5

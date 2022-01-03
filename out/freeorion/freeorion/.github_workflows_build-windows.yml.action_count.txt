@@ -1,0 +1,10 @@
+actions/checkout@v2
+suisei-cn/actions-download-file@v1
+microsoft/setup-msbuild@v1.0.2
+suisei-cn/actions-download-file@v1
+suisei-cn/actions-download-file@v1
+actions/checkout@v2
+suisei-cn/actions-download-file@v1
+microsoft/setup-msbuild@v1.0.3
+suisei-cn/actions-download-file@v1
+suisei-cn/actions-download-file@v1

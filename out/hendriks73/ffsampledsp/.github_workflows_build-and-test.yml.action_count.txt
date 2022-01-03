@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1
+codecov/codecov-action@v2
+msys2/setup-msys2@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1

@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+jacobtomlinson/gha-find-replace@master
+bacongobbler/azure-blob-storage-upload@v1.2.0
+LadyCailin/azure-table-storage-upload@v1.0.0

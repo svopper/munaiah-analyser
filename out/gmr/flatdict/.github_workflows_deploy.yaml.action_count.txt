@@ -1,0 +1,2 @@
+actions/checkout@v1
+pypa/gh-action-pypi-publish@master

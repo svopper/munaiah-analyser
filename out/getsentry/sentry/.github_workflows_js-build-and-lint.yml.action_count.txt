@@ -1,0 +1,11 @@
+actions/checkout@v2
+getsentry/action-github-app-token@v1
+getsentry/paths-filter@master
+volta-cli/action@v1
+actions/cache@v1
+getsentry/action-github-commit@main
+actions/checkout@v2
+getsentry/paths-filter@v2
+volta-cli/action@v1
+actions/cache@v1
+getsentry/size-limit-action@v3

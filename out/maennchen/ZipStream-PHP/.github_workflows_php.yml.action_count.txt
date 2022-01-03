@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@v2
+coverallsapp/github-action@master
+actions/checkout@v2
+actions/cache@v2
+shivammathur/setup-php@v2

@@ -1,0 +1,5 @@
+actions/checkout@v2
+shivammathur/setup-php@v2
+svenstaro/upload-release-action@v2
+technote-space/workflow-conclusion-action@v2
+8398a7/action-slack@v3

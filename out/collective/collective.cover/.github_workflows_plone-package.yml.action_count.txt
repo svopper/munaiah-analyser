@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/cache@v2
+actions/setup-python@v2
+browser-actions/setup-firefox@latest
+actions/upload-artifact@v2
+codecov/codecov-action@v2

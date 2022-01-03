@@ -1,0 +1,13 @@
+edgedb/action-release/validate-pr@master
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+pypa/cibuildwheel@v2.1.1
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/download-artifact@v2
+edgedb/action-release/merge@master
+elprans/gh-action-create-release@master
+pypa/gh-action-pypi-publish@master

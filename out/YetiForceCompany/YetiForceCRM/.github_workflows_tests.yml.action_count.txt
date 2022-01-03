@@ -1,0 +1,17 @@
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/7.3@main
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/7.4@main
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/8.0@main
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/mariadb-10.6@main
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/percona-mysql-5.7@main
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/coverage@main
+paambaati/codeclimate-action@v3.0.0
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+YetiForceCompany/YetiForceCRM-Tests/coverage@main

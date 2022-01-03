@@ -1,0 +1,9 @@
+actions/checkout@v2
+Codesee-io/codesee-detect-languages-action@latest
+actions/setup-java@v2
+actions/setup-node@v2
+actions/setup-python@v2
+ruby/setup-ruby@v1
+Codesee-io/codesee-map-action@latest
+Codesee-io/codesee-map-action@latest
+Codesee-io/codesee-map-action@latest

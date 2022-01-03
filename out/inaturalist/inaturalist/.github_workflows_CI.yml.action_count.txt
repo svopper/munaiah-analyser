@@ -1,0 +1,5 @@
+fkirc/skip-duplicate-actions@master
+actions/checkout@v2
+actions/setup-ruby@v1
+miyataka/elastic-github-actions/elasticsearch@feature/plugin_support
+iRoachie/slack-github-actions@v2.0.1

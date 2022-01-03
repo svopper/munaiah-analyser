@@ -1,0 +1,16 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/cache@v2
+uraimo/run-on-arch-action@v2.0.9
+actions/checkout@v2
+actions/cache@v2
+satackey/action-docker-layer-caching@v0.0.11
+actions/upload-artifact@v2
+actions/upload-artifact@v2

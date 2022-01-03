@@ -1,0 +1,3 @@
+amancevice/setup-code-climate@v0
+actions/checkout@v2
+ruby/setup-ruby@v1

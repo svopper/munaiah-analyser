@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/checkout@v2
+ruby/setup-ruby@v1
+softprops/action-gh-release@v0.1.12
+actions/checkout@v2
+ruby/setup-ruby@v1
+peaceiris/actions-gh-pages@v3

@@ -1,0 +1,4 @@
+actions/checkout@v2
+arduino/arduino-lint-action@v1
+actions/checkout@v2
+arduino/compile-sketches@v1

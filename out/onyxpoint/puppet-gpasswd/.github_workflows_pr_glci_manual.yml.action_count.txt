@@ -1,0 +1,5 @@
+actions/github-script@v3
+actions/checkout@v2
+simp/github-action-gitlab-ci-syntax-check@main
+actions/checkout@v2
+simp/github-action-gitlab-ci-pipeline-trigger@v1

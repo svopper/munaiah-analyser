@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-dotnet@v1
+github/ossar-action@v1
+github/codeql-action/upload-sarif@v1

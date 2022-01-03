@@ -1,0 +1,14 @@
+actions/checkout@v2
+actions/setup-python@v2
+codecov/codecov-action@v1
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-node@v1
+JamesIves/github-pages-deploy-action@3.7.1
+actions/checkout@v2
+actions/setup-python@v2
+pypa/gh-action-pypi-publish@release/v1
+softprops/action-gh-release@v1

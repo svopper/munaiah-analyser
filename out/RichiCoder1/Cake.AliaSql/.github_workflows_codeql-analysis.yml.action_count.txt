@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+github/codeql-action/init@v1
+cake-build/cake-action@v1
+github/codeql-action/analyze@v1

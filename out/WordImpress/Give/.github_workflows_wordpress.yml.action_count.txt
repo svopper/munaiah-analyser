@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/cache@v1
+shivammathur/setup-php@v2
+php-actions/composer@v5

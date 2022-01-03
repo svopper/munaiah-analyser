@@ -1,0 +1,6 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+jurplel/install-qt-action@v2
+turtlebrowser/get-conan@v1.0
+github/codeql-action/autobuild@v1
+github/codeql-action/analyze@v1

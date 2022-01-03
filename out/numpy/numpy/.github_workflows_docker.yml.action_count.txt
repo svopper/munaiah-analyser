@@ -1,0 +1,6 @@
+actions/checkout@v2
+brpaz/hadolint-action@v1.2.1
+docker/setup-buildx-action@v1
+actions/cache@v2
+docker/login-action@v1
+docker/build-push-action@v2

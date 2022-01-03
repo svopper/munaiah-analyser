@@ -1,0 +1,3 @@
+actions/checkout@v2
+tonynv/asciidoctor-action@master
+peaceiris/actions-gh-pages@v3

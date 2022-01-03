@@ -1,0 +1,7 @@
+styfle/cancel-workflow-action@0.9.1
+actions/checkout@v2
+actions/cache@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/upload-artifact@v1
+peter-evans/commit-comment@v1.1.0

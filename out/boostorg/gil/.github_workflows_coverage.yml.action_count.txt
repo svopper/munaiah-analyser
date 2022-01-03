@@ -1,0 +1,2 @@
+actions/checkout@v2
+codecov/codecov-action@v1.2.1

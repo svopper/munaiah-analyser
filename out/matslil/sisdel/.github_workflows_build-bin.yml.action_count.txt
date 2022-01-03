@@ -1,0 +1,6 @@
+actions/checkout@v2
+./src/builder
+./src/builder
+./src/builder
+./src/builder
+actions/upload-artifact@v2

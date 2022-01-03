@@ -1,0 +1,3 @@
+actions/checkout@v2
+julia-actions/julia-buildpkg@latest
+julia-actions/julia-docdeploy@releases/v1

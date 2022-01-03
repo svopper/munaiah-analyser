@@ -1,0 +1,15 @@
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_i686
+actions/upload-artifact@v2
+actions/checkout@v2
+RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_x86_64
+actions/upload-artifact@v2
+actions/checkout@v2
+docker/setup-qemu-action@v1
+RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_aarch64
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2

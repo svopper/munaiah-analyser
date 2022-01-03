@@ -1,0 +1,2 @@
+actions/checkout@v2
+docker://colomoto/conda-builder:latest

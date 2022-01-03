@@ -1,0 +1,7 @@
+actions/github-script@v4
+actions/checkout@v2
+actions/cache@v2
+actions/setup-java@v2
+dawidd6/action-download-artifact@v2
+actions/upload-artifact@v2
+actions/github-script@v4

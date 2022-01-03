@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/cache@v2.1.6
+codecov/codecov-action@v2.1.0
+codecov/codecov-action@v2.1.0

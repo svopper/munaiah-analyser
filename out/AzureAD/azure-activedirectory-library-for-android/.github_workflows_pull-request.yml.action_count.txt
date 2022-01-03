@@ -1,0 +1,2 @@
+actions/checkout@v2
+dangoslen/changelog-enforcer@v1.4.0

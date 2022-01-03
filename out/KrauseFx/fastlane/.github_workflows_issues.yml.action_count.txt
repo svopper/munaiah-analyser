@@ -1,0 +1,2 @@
+actions/checkout@master
+fastlane/github-actions/fastlane-env-reminder@latest

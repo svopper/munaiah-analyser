@@ -1,0 +1,5 @@
+samuelmeuli/action-snapcraft@v1
+whywaita/setup-lxd@v1
+actions/checkout@v2
+actions/cache@v2
+actions/upload-artifact@v2

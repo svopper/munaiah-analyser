@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+Homebrew/actions/git-user-config@master
+Homebrew/actions/setup-commit-signing@master
+peter-evans/create-pull-request@7380612b49221684fefa025244f2ef4008ae50ad

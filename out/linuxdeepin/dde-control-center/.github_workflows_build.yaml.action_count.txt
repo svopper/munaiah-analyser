@@ -1,0 +1,2 @@
+actions/checkout@v2
+justforlxz/deepin-git-action@v1

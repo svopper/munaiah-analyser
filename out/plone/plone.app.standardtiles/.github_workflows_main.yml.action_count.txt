@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-python@v2
+nanasess/setup-chromedriver@master
+actions/cache@v2
+andstor/file-existence-action@v1
+actions/upload-artifact@v1
+actions/setup-python@v2
+AndreMiras/coveralls-python-action@develop
+AndreMiras/coveralls-python-action@develop

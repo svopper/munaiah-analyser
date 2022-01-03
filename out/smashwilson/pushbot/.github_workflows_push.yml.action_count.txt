@@ -1,0 +1,3 @@
+actions/checkout@master
+smashwilson/az-infra/actions/azbuild@master
+smashwilson/az-infra/actions/azsync@master

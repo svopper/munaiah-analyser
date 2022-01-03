@@ -1,0 +1,6 @@
+actions/checkout@v1
+actions/setup-python@v1
+coverallsapp/github-action@master
+actions/checkout@v1
+actions/setup-python@v1
+datamade/python-wheels-manylinux-build@248b22d

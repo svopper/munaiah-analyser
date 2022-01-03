@@ -1,0 +1,2 @@
+actions/checkout@v2
+aormsby/Fork-Sync-With-Upstream-action@v3.0

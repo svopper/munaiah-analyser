@@ -1,0 +1,6 @@
+actions/checkout@master
+actions/setup-dotnet@v1
+actions/setup-dotnet@v1
+azure/login@v1
+azure/webapps-deploy@v2
+azure/functions-action@v1

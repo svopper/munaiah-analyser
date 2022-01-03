@@ -1,0 +1,5 @@
+actions/checkout@v1
+heinrichreimer/github-changelog-generator-action@v2.2
+ad-m/github-push-action@v0.6.0
+heinrichreimer/github-changelog-generator-action@v2.2
+actions/create-release@v1

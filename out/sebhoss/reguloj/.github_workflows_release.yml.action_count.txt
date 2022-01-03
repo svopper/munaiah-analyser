@@ -1,0 +1,6 @@
+actions/checkout@v2.3.4
+actions/setup-java@v2
+actions/cache@v2.1.6
+actions/create-release@v1.1.4
+dawidd6/action-send-mail@v3.5.0
+s3krit/matrix-message-action@v0.0.3

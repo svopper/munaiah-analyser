@@ -1,0 +1,2 @@
+aws-actions/configure-aws-credentials@v1
+aws-actions/aws-codebuild-run-project@v1.0.0

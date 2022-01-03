@@ -1,0 +1,2 @@
+actions/checkout@v2
+houseofmaldorne/rsync-deploy@v2.0

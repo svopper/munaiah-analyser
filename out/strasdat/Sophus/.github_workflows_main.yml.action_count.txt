@@ -1,0 +1,3 @@
+actions/checkout@v2
+DoozyX/clang-format-lint-action@v0.12
+hendrikmuhs/ccache-action@v1

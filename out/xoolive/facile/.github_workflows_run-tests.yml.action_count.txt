@@ -1,0 +1,10 @@
+actions/checkout@v2
+webfactory/ssh-agent@v0.5.3
+actions/setup-python@v2
+snok/install-poetry@v1.1.6
+ocaml/setup-ocaml@v2
+ocaml/setup-ocaml@v2
+ilammy/msvc-dev-cmd@v1
+ocaml/setup-ocaml@v2
+mxschmitt/action-tmate@v3
+actions/upload-artifact@v2

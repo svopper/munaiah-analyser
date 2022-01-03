@@ -1,0 +1,2 @@
+actions/checkout@master
+shalzz/zola-deploy-action@master

@@ -1,0 +1,15 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+actions/checkout@v2
+actions/setup-python@v2
+casperdcl/deploy-pypi@v2
+actions/checkout@v2
+actions/setup-python@v2
+casperdcl/deploy-pypi@v2

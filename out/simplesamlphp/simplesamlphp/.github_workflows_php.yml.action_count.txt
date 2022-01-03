@@ -1,0 +1,17 @@
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/cache@v1
+actions/upload-artifact@v1
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/cache@v1
+symfonycorp/security-checker-action@v2
+symfonycorp/security-checker-action@v2
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/cache@v1
+shivammathur/setup-php@v2
+actions/checkout@v2
+actions/cache@v1
+actions/download-artifact@v1
+codecov/codecov-action@v1

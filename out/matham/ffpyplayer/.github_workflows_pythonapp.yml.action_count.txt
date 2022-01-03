@@ -1,0 +1,16 @@
+actions/checkout@v1
+actions/setup-python@v2
+actions/upload-artifact@v2
+softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
+actions/checkout@v1
+actions/setup-python@v2
+actions/checkout@v1
+actions/setup-python@v2
+actions/upload-artifact@v2
+softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
+actions/checkout@v1
+actions/upload-artifact@v2
+softprops/action-gh-release@78c309ef59fdb9557cd6574f2e0be552936ed728
+actions/setup-python@v2
+actions/checkout@v1
+actions/setup-python@v2

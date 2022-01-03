@@ -1,0 +1,3 @@
+actions/checkout@v2
+pact-foundation/release-gem@v0.0.11
+peter-evans/repository-dispatch@v1

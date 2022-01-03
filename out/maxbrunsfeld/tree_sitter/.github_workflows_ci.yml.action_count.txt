@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/cache@v2
+actions-rs/toolchain@v1
+mymindstorm/setup-emsdk@v10
+softprops/action-gh-release@v1
+actions/checkout@v2
+actions/cache@v2
+actions-rs/toolchain@v1

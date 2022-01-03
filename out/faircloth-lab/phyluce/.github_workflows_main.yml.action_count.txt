@@ -1,0 +1,6 @@
+actions/checkout@v2
+actions/setup-python@v1
+wearerequired/lint-action@v1
+actions/checkout@v2
+actions/cache@v1
+conda-incubator/setup-miniconda@v2.0.1

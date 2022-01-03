@@ -1,0 +1,3 @@
+actions/checkout@v1
+cachix/install-nix-action@v12
+cachix/cachix-action@v8

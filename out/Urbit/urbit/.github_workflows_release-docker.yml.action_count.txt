@@ -1,0 +1,5 @@
+actions/checkout@v2
+cachix/install-nix-action@v12
+cachix/cachix-action@v8
+docker/docker-login-action@v1.8.0
+christian-korneck/update-container-description-action@v1

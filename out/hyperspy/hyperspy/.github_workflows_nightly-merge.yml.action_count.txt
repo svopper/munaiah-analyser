@@ -1,0 +1,2 @@
+actions/checkout@v2
+robotology/gh-action-nightly-merge@v1.3.2

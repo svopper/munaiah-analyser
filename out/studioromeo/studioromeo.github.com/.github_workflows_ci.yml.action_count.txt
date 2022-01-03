@@ -1,0 +1,4 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v1
+treosh/lighthouse-ci-action@v3

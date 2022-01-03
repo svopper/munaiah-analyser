@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/setup-ruby@v1
+MeilCli/danger-action@v5
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/checkout@v2
+ruby/setup-ruby@v1

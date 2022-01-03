@@ -1,0 +1,5 @@
+actions/checkout@v2
+./.github/actions/docs-prerequisites
+./.github/actions/setup-boost
+./.github/actions/generate-doc
+peaceiris/actions-gh-pages@v3

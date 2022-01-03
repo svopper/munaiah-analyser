@@ -1,0 +1,9 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v2.1.6
+actions/cache@v2.1.5
+jurplel/install-qt-action@v2
+turtlebrowser/get-conan@v1.0
+liri-infra/qmllint-action@master
+yokawasa/action-sqlcheck@v1.3.0
+DoozyX/clang-format-lint-action@v0.12

@@ -1,0 +1,2 @@
+actions/checkout@v1
+shivammathur/setup-php@2.7.0

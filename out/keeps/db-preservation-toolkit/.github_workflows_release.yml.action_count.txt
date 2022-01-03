@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1.0.0
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v1.0.0
+svenstaro/upload-release-action@v2

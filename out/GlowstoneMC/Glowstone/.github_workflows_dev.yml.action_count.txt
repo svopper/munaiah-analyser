@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-java@v1
+actions/cache@v2
+dmnemec/copy_file_to_another_repo_action@v1.1.1
+actions/upload-artifact@v2

@@ -1,0 +1,9 @@
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v1
+actions/checkout@v2
+ruby/setup-ruby@v1
+actions/cache@v1
+paambaati/codeclimate-action@v2.7.5
+actions/checkout@v2
+akhileshns/heroku-deploy@v3.6.8

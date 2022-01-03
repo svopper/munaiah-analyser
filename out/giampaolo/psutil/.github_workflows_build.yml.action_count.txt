@@ -1,0 +1,9 @@
+styfle/cancel-workflow-action@0.6.0
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+styfle/cancel-workflow-action@0.6.0
+actions/checkout@v2
+vmactions/freebsd-vm@v0.1.4
+actions/checkout@v2
+actions/setup-python@v2

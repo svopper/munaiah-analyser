@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/setup-node@v1
+actions/upload-artifact@v2
+actions/download-artifact@v2
+azure/webapps-deploy@v2

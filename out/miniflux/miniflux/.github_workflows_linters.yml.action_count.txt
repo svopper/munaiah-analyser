@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-go@v2
+golangci/golangci-lint-action@v2

@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/setup-python@v2
+webfactory/ssh-agent@v0.5.3
+JamesIves/github-pages-deploy-action@4.1.5

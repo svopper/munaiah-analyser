@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2
+snok/install-poetry@v1.2
+supercharge/mongodb-github-action@1.6.0
+supercharge/redis-github-action@1.2.0
+rrainn/dynamodb-action@v2.0.0
+actions/cache@v2
+codecov/codecov-action@v2
+actions/checkout@v2
+actions/setup-python@v2
+pre-commit/action@v2.0.3

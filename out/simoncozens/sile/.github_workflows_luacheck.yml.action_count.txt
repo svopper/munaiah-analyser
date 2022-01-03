@@ -1,0 +1,3 @@
+actions/checkout@v2
+leafo/gh-actions-lua@v8
+leafo/gh-actions-luarocks@v4

@@ -1,0 +1,2 @@
+actions/github-script@v3.1.0
+actions/setup-python@v2

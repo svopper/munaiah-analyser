@@ -1,0 +1,3 @@
+actions/checkout@v2
+anothrNick/github-tag-action@master
+mysociety/action-git-pusher@v1.1.0

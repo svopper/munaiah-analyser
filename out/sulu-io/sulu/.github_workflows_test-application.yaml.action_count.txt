@@ -1,0 +1,17 @@
+actions/checkout@v2
+actions/setup-node@v2-beta
+bahmutov/npm-install@v1
+shivammathur/setup-php@v2
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+ramsey/composer-install@v1
+actions/checkout@v2
+shivammathur/setup-php@v2
+shogo82148/actions-setup-mysql@v1.0.1
+carlosperate/download-file-action@v1.0.3
+ramsey/composer-install@v1
+actions/setup-node@v2
+bahmutov/npm-install@v1

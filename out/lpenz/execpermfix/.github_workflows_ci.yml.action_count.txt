@@ -1,0 +1,12 @@
+actions/checkout@v2
+docker://lpenz/omnilint:v0.2
+actions/checkout@v2
+docker://lpenz/ghaction-cmake:0.15
+coverallsapp/github-action@master
+actions/checkout@v2
+docker://lpenz/ghaction-cmake:0.15
+actions/checkout@v2
+DoozyX/clang-format-lint-action@v0.5
+actions/checkout@v2
+docker://lpenz/ghaction-cmake:0.15
+docker://lpenz/ghaction-packagecloud:v0.3

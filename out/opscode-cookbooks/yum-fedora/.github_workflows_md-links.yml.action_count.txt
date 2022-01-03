@@ -1,0 +1,2 @@
+actions/checkout@v2
+gaurav-nelson/github-action-markdown-link-check@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+seanmiddleditch/gha-setup-ninja@master
+ilammy/msvc-dev-cmd@v1.6.0
+actions/upload-artifact@v2

@@ -1,0 +1,5 @@
+actions/checkout@v2.3.3
+litusproject/composer-install-action@main
+litusproject/php-codesniffer-action@main
+litusproject/phpstan-action@main
+actions/checkout@v2.3.3

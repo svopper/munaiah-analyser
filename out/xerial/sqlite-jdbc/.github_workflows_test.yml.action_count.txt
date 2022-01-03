@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+actions/setup-java@v2
+actions/checkout@v2
+DeLaGuardo/setup-graalvm@master
+actions/checkout@v2
+uraimo/run-on-arch-action@v2.1.1

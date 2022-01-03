@@ -1,0 +1,3 @@
+actions/checkout@v2
+actions/cache@v2
+UnicornGlobal/has-changes-action@v1.0.11

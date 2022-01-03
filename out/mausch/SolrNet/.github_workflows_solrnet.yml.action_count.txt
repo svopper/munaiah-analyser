@@ -1,0 +1,5 @@
+actions/checkout@v2
+cachix/install-nix-action@v13
+actions/checkout@v2
+cachix/install-nix-action@v13
+mathieudutour/github-tag-action@v5.6

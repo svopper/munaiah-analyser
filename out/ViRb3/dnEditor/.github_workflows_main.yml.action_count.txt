@@ -1,0 +1,4 @@
+warrenbuckley/Setup-MSBuild@v1
+warrenbuckley/Setup-Nuget@v1
+actions/checkout@v1
+softprops/action-gh-release@v1

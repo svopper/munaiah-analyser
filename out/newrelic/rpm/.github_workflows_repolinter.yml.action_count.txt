@@ -1,0 +1,3 @@
+actions/github-script@v2
+actions/checkout@v2
+newrelic/repolinter-action@v1

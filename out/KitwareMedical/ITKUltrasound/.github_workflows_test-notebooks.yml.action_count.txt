@@ -1,0 +1,4 @@
+actions/checkout@v1
+actions/checkout@v2
+actions/setup-python@v2
+treebeardtech/nbmake-action@v0.2

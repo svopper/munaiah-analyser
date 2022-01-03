@@ -1,0 +1,4 @@
+actions/checkout@v2
+docker://gittools/gitversion:5.1.4-linux
+actions/setup-dotnet@master
+actions/setup-dotnet@master

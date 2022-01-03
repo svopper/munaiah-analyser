@@ -1,0 +1,15 @@
+actions/checkout@v2
+stCarolas/setup-maven@v4
+actions/setup-java@v2
+actions/checkout@v2
+stCarolas/setup-maven@v4
+actions/setup-java@v2
+actions/checkout@v2
+stCarolas/setup-maven@v4
+actions/setup-java@v2
+actions/checkout@v2
+stCarolas/setup-maven@v4
+actions/setup-java@v2
+actions/checkout@v2
+stCarolas/setup-maven@v4
+actions/setup-java@v2

@@ -1,0 +1,9 @@
+actions/checkout@main
+actionshub/chef-delivery@main
+actions/checkout@main
+actionshub/yamllint@main
+actions/checkout@main
+actionshub/markdownlint@main
+actions/checkout@v2
+actionshub/chef-install@main
+actionshub/test-kitchen@main

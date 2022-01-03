@@ -1,0 +1,2 @@
+actions/checkout@v1
+cadwallion/publish-rubygems-action@master

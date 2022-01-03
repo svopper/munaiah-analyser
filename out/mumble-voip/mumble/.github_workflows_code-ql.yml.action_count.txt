@@ -1,0 +1,4 @@
+actions/checkout@v2
+github/codeql-action/init@v1
+./.github/actions/install-dependencies
+github/codeql-action/analyze@v1

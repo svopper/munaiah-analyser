@@ -1,0 +1,2 @@
+actions/checkout@v2
+seanmiddleditch/gha-setup-ninja@v3

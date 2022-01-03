@@ -1,0 +1,5 @@
+actions/checkout@v2
+voxmedia/github-action-slack-notify-build@v1
+satackey/action-docker-layer-caching@v0.0.11
+voxmedia/github-action-slack-notify-build@v1
+voxmedia/github-action-slack-notify-build@v1

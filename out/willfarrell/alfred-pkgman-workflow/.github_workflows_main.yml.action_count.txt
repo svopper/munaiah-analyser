@@ -1,0 +1,3 @@
+actions/checkout@master
+elgohr/Github-Release-Action@1.1
+Roang-zero1/github-upload-release-artifacts-action@v2.0.0

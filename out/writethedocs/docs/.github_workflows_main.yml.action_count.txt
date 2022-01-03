@@ -1,0 +1,12 @@
+actions/checkout@v2
+errata-ai/vale-action@v1.3.0
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/cache@v2
+rickstaa/sphinx-action@master
+actions/upload-artifact@v2
+actions/download-artifact@v2

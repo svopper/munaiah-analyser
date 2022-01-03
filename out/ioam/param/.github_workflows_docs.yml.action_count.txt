@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/setup-python@v2
+peaceiris/actions-gh-pages@v3
+peaceiris/actions-gh-pages@v3

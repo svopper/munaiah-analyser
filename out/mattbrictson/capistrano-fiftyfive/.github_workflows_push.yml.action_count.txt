@@ -1,0 +1,2 @@
+actions/checkout@master
+toolmantim/release-drafter@v5.2.0

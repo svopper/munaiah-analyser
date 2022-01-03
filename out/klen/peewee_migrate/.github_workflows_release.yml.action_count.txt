@@ -1,0 +1,6 @@
+actions/checkout@main
+actions/setup-python@main
+actions/upload-artifact@main
+actions/download-artifact@main
+pypa/gh-action-pypi-publish@master
+archive/github-actions-slack@master

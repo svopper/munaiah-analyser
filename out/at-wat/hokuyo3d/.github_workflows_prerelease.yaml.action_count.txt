@@ -1,0 +1,2 @@
+actions/checkout@v2
+at-wat/setup-gh-pr-comment@v0

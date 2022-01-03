@@ -1,0 +1,12 @@
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+dev-drprasad/delete-tag-and-release@v0.1.2
+meeDamian/github-release@2.0

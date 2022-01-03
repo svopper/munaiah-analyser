@@ -1,0 +1,1 @@
+Wayland-Smithy/emoji-stripper-action@8f4c2fe9748bb9b02f105be4e72a1a42b0f34d84

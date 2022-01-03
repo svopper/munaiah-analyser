@@ -1,0 +1,17 @@
+actions/checkout@v2
+actions/setup-java@v2
+burrunan/gradle-cache-action@v1
+actions/checkout@v2
+actions/setup-java@v2
+burrunan/gradle-cache-action@v1
+actions/checkout@v2
+actions/setup-java@v2
+burrunan/gradle-cache-action@v1
+actions/checkout@v2
+actions/setup-java@v1
+AdoptOpenJDK/install-jdk@v1
+burrunan/gradle-cache-action@v1
+actions/checkout@v2
+actions/setup-java@v1
+AdoptOpenJDK/install-jdk@v1
+burrunan/gradle-cache-action@v1

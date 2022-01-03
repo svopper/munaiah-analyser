@@ -1,0 +1,9 @@
+actions/checkout@master
+actionshub/chef-delivery@master
+actions/checkout@master
+actionshub/yamllint@master
+actions/checkout@master
+actionshub/markdownlint@1.2.0
+actions/checkout@master
+webfactory/ssh-agent@v0.3.0
+actionshub/chef-install@master

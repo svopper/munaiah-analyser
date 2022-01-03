@@ -1,0 +1,3 @@
+actions/checkout@v2
+reviewdog/action-shellcheck@v1.1.3
+reviewdog/action-hadolint@v1.16.0

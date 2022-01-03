@@ -1,0 +1,5 @@
+actions/checkout@master
+actionshub/chef-delivery@main
+actions/checkout@master
+actionshub/chef-install@master
+actionshub/kitchen-dokken@master

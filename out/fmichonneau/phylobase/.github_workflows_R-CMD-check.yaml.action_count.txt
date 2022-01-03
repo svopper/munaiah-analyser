@@ -1,0 +1,4 @@
+actions/checkout@v1
+r-lib/actions/setup-r@master
+r-lib/actions/setup-tinytex@v1
+actions/cache@v1

@@ -1,0 +1,15 @@
+actions/checkout@v2
+flux-framework/pr-validator@master
+actions/setup-python@v1
+actions/checkout@v2
+actions/setup-python@v1
+actions/checkout@v2
+actions/setup-python@v1
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+docker/setup-buildx-action@v1
+codecov/codecov-action@v1
+actions/create-release@v1
+actions/upload-release-asset@v1

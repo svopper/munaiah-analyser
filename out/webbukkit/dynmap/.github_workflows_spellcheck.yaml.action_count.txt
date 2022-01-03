@@ -1,0 +1,2 @@
+actions/checkout@v2
+rojopolis/spellcheck-github-actions@0.16.0

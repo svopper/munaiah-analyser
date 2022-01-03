@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+paambaati/codeclimate-action@v2.7.5

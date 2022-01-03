@@ -1,0 +1,2 @@
+actions/checkout@v2
+KSXGitHub/github-actions-deploy-aur@v2.2.4

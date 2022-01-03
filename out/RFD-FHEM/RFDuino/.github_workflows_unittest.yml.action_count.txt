@@ -1,0 +1,7 @@
+actions/checkout@master
+textbook/git-checkout-submodule-action@master
+actions/checkout@master
+textbook/git-checkout-submodule-action@master
+arduino/setup-arduino-cli@v1.1.1
+bruceadams/get-release@v1.2.3
+actions/upload-release-asset@v1.0.2

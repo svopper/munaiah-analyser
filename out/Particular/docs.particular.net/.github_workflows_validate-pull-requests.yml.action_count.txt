@@ -1,0 +1,7 @@
+actions/checkout@v2
+actions/setup-dotnet@v1.8.1
+actions/checkout@v2
+actions/setup-dotnet@v1.8.1
+actions/checkout@v2
+actions/setup-dotnet@v1.8.1
+microsoft/setup-msbuild@v1.0.2

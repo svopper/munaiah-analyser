@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/download-artifact@v2
+ad-m/github-push-action@v0.5.0
+actions/checkout@v2
+actions/setup-python@v2
+actions/checkout@v2
+actions/setup-python@v2

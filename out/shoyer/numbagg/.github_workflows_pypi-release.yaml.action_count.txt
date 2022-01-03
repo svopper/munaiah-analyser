@@ -1,0 +1,8 @@
+actions/checkout@v2
+actions/setup-python@v2
+actions/upload-artifact@v2
+actions/setup-python@v2
+actions/download-artifact@v2
+pypa/gh-action-pypi-publish@v1.4.2
+actions/download-artifact@v2
+pypa/gh-action-pypi-publish@v1.4.2

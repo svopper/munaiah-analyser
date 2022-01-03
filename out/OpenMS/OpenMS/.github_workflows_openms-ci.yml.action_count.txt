@@ -1,0 +1,10 @@
+actions/checkout@v2
+jurplel/install-qt-action@v2
+egor-tensin/vs-shell@v2
+actions/cache@v2
+jwlawson/actions-setup-cmake@v1.8
+actions/checkout@v2
+jurplel/install-qt-action@v2
+actions/cache@v2
+rokroskar/workflow-run-cleanup-action@master
+actions/checkout@v2

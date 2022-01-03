@@ -1,0 +1,7 @@
+actions/setup-java@v2
+android-actions/setup-android@v2
+actions/cache@v2
+actions/checkout@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2
+actions/upload-artifact@v2

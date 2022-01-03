@@ -1,0 +1,7 @@
+actions/setup-go@v2
+actions/checkout@v2
+goreleaser/goreleaser-action@v2
+actions/checkout@v2
+elgohr/Publish-Docker-Github-Action@master
+actions/checkout@v2
+elgohr/Publish-Docker-Github-Action@master

@@ -1,0 +1,3 @@
+actions/checkout@v2
+ilammy/setup-nasm@v1
+svenstaro/upload-release-action@v2

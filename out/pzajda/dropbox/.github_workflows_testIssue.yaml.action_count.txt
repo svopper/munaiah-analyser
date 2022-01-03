@@ -1,0 +1,4 @@
+actions/github-script@v4
+actions/checkout@v2
+actions/setup-python@v2
+actions/github-script@v4

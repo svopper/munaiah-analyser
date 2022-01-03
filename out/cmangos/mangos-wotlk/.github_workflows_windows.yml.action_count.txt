@@ -1,0 +1,5 @@
+actions/checkout@v2
+actions/cache@v2
+MarkusJx/install-boost@v1.0.1
+actions/upload-artifact@v2
+rjstone/discord-webhook-notify@v1.0.4

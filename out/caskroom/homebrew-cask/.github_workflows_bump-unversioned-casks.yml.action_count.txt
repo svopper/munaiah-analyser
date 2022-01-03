@@ -1,0 +1,5 @@
+Homebrew/actions/setup-homebrew@master
+Homebrew/actions/git-user-config@master
+Homebrew/actions/setup-commit-signing@master
+actions/cache@v2.1.6
+actions/cache@v2.1.6

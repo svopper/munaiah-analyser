@@ -1,0 +1,1 @@
+c-hive/gha-remove-artifacts@v1

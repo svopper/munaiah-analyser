@@ -1,0 +1,4 @@
+google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
+google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
+actions/upload-artifact@v2
+actions/upload-artifact@v2

@@ -1,0 +1,7 @@
+actions/checkout@v1
+actions/upload-artifact@v1
+actions/checkout@v1
+actions/download-artifact@v1
+actions/setup-node@v1
+actions/download-artifact@v1
+JamesIves/github-pages-deploy-action@releases/v3

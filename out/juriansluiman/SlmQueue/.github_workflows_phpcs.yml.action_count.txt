@@ -1,0 +1,2 @@
+actions/checkout@v2
+tinovyatkin/action-php-codesniffer@v1

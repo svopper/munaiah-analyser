@@ -1,0 +1,3 @@
+actions/setup-go@v1
+actions/checkout@v1
+goreleaser/goreleaser-action@v1

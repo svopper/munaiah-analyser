@@ -1,0 +1,2 @@
+actions/checkout@v2
+JRubics/poetry-publish@v1.8

@@ -1,0 +1,3 @@
+actions/checkout@master
+sphinx-notes/pages@master
+ad-m/github-push-action@master

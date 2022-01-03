@@ -1,0 +1,2 @@
+actions/checkout@v2
+repo-sync/pull-request@v2

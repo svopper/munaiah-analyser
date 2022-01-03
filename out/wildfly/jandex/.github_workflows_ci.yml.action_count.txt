@@ -1,0 +1,6 @@
+actions/checkout@v2
+joschi/setup-jdk@ccd4eb6437f6a33d3c033551a6004cc6f3078307
+actions/checkout@v2
+joschi/setup-jdk@ccd4eb6437f6a33d3c033551a6004cc6f3078307
+burrunan/gradle-cache-action@feb985ecf49f57f54f31920821a50d0394faf122
+actions/upload-artifact@v1

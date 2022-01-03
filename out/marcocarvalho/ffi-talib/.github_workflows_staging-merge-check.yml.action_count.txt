@@ -1,0 +1,2 @@
+actions/checkout@v1
+marcocarvalho/check_if_merged@v1

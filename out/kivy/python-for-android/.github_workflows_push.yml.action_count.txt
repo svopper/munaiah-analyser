@@ -1,0 +1,11 @@
+actions/checkout@v2
+actions/setup-python@v2.2.1
+actions/checkout@v2
+actions/setup-python@v2.2.1
+AndreMiras/coveralls-python-action@develop
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/checkout@v2
+actions/upload-artifact@v1
+actions/checkout@v2
+AndreMiras/coveralls-python-action@develop

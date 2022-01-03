@@ -1,0 +1,2 @@
+actions/checkout@v2
+camptocamp/initialise-gopass-summon-action@v2

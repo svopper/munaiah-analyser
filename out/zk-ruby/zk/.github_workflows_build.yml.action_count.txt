@@ -1,0 +1,3 @@
+actions/checkout@v2
+egor-tensin/setup-gcc@v1
+ruby/setup-ruby@v1

@@ -1,0 +1,4 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/cache@v2
+Jimver/cuda-toolkit@v0.2.4

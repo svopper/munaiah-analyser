@@ -1,0 +1,8 @@
+actions/checkout@v2
+docker/metadata-action@v3
+docker/metadata-action@v3
+docker/metadata-action@v3
+docker/login-action@v1
+docker/build-push-action@v2
+docker/build-push-action@v2
+docker/build-push-action@v2

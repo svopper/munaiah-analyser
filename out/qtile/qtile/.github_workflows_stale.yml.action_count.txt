@@ -1,0 +1,2 @@
+actions/stale@v2.0.0
+actions/stale@v2.0.0

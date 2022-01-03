@@ -1,0 +1,10 @@
+actions/cache@v2
+actions/checkout@v2
+jwlawson/actions-setup-cmake@v1.9
+seanmiddleditch/gha-setup-vsdevenv@v3
+actions/cache@v2
+actions/cache@v2
+ammaraskar/gcc-problem-matcher@master
+ammaraskar/msvc-problem-matcher@master
+actions/upload-artifact@v2
+actions/checkout@v2

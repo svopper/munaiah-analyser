@@ -1,0 +1,3 @@
+actions/checkout@master
+actions/cache@master
+actions/setup-java@master

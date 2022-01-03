@@ -1,0 +1,10 @@
+actions/checkout@v2
+actions/checkout@v2
+actions/checkout@v2
+singingwolfboy/build-dpkg-stretch@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1
+actions/checkout@v2
+singingwolfboy/build-dpkg-buster@v1
+actions/upload-artifact@v1
+actions/upload-artifact@v1

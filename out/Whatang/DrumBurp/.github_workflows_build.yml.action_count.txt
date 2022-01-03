@@ -1,0 +1,17 @@
+actions/checkout@master
+actions/setup-python@v1
+actions/cache@v1
+actions/cache@v1
+actions/cache@v1
+actions/upload-artifact@v1
+actions/checkout@master
+actions/download-artifact@v1
+actions/checkout@master
+actions/upload-artifact@v1
+actions/download-artifact@v1
+actions/checkout@master
+actions/create-release@master
+actions/download-artifact@v1
+actions/upload-release-asset@v1.0.1
+actions/download-artifact@v1
+actions/upload-release-asset@v1.0.1

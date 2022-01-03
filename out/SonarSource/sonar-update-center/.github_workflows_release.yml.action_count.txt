@@ -1,0 +1,4 @@
+actions/checkout@v2
+SonarSource/gh-action_LT_release@master
+Ilshidur/action-slack@2.0.0
+Ilshidur/action-slack@2.0.0

@@ -1,0 +1,4 @@
+actions/checkout@v2
+tcurdt/action-verify-version-maven@main
+actions/setup-java@v2
+peaceiris/actions-gh-pages@v3.8.0

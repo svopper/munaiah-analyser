@@ -1,0 +1,2 @@
+actions/checkout@v2
+jesusvasquez333/verify-pr-label-action@v1.4.0
