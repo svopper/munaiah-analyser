@@ -1,5 +1,6 @@
-# Scripts
-This folder contains scripts for doing awesome stuff
+# Munaiah Analyser
+
+This project is hosting the code for a research project done at the IT University of Copenhagen in fall 2021.
 
 ## Code files
 
